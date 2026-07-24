@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO -->
+    <title>Prestador — O profissional que você precisa, perto de você.</title>
+    <meta name="description" content="Encontre eletricistas, pedreiros, encanadores, pintores e outros profissionais com avaliações reais de clientes." />
+    <meta property="og:title" content="Prestador — Profissionais avaliados perto de você" />
+    <meta property="og:description" content="Encontre eletricistas, pedreiros, encanadores e mais. Avaliações reais com fotos dos serviços." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://prestador-lyart.vercel.app" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#16A34A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Prestador" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7M513HMSVQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-7M513HMSVQ');
+    </script>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css" />
+
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+      * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --verde: #16A34A;
+        --verde-dark: #0F6E30;
+        --verde-light: #DCFCE7;
+        --amarelo: #FACC15;
+        --fundo: #F8FAFC;
+        --branco: #FFFFFF;
+        --texto: #1F2937;
+        --texto-sub: #6B7280;
+        --borda: #E5E7EB;
+        --sombra: 0 4px 20px rgba(0,0,0,0.06);
+        --radius: 20px;
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--fundo);
+        color: var(--texto);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      input, textarea, select, button { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: var(--borda); border-radius: 4px; }
+
+      .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+      .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.10) !important; }
+      .btn-press:active { transform: scale(0.97); }
+
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .skeleton {
+        background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js').catch(() => {})
+        })
+      }
+    </script>
+  </body>
+</html>
