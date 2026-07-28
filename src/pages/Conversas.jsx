@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MessageCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors, spacing, type as typeScale } from '../lib/design'
+import Card from '../components/ui/Card'
 
 export default function Conversas() {
   const { usuario } = useAuth()
@@ -63,27 +66,25 @@ export default function Conversas() {
   }
 
   if (carregando) return (
-    <div className="flex items-center justify-center min-h-64">
-      <p className="text-sm" style={{ color: '#7C9485' }}>Carregando conversas...</p>
-    </div>
+    <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando conversas...</div>
   )
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold mb-5" style={{ color: '#1F2D24' }}>Mensagens</h1>
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+      <h1 style={{ ...typeScale.subtitle, color: colors.text, marginBottom: 20 }}>Mensagens</h1>
 
       {conversas.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl" style={{ border: '0.5px solid #EDE3CE' }}>
-          <div className="text-5xl mb-3">💬</div>
-          <p className="text-sm" style={{ color: '#7C9485' }}>Nenhuma conversa ainda.</p>
+        <Card padding={48} style={{ textAlign: 'center' }}>
+          <MessageCircle size={48} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
+          <p style={{ fontSize: 14, color: colors.textSub }}>Nenhuma conversa ainda.</p>
           {!prestadorId && (
-            <p className="text-xs mt-1" style={{ color: '#C9BFA8' }}>
+            <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
               Acesse o perfil de um profissional e clique em "Conversar" para iniciar.
             </p>
           )}
-        </div>
+        </Card>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
           {conversas.map(conv => {
             const naoLidas = prestadorId ? conv.nao_lidas_prestador : conv.nao_lidas_cliente
             const nome = prestadorId
@@ -94,35 +95,30 @@ export default function Conversas() {
               : `${conv.prestadores?.categoria_id} · ${conv.prestadores?.cidade}`
 
             return (
-              <button
-                key={conv.id}
-                onClick={() => navigate(`/chat/${conv.id}`)}
-                className="bg-white rounded-2xl p-4 flex items-center gap-3 hover:opacity-90 transition-opacity text-left w-full"
-                style={{ border: '0.5px solid #EDE3CE' }}
-              >
-                <div className="w-12 h-12 rounded-full flex items-center justify-center text-base font-medium flex-shrink-0" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
-                  {nome[0].toUpperCase()}
+              <Card key={conv.id} interactive padding={16} onClick={() => navigate(`/chat/${conv.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, background: '#DCFCE7', color: colors.primaryHover, flexShrink: 0 }}>
+                  {nome[0]?.toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{nome}</p>
-                    <p className="text-xs" style={{ color: '#C9BFA8' }}>
+                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</p>
+                    <p style={{ fontSize: 11, color: '#9CA3AF', flexShrink: 0, margin: 0 }}>
                       {conv.ultima_mensagem_em && new Date(conv.ultima_mensagem_em).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
-                  {sub && <p className="text-xs capitalize mb-1" style={{ color: '#7C9485' }}>{sub}</p>}
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs truncate" style={{ color: '#7C9485' }}>
+                  {sub && <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', marginBottom: 4 }}>{sub}</p>}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <p style={{ fontSize: 12, color: colors.textSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
                       {conv.ultima_mensagem || 'Nenhuma mensagem ainda'}
                     </p>
                     {naoLidas > 0 && (
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white flex-shrink-0 ml-2" style={{ background: '#1FA855' }}>
+                      <span style={{ width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', background: colors.primary, flexShrink: 0 }}>
                         {naoLidas}
                       </span>
                     )}
                   </div>
                 </div>
-              </button>
+              </Card>
             )
           })}
         </div>

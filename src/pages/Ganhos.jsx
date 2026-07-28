@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BarChart3, Eye, MessageCircle, Star, Send, Flame, Lightbulb, Check, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
 
 export default function Ganhos() {
   const { usuario } = useAuth()
@@ -46,38 +48,40 @@ export default function Ganhos() {
     setCarregando(false)
   }
 
-  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
+  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
 
   if (!prestador) return (
     <div className="text-center py-16">
-      <p className="text-sm" style={{ color: '#7C9485' }}>Você precisa ter um perfil de prestador.</p>
+      <p className="text-sm" style={{ color: '#6B7280' }}>Você precisa ter um perfil de prestador.</p>
       <button onClick={() => navigate('/cadastro-pro')}
         className="mt-4 px-6 py-3 text-white text-sm font-medium rounded-xl"
-        style={{ background: '#1FA855' }}>Criar perfil</button>
+        style={{ background: '#16A34A' }}>Criar perfil</button>
     </div>
   )
 
   const metricas = [
-    { emoji: '👁️', label: 'Visualizações totais', valor: stats.visualizacoes, sub: `+${stats.vizualizacoesHoje} hoje`, cor: '#185FA5', bg: '#E6F1FB' },
-    { emoji: '💬', label: 'Conversas iniciadas', valor: stats.conversas, sub: 'clientes que entraram em contato', cor: '#0F6E3D', bg: '#E3F6E9' },
-    { emoji: '⭐', label: 'Avaliações recebidas', valor: stats.avaliacoes, sub: `nota média ${prestador.avaliacao_media || '—'}`, cor: '#8A5A00', bg: '#FFF4D6' },
-    { emoji: '🙋', label: 'Candidaturas enviadas', valor: stats.candidaturas, sub: 'pedidos que você se candidatou', cor: '#A32D2D', bg: '#FCEBEB' },
+    { icon: Eye, label: 'Visualizações totais', valor: stats.visualizacoes, sub: `+${stats.vizualizacoesHoje} hoje`, cor: '#2563EB', bg: '#EFF6FF' },
+    { icon: MessageCircle, label: 'Conversas iniciadas', valor: stats.conversas, sub: 'clientes que entraram em contato', cor: '#14853D', bg: '#DCFCE7' },
+    { icon: Star, label: 'Avaliações recebidas', valor: stats.avaliacoes, sub: `nota média ${prestador.avaliacao_media || '—'}`, cor: '#92610A', bg: '#FEF3C7' },
+    { icon: Send, label: 'Candidaturas enviadas', valor: stats.candidaturas, sub: 'pedidos que você se candidatou', cor: '#B91C1C', bg: '#FEF2F2' },
   ]
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>📊 Resumo de desempenho</h1>
-      <p className="text-sm mb-5" style={{ color: '#7C9485' }}>Veja como seu perfil está performando na plataforma</p>
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>
+        <BarChart3 size={19} color={colors.primary} /> Resumo de desempenho
+      </h1>
+      <p className="text-sm mb-5" style={{ color: '#6B7280' }}>Veja como seu perfil está performando na plataforma</p>
 
       {/* Senso de urgência */}
       <div className="p-4 rounded-2xl mb-5 flex items-center gap-3"
-        style={{ background: '#FFF4D6', border: '1px solid #FFC857' }}>
-        <span style={{ fontSize: 24 }}>🔥</span>
+        style={{ background: '#FEF3C7', border: '1px solid #F6C64D' }}>
+        <Flame size={24} color="#D97706" style={{ flexShrink: 0 }} />
         <div>
-          <p className="text-sm font-medium" style={{ color: '#8A5A00' }}>
+          <p className="text-sm font-medium" style={{ color: '#92610A' }}>
             {stats.vizualizacoesHoje} pessoas viram seu perfil hoje!
           </p>
-          <p className="text-xs" style={{ color: '#9A6B10' }}>
+          <p className="text-xs" style={{ color: '#92610A' }}>
             Complete seu perfil para converter mais visitas em contatos.
           </p>
         </div>
@@ -86,19 +90,21 @@ export default function Ganhos() {
       {/* Métricas */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         {metricas.map(m => (
-          <div key={m.label} className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid #DDE3DD' }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-xl"
-              style={{ background: m.bg }}>{m.emoji}</div>
+          <div key={m.label} className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid #E4E7E4' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+              style={{ background: m.bg }}><m.icon size={19} color={m.cor} /></div>
             <p className="text-2xl font-semibold mb-0.5" style={{ color: m.cor }}>{m.valor}</p>
-            <p className="text-xs font-medium mb-0.5" style={{ color: '#1F2D24' }}>{m.label}</p>
-            <p className="text-xs" style={{ color: '#7C9485' }}>{m.sub}</p>
+            <p className="text-xs font-medium mb-0.5" style={{ color: '#1F2937' }}>{m.label}</p>
+            <p className="text-xs" style={{ color: '#6B7280' }}>{m.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Dicas de melhoria */}
-      <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #DDE3DD' }}>
-        <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>💡 Como melhorar seu desempenho</p>
+      <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #E4E7E4' }}>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 16 }}>
+          <Lightbulb size={16} color="#D97706" /> Como melhorar seu desempenho
+        </p>
         <div className="space-y-3">
           {[
             { ok: (prestador.avaliacao_media || 0) >= 4.5, texto: 'Mantenha nota acima de 4.5 para entrar nos Destaques', acao: null },
@@ -108,15 +114,17 @@ export default function Ganhos() {
           ].map((d, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: d.ok ? '#E3F6E9' : '#F5F5F5' }}>
-                <span style={{ fontSize: 11, color: d.ok ? '#0F6E3D' : '#C9BFA8' }}>{d.ok ? '✓' : '→'}</span>
+                style={{ background: d.ok ? '#DCFCE7' : '#F3F6F2' }}>
+                {d.ok
+                  ? <Check size={11} strokeWidth={3} color={colors.primaryHover} />
+                  : <ArrowRight size={11} color="#9CA3AF" />}
               </div>
-              <p className="text-sm flex-1" style={{ color: d.ok ? '#7C9485' : '#1F2D24', textDecoration: d.ok ? 'line-through' : 'none' }}>
+              <p className="text-sm flex-1" style={{ color: d.ok ? '#6B7280' : '#1F2937', textDecoration: d.ok ? 'line-through' : 'none' }}>
                 {d.texto}
               </p>
               {d.acao && !d.ok && (
                 <button onClick={d.acao} className="text-xs font-medium px-3 py-1 rounded-lg flex-shrink-0"
-                  style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
+                  style={{ background: '#DCFCE7', color: '#14853D' }}>
                   Fazer
                 </button>
               )}

@@ -1,87 +1,144 @@
 import { useNavigate } from 'react-router-dom'
+import { Star, Check, ChevronRight, Scale } from 'lucide-react'
+import { formatarDistancia } from '../lib/gps'
+import { colors } from '../lib/design'
+import { useComparacao, MAX_COMPARACAO } from '../lib/ComparacaoContext'
+import Card from './ui/Card'
+import Badge from './ui/Badge'
+import Button from './ui/Button'
+import IconButton from './ui/IconButton'
 
-const cores = [
-  'bg-blue-100 text-blue-800',
-  'bg-teal-100 text-teal-800',
-  'bg-amber-100 text-amber-800',
-  'bg-purple-100 text-purple-800',
-  'bg-orange-100 text-orange-800',
-]
-
-function iniciaisDe(nome = '') {
-  return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
-}
-
-function corDe(nome = '') {
-  const soma = nome.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return cores[soma % cores.length]
-}
-
-const badgeDisponivel = { background: '#E3F6E9', color: '#0F6E3D' }
-const badgePlano = { background: '#FFF4D6', color: '#8A5A00' }
-
-export default function CardPrestador({ prestador: p, horizontal = false }) {
-  const navigate = useNavigate()
-  const iniciais = iniciaisDe(p.nome)
-  const cor = corDe(p.nome)
-
-  if (horizontal) return (
-    <div
-      onClick={() => navigate(`/profissional/${p.id}`)}
-      className="bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:opacity-90 transition-opacity"
-      style={{ border: '0.5px solid #EDE3CE' }}
-    >
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-medium flex-shrink-0 ${cor}`}>
-        {iniciais}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{p.nome}</p>
-          {p.disponivel && <span className="text-xs px-2 py-0.5 rounded-full" style={badgeDisponivel}>Disponível</span>}
-          {p.plano !== 'basico' && <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={badgePlano}>{p.plano}</span>}
-        </div>
-        <p className="text-xs capitalize mb-1" style={{ color: '#7C9485' }}>{p.categoria} · {p.cidade}, {p.estado}</p>
-        <div className="flex items-center gap-3">
-          <span style={{ color: '#FFC857' }} className="text-sm">{'★'.repeat(Math.round(p.avaliacao))}</span>
-          <span className="text-xs" style={{ color: '#7C9485' }}>{p.avaliacao} · {p.totalAvaliacoes} avaliações</span>
-        </div>
-        <div className="flex gap-1.5 mt-2 flex-wrap">
-          {(p.hashtags || []).filter(Boolean).slice(0, 3).map(tag => (
-            <span key={tag} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>#{tag}</span>
-          ))}
-          {(p.servicos || []).slice(0, 2).map(s => (
-            <span key={s} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FAF6EE', color: '#5C7A66' }}>{s}</span>
-          ))}
-        </div>
-      </div>
-      <i className="ti ti-chevron-right flex-shrink-0" style={{ fontSize: '18px', color: '#C9BFA8' }} aria-hidden="true"></i>
-    </div>
-  )
+function BotaoComparar({ id, size }) {
+  const { estaComparando, toggleComparar, selecionados } = useComparacao()
+  const ativo = estaComparando(id)
+  const desabilitado = !ativo && selecionados.length >= MAX_COMPARACAO
 
   return (
-    <div
-      onClick={() => navigate(`/profissional/${p.id}`)}
-      className="bg-white rounded-xl p-4 cursor-pointer hover:opacity-90 transition-opacity"
-      style={{ border: '0.5px solid #EDE3CE' }}
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${cor}`}>
+    <IconButton
+      icon={<Scale size={15} />}
+      size={size}
+      tone={ativo ? 'primary' : 'ghost'}
+      aria-label={ativo ? 'Remover da comparação' : 'Adicionar à comparação'}
+      title={desabilitado ? `Você já selecionou ${MAX_COMPARACAO} para comparar` : undefined}
+      disabled={desabilitado}
+      onClick={(e) => { e.stopPropagation(); toggleComparar(id) }}
+      style={{ flexShrink: 0, opacity: desabilitado ? 0.4 : 1, cursor: desabilitado ? 'not-allowed' : 'pointer' }}
+    />
+  )
+}
+
+function iniciaisDe(nome = '') {
+  return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'P'
+}
+
+function Avatar({ prestador: p, size }) {
+  const iniciais = iniciaisDe(p.nome)
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      {p.foto_perfil ? (
+        <img
+          src={p.foto_perfil}
+          alt={p.nome}
+          style={{ width: size, height: size, borderRadius: 14, objectFit: 'cover' }}
+        />
+      ) : (
+        <div
+          style={{
+            width: size, height: size, borderRadius: 14, background: '#DCFCE7',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: size * 0.34, fontWeight: 800, color: colors.primary,
+          }}
+        >
           {iniciais}
         </div>
-        <div>
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{p.nome}</p>
-          <p className="text-xs capitalize" style={{ color: '#7C9485' }}>{p.categoria} · {p.cidade}, {p.estado}</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-1.5 mb-2">
-        <span style={{ color: '#FFC857' }} className="text-sm">{'★'.repeat(Math.round(p.avaliacao))}</span>
-        <span className="text-xs" style={{ color: '#7C9485' }}>{p.avaliacao} ({p.totalAvaliacoes})</span>
-      </div>
-      <div className="flex gap-1.5 flex-wrap">
-        {p.disponivel && <span className="text-xs px-2 py-0.5 rounded-full" style={badgeDisponivel}>Disponível</span>}
-        {p.plano !== 'basico' && <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={badgePlano}>{p.plano}</span>}
-      </div>
+      )}
+      {p.plano === 'premium' && (
+        <span
+          style={{
+            position: 'absolute', bottom: -4, right: -4, width: 18, height: 18,
+            borderRadius: '50%', background: colors.secondary, border: '2px solid #fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Check size={11} strokeWidth={3} color="#713F12" />
+        </span>
+      )}
     </div>
   )
 }
 
+function Rating({ prestador: p }) {
+  if (!(p.avaliacao > 0)) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <Star size={13} fill={colors.secondary} color={colors.secondary} strokeWidth={0} />
+      <span style={{ fontSize: 12, fontWeight: 700, color: colors.text }}>{p.avaliacao}</span>
+      {p.totalAvaliacoes > 0 && (
+        <span style={{ fontSize: 11, color: colors.textSub }}>({p.totalAvaliacoes})</span>
+      )}
+    </div>
+  )
+}
+
+export default function CardPrestador({ prestador: p, layout = 'vertical', distancia, onClick }) {
+  const navigate = useNavigate()
+  const dist = distancia ? formatarDistancia(distancia) : null
+  const verificado = p.plano && p.plano !== 'basico'
+  const handleClick = onClick || (() => navigate(`/profissional/${p.id}`))
+
+  const meta = [p.categoria, p.cidade, dist].filter(Boolean).join(' · ')
+  // "A partir de R$X" plugaria aqui quando existir uma coluna de preço em prestadores_completo
+
+  if (layout === 'horizontal') {
+    return (
+      <Card interactive onClick={handleClick} padding={16} style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <Avatar prestador={p} size={56} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+            <p style={{ flex: 1, fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.nome}</p>
+            {p.disponivel && <Badge tone="available" style={{ flexShrink: 0 }}>Disponível</Badge>}
+          </div>
+          <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Rating prestador={p} />
+            {verificado && <Badge tone="verified" icon={<Check size={10} strokeWidth={3} />}>Verificado</Badge>}
+          </div>
+        </div>
+        <BotaoComparar id={p.id} size={34} />
+        <ChevronRight size={18} color="#D1D5DB" style={{ flexShrink: 0 }} />
+      </Card>
+    )
+  }
+
+  return (
+    <Card interactive onClick={handleClick} padding={16} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <Avatar prestador={p} size={58} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
+            <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</p>
+            {p.disponivel && <Badge tone="available" style={{ flexShrink: 0 }}>Disponível</Badge>}
+          </div>
+          <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize' }}>{meta}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Rating prestador={p} />
+            {verificado && (
+              <Badge tone="verified" icon={<Check size={10} strokeWidth={3} />}>Verificado</Badge>
+            )}
+          </div>
+        </div>
+        <BotaoComparar id={p.id} size={34} />
+      </div>
+      <div style={{ paddingTop: 12, borderTop: `1px solid ${colors.border}` }}>
+        <Button
+          variant="outline"
+          size="sm"
+          fullWidth
+          onClick={(e) => { e.stopPropagation(); handleClick() }}
+        >
+          Solicitar orçamento
+        </Button>
+      </div>
+    </Card>
+  )
+}

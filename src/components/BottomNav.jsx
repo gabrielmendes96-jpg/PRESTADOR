@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { Home, Search, ClipboardList, MessageCircle, User } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 
@@ -25,11 +26,11 @@ export default function BottomNav() {
   }, [usuario])
 
   const itens = [
-    { path: '/', icon: 'ti-home', label: 'Início' },
-    { path: '/busca', icon: 'ti-search', label: 'Buscar' },
-    { path: '/pedidos', icon: 'ti-clipboard-list', label: 'Pedidos' },
-    { path: '/mensagens', icon: 'ti-message', label: 'Chat', badge: naoLidas },
-    { path: usuario ? '/perfil-cliente' : '/login', icon: 'ti-user', label: usuario ? 'Perfil' : 'Entrar' },
+    { path: '/', icon: Home, label: 'Início' },
+    { path: '/busca', icon: Search, label: 'Buscar' },
+    { path: '/pedidos', icon: ClipboardList, label: 'Pedidos' },
+    { path: '/mensagens', icon: MessageCircle, label: 'Chat', badge: naoLidas },
+    { path: usuario ? '/perfil-cliente' : '/login', icon: User, label: usuario ? 'Perfil' : 'Entrar' },
   ]
 
   const ativo = (path) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path))
@@ -57,12 +58,12 @@ export default function BottomNav() {
                 minWidth: 52,
               }}>
               <div style={{ position: 'relative' }}>
-                <i className={`ti ${item.icon}`} style={{
-                  fontSize: 22,
-                  color: isAtivo ? '#16A34A' : '#9CA3AF',
-                  transition: 'all 0.25s ease',
-                  display: 'block',
-                }} aria-hidden="true"></i>
+                <item.icon
+                  size={22}
+                  strokeWidth={2}
+                  color={isAtivo ? '#16A34A' : '#9CA3AF'}
+                  style={{ transition: 'all 0.25s ease', display: 'block' }}
+                />
                 {item.badge > 0 && (
                   <span style={{
                     position: 'absolute', top: -4, right: -6,

@@ -1,7 +1,11 @@
 import { useEffect } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { Gift, Check } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import Logo from '../components/Logo'
+import { colors } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 
 export default function Convite() {
   const [searchParams] = useSearchParams()
@@ -17,44 +21,40 @@ export default function Convite() {
   }, [usuario, ref])
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#FAF6EE' }}>
-      <div className="w-full max-w-sm text-center">
-        <div className="flex justify-center mb-6">
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: colors.bg }}>
+      <div style={{ width: '100%', maxWidth: 380, textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <Logo size={48} />
         </div>
 
-        <div className="bg-white rounded-2xl p-6" style={{ border: '0.5px solid #EDE3CE' }}>
-          <div className="text-4xl mb-3">🎁</div>
-          <h1 className="text-xl font-semibold mb-2" style={{ color: '#1F2D24' }}>
-            Você foi convidado!
-          </h1>
-          <p className="text-sm mb-5" style={{ color: '#7C9485' }}>
-            Cadastre-se agora e ganhe <strong style={{ color: '#1FA855' }}>3 pedidos grátis</strong> para contratar profissionais na plataforma Prestador.
+        <Card padding={24}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Gift size={28} color={colors.primary} strokeWidth={1.8} />
+          </div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>Você foi convidado!</h1>
+          <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 20 }}>
+            Cadastre-se agora e ganhe <strong style={{ color: colors.primary }}>3 pedidos grátis</strong> para contratar profissionais na plataforma Prestador.
           </p>
 
-          <div className="space-y-2 mb-5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
             {['Profissionais avaliados por clientes reais', 'Fotos e vídeos dos trabalhos realizados', 'Chat direto com o profissional', 'Avaliações com 7 critérios detalhados'].map(item => (
-              <div key={item} className="flex items-center gap-2 text-sm text-left" style={{ color: '#5F6F65' }}>
-                <span style={{ color: '#1FA855' }}>✓</span> {item}
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, textAlign: 'left', color: colors.textSub }}>
+                <Check size={15} strokeWidth={3} color={colors.primary} style={{ flexShrink: 0 }} /> {item}
               </div>
             ))}
           </div>
 
-          <Link
-            to={`/cadastro?ref=${ref}`}
-            className="block w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90 text-center mb-3"
-            style={{ background: '#1FA855' }}
-          >
+          <Button fullWidth onClick={() => navigate(`/cadastro?ref=${ref}`)} style={{ marginBottom: 12 }}>
             Criar conta grátis e ganhar créditos
-          </Link>
+          </Button>
 
-          <Link to="/login" className="text-sm hover:underline" style={{ color: '#7C9485' }}>
+          <Link to="/login" style={{ fontSize: 14, color: colors.textSub, textDecoration: 'none' }}>
             Já tenho conta
           </Link>
-        </div>
+        </Card>
 
-        <p className="text-xs mt-4" style={{ color: '#C9BFA8' }}>
-          Código de convite: <strong>{ref}</strong>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 16 }}>
+          Código de convite: <strong style={{ color: colors.textSub }}>{ref}</strong>
         </p>
       </div>
     </div>

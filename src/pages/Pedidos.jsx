@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus, ClipboardList, MapPin, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useCategorias } from '../lib/hooks'
+import { colors, spacing, type as typeScale } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 
 export default function Pedidos() {
   const { usuario } = useAuth()
@@ -35,85 +39,73 @@ export default function Pedidos() {
     setCarregando(false)
   }
 
+  const inputStyle = {
+    flex: 1, padding: '10px 14px', fontSize: 14, borderRadius: 12,
+    border: `1px solid ${colors.border}`, outline: 'none', background: '#fff', color: colors.text,
+  }
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xl, gap: 12 }}>
         <div>
-          <h1 className="text-xl font-semibold" style={{ color: '#1F2D24' }}>Pedidos de serviço</h1>
-          <p className="text-sm" style={{ color: '#7C9485' }}>Clientes buscando profissionais agora</p>
+          <h1 style={{ ...typeScale.subtitle, color: colors.text, margin: 0 }}>Pedidos de serviço</h1>
+          <p style={{ fontSize: 14, color: colors.textSub, margin: 0 }}>Clientes buscando profissionais agora</p>
         </div>
         {usuario && (
-          <button
-            onClick={() => navigate('/pedidos/novo')}
-            className="px-4 py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90"
-            style={{ background: '#1FA855' }}
-          >
-            + Postar pedido
-          </button>
+          <Button icon={<Plus size={16} />} onClick={() => navigate('/pedidos/novo')}>
+            Postar pedido
+          </Button>
         )}
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl p-4 mb-5 flex gap-3 flex-wrap" style={{ border: '0.5px solid #EDE3CE' }}>
-        <select
-          value={filtroCategoria}
-          onChange={e => setFiltroCategoria(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none flex-1"
-        >
+      <Card padding={16} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: spacing.xl }}>
+        <select value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} style={inputStyle}>
           <option value="">Todas as categorias</option>
-          {categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nome}</option>)}
+          {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
         <input
           type="text"
           placeholder="Filtrar por cidade..."
           value={filtroCidade}
           onChange={e => setFiltroCidade(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none flex-1"
+          style={inputStyle}
         />
-      </div>
+      </Card>
 
       {carregando ? (
-        <p className="text-sm text-center py-8" style={{ color: '#C9BFA8' }}>Carregando pedidos...</p>
+        <p style={{ fontSize: 14, textAlign: 'center', padding: '32px 0', color: colors.textSub }}>Carregando pedidos...</p>
       ) : pedidos.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl" style={{ border: '0.5px solid #EDE3CE' }}>
-          <div className="text-5xl mb-3">📋</div>
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>Nenhum pedido disponível</p>
-          <p className="text-xs mt-1" style={{ color: '#7C9485' }}>Seja o primeiro a postar um pedido de serviço!</p>
+        <Card padding={48} style={{ textAlign: 'center' }}>
+          <ClipboardList size={48} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
+          <p style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>Nenhum pedido disponível</p>
+          <p style={{ fontSize: 13, color: colors.textSub, marginTop: 4 }}>Seja o primeiro a postar um pedido de serviço!</p>
           {usuario && (
-            <button
-              onClick={() => navigate('/pedidos/novo')}
-              className="mt-4 px-5 py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90"
-              style={{ background: '#1FA855' }}
-            >
+            <Button onClick={() => navigate('/pedidos/novo')} style={{ margin: '16px auto 0' }}>
               Postar pedido
-            </button>
+            </Button>
           )}
-        </div>
+        </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
           {pedidos.map(p => (
-            <div
-              key={p.id}
-              onClick={() => navigate(`/pedidos/${p.id}`)}
-              className="bg-white rounded-2xl p-5 cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ border: '0.5px solid #EDE3CE' }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h2 className="text-base font-semibold" style={{ color: '#1F2D24' }}>{p.titulo}</h2>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
-                      {p.categorias?.emoji} {p.categorias?.nome}
+            <Card key={p.id} interactive padding={20} onClick={() => navigate(`/pedidos/${p.id}`)}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.text, margin: 0 }}>{p.titulo}</h2>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 999, background: '#DCFCE7', color: colors.primaryHover }}>
+                      {p.categorias?.nome}
                     </span>
                   </div>
-                  <p className="text-xs" style={{ color: '#7C9485' }}>
-                    📍 {p.cidade}, {p.estado}
-                    {p.prazo && ` · ⏱️ ${p.prazo}`}
+                  <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: colors.textSub, margin: 0 }}>
+                    <MapPin size={13} /> {p.cidade}, {p.estado}
+                    {p.prazo && <><Clock size={13} style={{ marginLeft: 4 }} /> {p.prazo}</>}
                   </p>
                 </div>
                 {(p.orcamento_min || p.orcamento_max) && (
-                  <div className="text-right flex-shrink-0 ml-3">
-                    <p className="text-sm font-medium" style={{ color: '#1FA855' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: colors.primary, margin: 0 }}>
                       {p.orcamento_min && p.orcamento_max
                         ? `R$${p.orcamento_min} – R$${p.orcamento_max}`
                         : p.orcamento_max
@@ -121,24 +113,24 @@ export default function Pedidos() {
                         : `a partir de R$${p.orcamento_min}`
                       }
                     </p>
-                    <p className="text-xs" style={{ color: '#C9BFA8' }}>orçamento</p>
+                    <p style={{ fontSize: 11, color: '#9CA3AF', margin: 0 }}>orçamento</p>
                   </div>
                 )}
               </div>
 
               {p.descricao && (
-                <p className="text-sm mb-3 line-clamp-2" style={{ color: '#5F6F65' }}>{p.descricao}</p>
+                <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.descricao}</p>
               )}
 
-              <div className="flex items-center justify-between">
-                <p className="text-xs" style={{ color: '#C9BFA8' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>
                   Postado por {p.cliente_nome} · {new Date(p.criado_em).toLocaleDateString('pt-BR')}
                 </p>
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FAF6EE', color: '#7C9485' }}>
+                <span style={{ fontSize: 11, padding: '2px 9px', borderRadius: 999, background: colors.bg, color: colors.textSub }}>
                   Expira em {new Date(p.expira_em).toLocaleDateString('pt-BR')}
                 </span>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

@@ -1,86 +1,30 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { usePrestadores } from '../lib/hooks'
-import { calcularDistancia, formatarDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
+import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight } from 'lucide-react'
+import { usePrestadores, useCategorias } from '../lib/hooks'
+import { calcularDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
 import { useAuth } from '../lib/AuthContext'
+import { colors, radius, shadow, spacing, type as typeScale } from '../lib/design'
+import { getCategoriaIcone } from '../lib/categoriaIcones'
+import CardPrestador from '../components/CardPrestador'
+import CardSkeleton from '../components/CardSkeleton'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import SearchBar from '../components/ui/SearchBar'
 
-const categorias = [
-  { id: 'eletricista', icone: 'ti-bolt', nome: 'Elétrica', bg: '#FFFBEB', cor: '#D97706' },
-  { id: 'encanador', icone: 'ti-droplet', nome: 'Hidráulica', bg: '#EFF6FF', cor: '#2563EB' },
-  { id: 'pintor', icone: 'ti-paint', nome: 'Pintura', bg: '#FDF4FF', cor: '#9333EA' },
-  { id: 'pedreiro', icone: 'ti-building', nome: 'Construção', bg: '#FFF7ED', cor: '#EA580C' },
-  { id: 'marceneiro', icone: 'ti-tools', nome: 'Marcenaria', bg: '#F0FDF4', cor: '#16A34A' },
-  { id: 'diarista', icone: 'ti-sparkles', nome: 'Limpeza', bg: '#F0F9FF', cor: '#0284C7' },
-  { id: 'mecanico', icone: 'ti-car', nome: 'Automotivo', bg: '#FEF2F2', cor: '#DC2626' },
-  { id: 'cabeleireiro', icone: 'ti-scissors', nome: 'Beleza', bg: '#FFF0F6', cor: '#DB2777' },
-]
-
-function SkeletonCard() {
+function SectionHeader({ title, onVerTodas }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 22, padding: 18, border: '1px solid #E4E7E4', boxShadow: '0 4px 16px rgba(0,0,0,0.04)', display: 'flex', gap: 14, alignItems: 'center' }}>
-      <div className="skeleton" style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0 }} />
-      <div style={{ flex: 1 }}>
-        <div className="skeleton" style={{ height: 14, width: '60%', marginBottom: 8 }} />
-        <div className="skeleton" style={{ height: 12, width: '40%', marginBottom: 8 }} />
-        <div className="skeleton" style={{ height: 12, width: '30%' }} />
-      </div>
-    </div>
-  )
-}
-
-function CardPrestador({ p, navigate }) {
-  const iniciais = p.nome?.split(' ').map(w => w[0]).slice(0,2).join('') || 'P'
-  const dist = p.distanciaReal ? formatarDistancia(p.distanciaReal) : null
-
-  return (
-    <div onClick={() => navigate(`/profissional/${p.id}`)}
-      className="card-lift fade-in btn-press"
-      style={{
-        background: '#fff', borderRadius: 22, padding: '16px 18px',
-        border: '1px solid #E4E7E4', boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
-        display: 'flex', gap: 14, alignItems: 'center', cursor: 'pointer',
-      }}>
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        {p.foto_perfil ? (
-          <img src={p.foto_perfil} alt={p.nome} style={{ width: 58, height: 58, borderRadius: 14, objectFit: 'cover' }} />
-        ) : (
-          <div style={{ width: 58, height: 58, borderRadius: 14, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: '#16A34A' }}>
-            {iniciais}
-          </div>
-        )}
-        {p.plano === 'premium' && (
-          <span style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#F6C64D', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#713F12' }}>✓</span>
-        )}
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-          <p style={{ fontWeight: 700, fontSize: 15, color: '#1F2937', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</p>
-          {p.disponivel && (
-            <span style={{ background: '#DCFCE7', color: '#15803D', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, flexShrink: 0, marginLeft: 8 }}>Disponível</span>
-          )}
-        </div>
-        <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 6, textTransform: 'capitalize' }}>
-          {p.categoria}{dist ? ` · ${dist}` : ''}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {p.avaliacao > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <i className="ti ti-star-filled" style={{ fontSize: 12, color: '#F6C64D' }} aria-hidden="true"></i>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#1F2937' }}>{p.avaliacao}</span>
-              {p.totalAvaliacoes > 0 && <span style={{ fontSize: 11, color: '#9CA3AF' }}>({p.totalAvaliacoes})</span>}
-            </div>
-          )}
-          {p.disponivel && (
-            <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-              <i className="ti ti-check" style={{ fontSize: 11 }} aria-hidden="true"></i>
-              Verificado
-            </span>
-          )}
-        </div>
-      </div>
-
-      <i className="ti ti-chevron-right" style={{ fontSize: 18, color: '#D1D5DB', flexShrink: 0 }} aria-hidden="true"></i>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <h2 style={{ ...typeScale.subtitle, color: colors.text, margin: 0 }}>{title}</h2>
+      {onVerTodas && (
+        <button
+          onClick={onVerTodas}
+          className="btn-press"
+          style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 13, fontWeight: 600, color: colors.primary, background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          Ver todas <ChevronRight size={14} />
+        </button>
+      )}
     </div>
   )
 }
@@ -92,6 +36,7 @@ export default function Home() {
   const navigate = useNavigate()
   const { usuario } = useAuth()
   const { prestadores, loading } = usePrestadores()
+  const { categorias } = useCategorias()
 
   const prestadoresComDist = useMemo(() => prestadores.map(p => ({
     ...p,
@@ -102,6 +47,28 @@ export default function Home() {
     if (a.distanciaReal && b.distanciaReal) return a.distanciaReal - b.distanciaReal
     return (b.avaliacao || 0) - (a.avaliacao || 0)
   }), [prestadores, userLoc])
+
+  const proximos = prestadoresComDist.slice(0, 6)
+
+  const emAlta = useMemo(() => {
+    const idsProximos = new Set(proximos.map(p => p.id))
+    return [...prestadores]
+      .filter(p => !idsProximos.has(p.id))
+      .sort((a, b) => (b.avaliacao || 0) - (a.avaliacao || 0))
+      .slice(0, 5)
+  }, [prestadores, proximos])
+
+  const contagemPorCategoria = useMemo(() => prestadores.reduce((acc, p) => {
+    acc[p.categoria] = (acc[p.categoria] || 0) + 1
+    return acc
+  }, {}), [prestadores])
+
+  // Prévia compacta: prioriza categorias com profissionais ativos, completa com as demais por ordem
+  const categoriasPreview = useMemo(() => {
+    return [...categorias]
+      .sort((a, b) => (contagemPorCategoria[b.id] || 0) - (contagemPorCategoria[a.id] || 0))
+      .slice(0, 12)
+  }, [categorias, contagemPorCategoria])
 
   const handleBusca = (e) => {
     e.preventDefault()
@@ -123,178 +90,153 @@ export default function Home() {
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
 
   return (
-    <div style={{ background: '#F3F6F2', minHeight: '100vh', paddingBottom: 100 }}>
+    <div style={{ background: colors.bg, minHeight: '100vh', paddingBottom: 100 }}>
 
       {/* Header com saudação */}
-      <div style={{ background: '#fff', padding: '56px 20px 24px', borderBottom: '1px solid #F3F6F2' }}>
-        
-        {nomeUsuario ? (
-          <p style={{ fontSize: 14, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>
-            {saudacao}, {nomeUsuario} 👋
+      <div style={{ background: '#fff', padding: '40px 20px 20px', borderBottom: `1px solid ${colors.bg}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <p style={{ fontSize: 14, color: colors.textSub, fontWeight: 500, margin: 0 }}>
+            {saudacao}{nomeUsuario ? `, ${nomeUsuario}` : ''}
           </p>
-        ) : (
-          <p style={{ fontSize: 14, color: '#6B7280', fontWeight: 500, marginBottom: 4 }}>
-            {saudacao} 👋
-          </p>
-        )}
+          <Hand size={15} color={colors.secondary} strokeWidth={2} />
+        </div>
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1F2937', marginBottom: 20, lineHeight: 1.25 }}>
+        <h1 style={{ ...typeScale.subtitle, fontSize: 22, color: colors.text, marginBottom: 16 }}>
           O que você precisa hoje?
         </h1>
 
-        {/* Barra de busca */}
-        <form onSubmit={handleBusca}>
-          <div style={{
-            background: '#fff', height: 56, borderRadius: 20,
-            border: '1.5px solid #E4E7E4',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.05)',
-            display: 'flex', alignItems: 'center', paddingLeft: 16, paddingRight: 8, gap: 8,
-          }}>
-            <i className="ti ti-search" style={{ fontSize: 20, color: '#9CA3AF', flexShrink: 0 }} aria-hidden="true"></i>
-            <input type="search" placeholder="Buscar profissional ou serviço"
-              value={busca} onChange={e => setBusca(e.target.value)}
-              style={{
-                flex: 1, border: 'none', outline: 'none', fontSize: 15,
-                color: '#1F2937', background: 'transparent',
-              }} />
-            <button type="submit" className="btn-press" style={{
-              background: '#16A34A', color: '#fff', border: 'none',
-              borderRadius: 14, padding: '10px 18px', fontSize: 14, fontWeight: 700,
-              flexShrink: 0,
-            }}>
-              Buscar
-            </button>
-          </div>
-        </form>
+        <SearchBar value={busca} onChange={e => setBusca(e.target.value)} onSubmit={handleBusca} />
 
-        {/* Localização */}
         <div style={{ marginTop: 12 }}>
           {locStatus === 'idle' && (
-            <button onClick={pedirLocalizacao} className="btn-press" style={{
-              display: 'flex', alignItems: 'center', gap: 6, background: 'none',
-              border: 'none', cursor: 'pointer', padding: 0,
-            }}>
-              <i className="ti ti-map-pin" style={{ fontSize: 16, color: '#16A34A' }} aria-hidden="true"></i>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#16A34A' }}>Usar minha localização</span>
+            <button onClick={pedirLocalizacao} className="btn-press" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              <MapPin size={16} color={colors.primary} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: colors.primary }}>Usar minha localização</span>
             </button>
           )}
           {locStatus === 'ok' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <i className="ti ti-map-pin" style={{ fontSize: 15, color: '#16A34A' }} aria-hidden="true"></i>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#16A34A' }}>Localização ativa</span>
+              <MapPin size={15} color={colors.primary} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: colors.primary }}>Localização ativa</span>
             </div>
           )}
           {locStatus === 'pedindo' && (
-            <span style={{ fontSize: 13, color: '#6B7280' }}>Obtendo localização...</span>
+            <span style={{ fontSize: 13, color: colors.textSub }}>Obtendo localização...</span>
           )}
           {locStatus === 'negado' && (
-            <span style={{ fontSize: 13, color: '#EF4444' }}>Localização negada. Ative nas configurações.</span>
+            <span style={{ fontSize: 13, color: colors.error }}>Localização negada. Ative nas configurações.</span>
           )}
         </div>
       </div>
 
-      <div style={{ padding: '24px 16px 0' }}>
+      <div style={{ padding: `${spacing.xl}px 16px 0` }}>
 
         {/* Categorias */}
-        <section style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1F2937' }}>Categorias</h2>
-            <button onClick={() => navigate('/busca')} className="btn-press"
-              style={{ fontSize: 13, fontWeight: 600, color: '#16A34A', background: 'none', border: 'none', cursor: 'pointer' }}>
-              Ver todas →
-            </button>
-          </div>
-
-          {/* Scroll horizontal */}
+        <section style={{ marginBottom: spacing.section }}>
+          <SectionHeader title="Categorias" onVerTodas={() => navigate('/busca')} />
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-            {categorias.map(cat => (
-              <button key={cat.id} onClick={() => navigate(`/busca?categoria=${cat.id}`)}
-                className="btn-press card-lift"
-                style={{
-                  background: '#fff', border: '1px solid #E4E7E4',
-                  borderRadius: 20, padding: '16px 18px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-                  cursor: 'pointer', flexShrink: 0, minWidth: 90,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-                }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className={`ti ${cat.icone}`} style={{ fontSize: 22, color: cat.cor }} aria-hidden="true"></i>
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#374151', textAlign: 'center', whiteSpace: 'nowrap' }}>{cat.nome}</span>
-              </button>
-            ))}
+            {categoriasPreview.map(cat => {
+              const { icon: Icon, bg, color } = getCategoriaIcone(cat)
+              const count = contagemPorCategoria[cat.id] || 0
+              return (
+                <Card
+                  key={cat.id}
+                  as="button"
+                  interactive
+                  onClick={() => navigate(`/busca?categoria=${cat.id}`)}
+                  padding={16}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0, minWidth: 96, textAlign: 'center' }}
+                >
+                  <div style={{ width: 44, height: 44, borderRadius: 14, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={22} color={color} strokeWidth={2} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.text, whiteSpace: 'nowrap' }}>{cat.nome}</span>
+                  {count > 0 && (
+                    <span style={{ fontSize: 10, color: colors.textSub, fontWeight: 500 }}>{count} profissionais</span>
+                  )}
+                </Card>
+              )
+            })}
           </div>
         </section>
 
         {/* Prestadores próximos */}
-        <section style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1F2937' }}>
-              {userLoc ? 'Próximos de você' : 'Profissionais'}
-            </h2>
-            <button onClick={() => navigate('/busca')} className="btn-press"
-              style={{ fontSize: 13, fontWeight: 600, color: '#16A34A', background: 'none', border: 'none', cursor: 'pointer' }}>
-              Ver todos →
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section style={{ marginBottom: spacing.section }}>
+          <SectionHeader title={userLoc ? 'Próximos de você' : 'Profissionais'} onVerTodas={() => navigate('/busca')} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
             {loading
-              ? [1,2,3].map(i => <SkeletonCard key={i} />)
-              : prestadoresComDist.length === 0
+              ? [1, 2, 3].map(i => <CardSkeleton key={i} modo="lista" />)
+              : proximos.length === 0
               ? (
                 <div style={{ textAlign: 'center', padding: '48px 0' }}>
-                  <i className="ti ti-user-search" style={{ fontSize: 48, color: '#D1D5DB', display: 'block', marginBottom: 12 }} aria-hidden="true"></i>
+                  <UserSearch size={44} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
                   <p style={{ fontSize: 15, color: '#9CA3AF', fontWeight: 500 }}>Nenhum profissional encontrado.</p>
                 </div>
               )
-              : prestadoresComDist.slice(0, 6).map(p => <CardPrestador key={p.id} p={p} navigate={navigate} />)
+              : proximos.map(p => (
+                <CardPrestador key={p.id} prestador={p} layout="vertical" distancia={p.distanciaReal} />
+              ))
             }
           </div>
         </section>
 
-        {/* CTA Publicar Pedido */}
-        <section style={{ marginBottom: 24 }}>
-          <div className="btn-press card-lift" onClick={() => navigate('/pedidos/novo')}
+        {/* Serviços em alta */}
+        {emAlta.length > 0 && (
+          <section style={{ marginBottom: spacing.section }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+              <Flame size={18} color={colors.secondary} />
+              <h2 style={{ ...typeScale.subtitle, color: colors.text, margin: 0 }}>Serviços em alta</h2>
+            </div>
+            <div style={{ display: 'flex', gap: spacing.card, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+              {emAlta.map(p => (
+                <div key={p.id} style={{ minWidth: 260, flexShrink: 0 }}>
+                  <CardPrestador prestador={p} layout="vertical" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Hero: Publicar pedido + stats */}
+        <section style={{ marginBottom: spacing.xl }}>
+          <div
+            className="btn-press"
+            onClick={() => navigate('/pedidos/novo')}
             style={{
               background: 'linear-gradient(135deg, #169B4C, #23B65A)',
-              borderRadius: 32, padding: '24px 22px',
-              boxShadow: '0 18px 40px rgba(22,155,76,0.18)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              borderRadius: radius.hero,
+              padding: '28px 24px',
+              boxShadow: shadow.hero,
               cursor: 'pointer',
-            }}>
-            <div>
-              <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-                Publicar um pedido
-              </p>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-                Receba propostas de profissionais próximos
-              </p>
-            </div>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <i className="ti ti-arrow-right" style={{ fontSize: 22, color: '#fff' }} aria-hidden="true"></i>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats */}
-        <section>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {[
-              { valor: '18.000+', label: 'Profissionais', icone: 'ti-users' },
-              { valor: '4.9 ★', label: 'Avaliação média', icone: 'ti-star' },
-              { valor: '320', label: 'Cidades', icone: 'ti-map-pin' },
-            ].map(s => (
-              <div key={s.label} style={{
-                background: '#fff', borderRadius: 20, padding: '16px 12px',
-                border: '1px solid #E4E7E4', textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-              }}>
-                <i className={`ti ${s.icone}`} style={{ fontSize: 20, color: '#16A34A', display: 'block', marginBottom: 6 }} aria-hidden="true"></i>
-                <p style={{ fontSize: 16, fontWeight: 800, color: '#1F2937', marginBottom: 2 }}>{s.valor}</p>
-                <p style={{ fontSize: 11, color: '#6B7280', fontWeight: 500 }}>{s.label}</p>
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div>
+                <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Publicar um pedido</p>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Receba propostas de profissionais próximos</p>
               </div>
-            ))}
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ArrowRight size={22} color="#fff" />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 20 }}>
+              <div style={{ textAlign: 'center' }}>
+                <Users size={18} color="#fff" style={{ margin: '0 auto 6px' }} />
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>18.000+</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Profissionais</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <Star size={18} fill="#fff" color="#fff" strokeWidth={0} style={{ margin: '0 auto 6px' }} />
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>4.9</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Avaliação média</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <MapPin size={18} color="#fff" style={{ margin: '0 auto 6px' }} />
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>320</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Cidades</p>
+              </div>
+            </div>
           </div>
         </section>
 

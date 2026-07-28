@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Logo from '../components/Logo'
+import { colors } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+
+const inputStyle = {
+  width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 12,
+  border: `1px solid ${colors.border}`, background: colors.bg, outline: 'none', color: colors.text,
+}
 
 export default function NovaSenha() {
   const [senha, setSenha] = useState('')
@@ -12,10 +21,25 @@ export default function NovaSenha() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Verifica se veio pelo link de recuperação
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) navigate('/login')
+    // O Supabase processa o token de recuperação da URL de forma assíncrona.
+    // Escutamos o evento e só redirecionamos para o login se, após um tempo,
+    // nenhuma sessão de recuperação tiver sido estabelecida.
+    let cancelado = false
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') cancelado = true
     })
+
+    const timer = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!cancelado && !session) navigate('/login')
+    }, 2000)
+
+    return () => {
+      cancelado = true
+      clearTimeout(timer)
+      subscription.unsubscribe()
+    }
   }, [navigate])
 
   const salvar = async (e) => {
@@ -45,72 +69,55 @@ export default function NovaSenha() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#FAF6EE' }}>
-      <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: colors.bg }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
           <Link to="/"><Logo size={40} /></Link>
         </div>
 
-        <div className="bg-white rounded-2xl p-6" style={{ border: '0.5px solid #EDE3CE' }}>
+        <Card padding={24}>
           {sucesso ? (
-            <div className="text-center">
-              <div className="text-5xl mb-4">✅</div>
-              <h1 className="text-xl font-semibold mb-2" style={{ color: '#1F2D24' }}>Senha atualizada!</h1>
-              <p className="text-sm" style={{ color: '#7C9485' }}>Redirecionando para o início...</p>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <CheckCircle2 size={32} color={colors.primary} strokeWidth={1.8} />
+              </div>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>Senha atualizada!</h1>
+              <p style={{ fontSize: 14, color: colors.textSub }}>Redirecionando para o início...</p>
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24', fontFamily: 'Quicksand, sans-serif' }}>
-                Criar nova senha
-              </h1>
-              <p className="text-sm mb-5" style={{ color: '#7C9485' }}>
-                Digite sua nova senha abaixo.
-              </p>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Criar nova senha</h1>
+              <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 20 }}>Digite sua nova senha abaixo.</p>
 
               <form onSubmit={salvar}>
-                <div className="mb-3">
-                  <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Nova senha</label>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Nova senha</label>
                   <input
-                    type="password"
-                    value={senha}
-                    onChange={e => setSenha(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    required
-                    className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none"
-                    style={{ border: '0.5px solid #EDE3CE', background: '#FAF6EE' }}
+                    type="password" value={senha} onChange={e => setSenha(e.target.value)}
+                    placeholder="Mínimo 6 caracteres" required style={inputStyle}
                   />
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Confirmar nova senha</label>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Confirmar nova senha</label>
                   <input
-                    type="password"
-                    value={confirmar}
-                    onChange={e => setConfirmar(e.target.value)}
-                    placeholder="Repita a senha"
-                    required
-                    className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none"
-                    style={{ border: '0.5px solid #EDE3CE', background: '#FAF6EE' }}
+                    type="password" value={confirmar} onChange={e => setConfirmar(e.target.value)}
+                    placeholder="Repita a senha" required style={inputStyle}
                   />
                 </div>
 
                 {erro && (
-                  <p className="text-xs mb-3 p-2 rounded-lg" style={{ color: '#A32D2D', background: '#FCEBEB' }}>
+                  <p style={{ fontSize: 12, marginBottom: 12, padding: '8px 12px', borderRadius: 10, color: '#B91C1C', background: '#FEF2F2' }}>
                     {erro}
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={carregando}
-                  className="w-full py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-                  style={{ background: '#1FA855' }}
-                >
+                <Button type="submit" fullWidth disabled={carregando}>
                   {carregando ? 'Salvando...' : 'Salvar nova senha'}
-                </button>
+                </Button>
               </form>
             </>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   )

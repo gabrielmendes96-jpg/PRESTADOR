@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Phone, Check, PartyPopper, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 
 const niveis = [
-  { meta: 5, meses: 1, label: 'Nível 1', cor: '#7C9485' },
-  { meta: 10, meses: 2, label: 'Nível 2', cor: '#1FA855' },
-  { meta: 20, meses: 4, label: 'Nível 3', cor: '#0F6E3D' },
-  { meta: 50, meses: 12, label: 'Nível 4', cor: '#FFC857' },
+  { meta: 5, meses: 1, label: 'Nível 1', cor: '#6B7280' },
+  { meta: 10, meses: 2, label: 'Nível 2', cor: '#16A34A' },
+  { meta: 20, meses: 4, label: 'Nível 3', cor: '#14853D' },
+  { meta: 50, meses: 12, label: 'Nível 4', cor: '#F6C64D' },
   { meta: 100, meses: 999, label: 'Embaixador', cor: '#FF6B00' },
 ]
 
@@ -17,14 +21,18 @@ function BarraNivel({ atual, meta, label, meses, cor, ativo }) {
     <div className="mb-4">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: ativo ? cor : '#C9BFA8' }}>{label}</span>
-          {ativo && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>✓ Conquistado</span>}
+          <span className="text-xs font-medium" style={{ color: ativo ? cor : '#9CA3AF' }}>{label}</span>
+          {ativo && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#DCFCE7', color: '#14853D' }}>
+              <Check size={10} strokeWidth={3} /> Conquistado
+            </span>
+          )}
         </div>
-        <span className="text-xs" style={{ color: '#7C9485' }}>
+        <span className="text-xs" style={{ color: '#6B7280' }}>
           {meses === 999 ? 'Sempre grátis' : `${meses} ${meses === 1 ? 'mês' : 'meses'} grátis`} · {atual}/{meta} indicados
         </span>
       </div>
-      <div className="h-2 rounded-full" style={{ background: '#EDE3CE' }}>
+      <div className="h-2 rounded-full" style={{ background: '#E4E7E4' }}>
         <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: cor }} />
       </div>
     </div>
@@ -154,45 +162,40 @@ export default function Indicacao() {
 
   if (carregando) return (
     <div className="flex items-center justify-center min-h-64">
-      <p className="text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
+      <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
     </div>
   )
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>Indique e ganhe</h1>
-      <p className="text-sm mb-6" style={{ color: '#7C9485' }}>
+      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2937' }}>Indique e ganhe</h1>
+      <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
         Indique prestadores para a plataforma e ganhe meses grátis na sua assinatura!
       </p>
 
       {/* Seu código */}
-      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #EDE3CE' }}>
-        <p className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>Seu link de indicação</p>
+      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>
+        <p className="text-sm font-medium mb-3" style={{ color: '#1F2937' }}>Seu link de indicação</p>
         <div className="flex gap-2 mb-3">
-          <div className="flex-1 px-3 py-2.5 rounded-lg text-sm font-mono overflow-hidden" style={{ background: '#FAF6EE', border: '0.5px solid #EDE3CE', color: '#1F2D24' }}>
+          <div className="flex-1 px-3 py-2.5 rounded-lg text-sm font-mono overflow-hidden" style={{ background: '#F3F6F2', border: '0.5px solid #E4E7E4', color: '#1F2937' }}>
             {window.location.origin}/convite?ref={codigo?.codigo}
           </div>
           <button
             onClick={copiarLink}
             className="px-4 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity flex-shrink-0"
-            style={{ background: copiado ? '#E3F6E9' : '#1FA855', color: copiado ? '#0F6E3D' : '#fff' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: copiado ? '#DCFCE7' : '#16A34A', color: copiado ? '#14853D' : '#fff' }}
           >
-            {copiado ? '✓ Copiado!' : 'Copiar'}
+            {copiado && <Check size={14} strokeWidth={3} />} {copiado ? 'Copiado!' : 'Copiar'}
           </button>
         </div>
-        <button
-          onClick={compartilharWhatsApp}
-          className="w-full py-2.5 text-sm font-medium rounded-xl hover:opacity-90 flex items-center justify-center gap-2"
-          style={{ background: '#25D366', color: '#fff' }}
-        >
-          <i className="ti ti-brand-whatsapp" style={{ fontSize: '18px' }} aria-hidden="true"></i>
+        <Button variant="secondary" fullWidth icon={<Phone size={16} />} onClick={compartilharWhatsApp} style={{ background: '#25D366', color: '#fff', border: '1px solid transparent' }}>
           Compartilhar no WhatsApp
-        </button>
+        </Button>
       </div>
 
       {/* Como funciona */}
-      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #EDE3CE' }}>
-        <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>Como funciona</p>
+      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>
+        <p className="text-sm font-medium mb-4" style={{ color: '#1F2937' }}>Como funciona</p>
         <div className="space-y-3">
           {[
             { n: '1', txt: 'Compartilhe seu link com outros prestadores' },
@@ -200,22 +203,22 @@ export default function Indicacao() {
             { n: '3', txt: 'Você acumula indicados e desbloqueia meses grátis por meta' },
           ].map(item => (
             <div key={item.n} className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0" style={{ background: '#DCFCE7', color: '#14853D' }}>
                 {item.n}
               </div>
-              <p className="text-sm" style={{ color: '#5F6F65' }}>{item.txt}</p>
+              <p className="text-sm" style={{ color: '#6B7280' }}>{item.txt}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Progresso por nível */}
-      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #EDE3CE' }}>
+      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>Seu progresso</p>
+          <p className="text-sm font-medium" style={{ color: '#1F2937' }}>Seu progresso</p>
           <div className="text-right">
-            <p className="text-2xl font-semibold" style={{ color: '#1FA855' }}>{indicadosAtivos}</p>
-            <p className="text-xs" style={{ color: '#7C9485' }}>indicados ativos</p>
+            <p className="text-2xl font-semibold" style={{ color: '#16A34A' }}>{indicadosAtivos}</p>
+            <p className="text-xs" style={{ color: '#6B7280' }}>indicados ativos</p>
           </div>
         </div>
 
@@ -232,9 +235,10 @@ export default function Indicacao() {
         ))}
 
         {nivelAtual && (
-          <div className="mt-4 p-3 rounded-xl text-center" style={{ background: '#E3F6E9' }}>
-            <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>
-              🎉 Você atingiu o {nivelAtual.label}!
+          <div className="mt-4 p-3 rounded-xl text-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#DCFCE7' }}>
+            <PartyPopper size={16} color={colors.primaryHover} style={{ flexShrink: 0 }} />
+            <p className="text-sm font-medium" style={{ color: '#14853D', margin: 0 }}>
+              Você atingiu o {nivelAtual.label}!
               {nivelAtual.meses === 999 ? ' Você é um Embaixador — assinatura sempre grátis!' : ` +${nivelAtual.meses} ${nivelAtual.meses === 1 ? 'mês' : 'meses'} grátis na sua assinatura.`}
             </p>
           </div>
@@ -242,28 +246,30 @@ export default function Indicacao() {
       </div>
 
       {/* Histórico de indicações */}
-      <div className="bg-white rounded-2xl p-6" style={{ border: '0.5px solid #EDE3CE' }}>
-        <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>
+      <div className="bg-white rounded-2xl p-6" style={{ border: '0.5px solid #E4E7E4' }}>
+        <p className="text-sm font-medium mb-4" style={{ color: '#1F2937' }}>
           Suas indicações ({indicacoes.length})
         </p>
         {indicacoes.length === 0 ? (
-          <p className="text-sm text-center py-6" style={{ color: '#C9BFA8' }}>
+          <p className="text-sm text-center py-6" style={{ color: '#9CA3AF' }}>
             Nenhuma indicação ainda. Compartilhe seu link!
           </p>
         ) : (
           <div className="flex flex-col gap-2">
             {indicacoes.map(ind => (
-              <div key={ind.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#FAF6EE' }}>
+              <div key={ind.id} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#F3F6F2' }}>
                 <div>
-                  <p className="text-sm" style={{ color: '#1F2D24' }}>Indicação #{ind.id.slice(0,8)}</p>
-                  <p className="text-xs" style={{ color: '#C9BFA8' }}>{new Date(ind.criado_em).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-sm" style={{ color: '#1F2937' }}>Indicação #{ind.id.slice(0,8)}</p>
+                  <p className="text-xs" style={{ color: '#9CA3AF' }}>{new Date(ind.criado_em).toLocaleDateString('pt-BR')}</p>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full"
-                  style={ind.status === 'ativo'
-                    ? { background: '#E3F6E9', color: '#0F6E3D' }
-                    : { background: '#FAF6EE', color: '#C9BFA8', border: '0.5px solid #EDE3CE' }
-                  }>
-                  {ind.status === 'ativo' ? '✓ Ativo' : '⏳ Pendente (aguardando 30 dias)'}
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
+                  ...(ind.status === 'ativo'
+                    ? { background: '#DCFCE7', color: '#14853D' }
+                    : { background: '#F3F6F2', color: '#9CA3AF', border: '1px solid #E4E7E4' })
+                }}>
+                  {ind.status === 'ativo' ? <Check size={11} strokeWidth={3} /> : <Clock size={11} />}
+                  {ind.status === 'ativo' ? 'Ativo' : 'Pendente (aguardando 30 dias)'}
                 </span>
               </div>
             ))}

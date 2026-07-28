@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { MapPin } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import ReputacaoBadge from '../components/ReputacaoBadge'
+import { colors } from '../lib/design'
+import { getCategoriaIcone } from '../lib/categoriaIcones'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 
 const categoriasMap = {
-  'eletricista': { nome: 'Eletricista', emoji: '⚡', desc: 'Instalação elétrica, manutenção, quadro de luz, tomadas e interruptores' },
-  'pedreiro': { nome: 'Pedreiro', emoji: '🧱', desc: 'Alvenaria, construção civil, reformas e reparos em geral' },
-  'encanador': { nome: 'Encanador', emoji: '🚿', desc: 'Conserto de vazamentos, instalação hidráulica, desentupimento' },
-  'pintor': { nome: 'Pintor', emoji: '🎨', desc: 'Pintura residencial e comercial, textura, massa corrida' },
-  'marceneiro': { nome: 'Marceneiro', emoji: '🪚', desc: 'Móveis planejados, armários, marcenaria em geral' },
-  'mecanico': { nome: 'Mecânico', emoji: '🔧', desc: 'Manutenção preventiva e corretiva de veículos' },
-  'jardineiro': { nome: 'Jardineiro', emoji: '🌿', desc: 'Jardinagem, paisagismo, poda de árvores e grama' },
-  'diarista': { nome: 'Diarista', emoji: '🧹', desc: 'Limpeza residencial, faxina, organização doméstica' },
-  'serralheiro': { nome: 'Serralheiro', emoji: '🔩', desc: 'Grades, portões, serralheria, estruturas metálicas' },
-  'vidraceiro': { nome: 'Vidraceiro', emoji: '🪟', desc: 'Vidros temperados, espelhos, box de banheiro, janelas' },
+  'eletricista': { nome: 'Eletricista', desc: 'Instalação elétrica, manutenção, quadro de luz, tomadas e interruptores' },
+  'pedreiro': { nome: 'Pedreiro', desc: 'Alvenaria, construção civil, reformas e reparos em geral' },
+  'encanador': { nome: 'Encanador', desc: 'Conserto de vazamentos, instalação hidráulica, desentupimento' },
+  'pintor': { nome: 'Pintor', desc: 'Pintura residencial e comercial, textura, massa corrida' },
+  'marceneiro': { nome: 'Marceneiro', desc: 'Móveis planejados, armários, marcenaria em geral' },
+  'mecanico': { nome: 'Mecânico', desc: 'Manutenção preventiva e corretiva de veículos' },
+  'jardineiro': { nome: 'Jardineiro', desc: 'Jardinagem, paisagismo, poda de árvores e grama' },
+  'diarista': { nome: 'Diarista', desc: 'Limpeza residencial, faxina, organização doméstica' },
+  'serralheiro': { nome: 'Serralheiro', desc: 'Grades, portões, serralheria, estruturas metálicas' },
+  'vidraceiro': { nome: 'Vidraceiro', desc: 'Vidros temperados, espelhos, box de banheiro, janelas' },
 }
 
 const cidadesSP = ['Araraquara', 'São Carlos', 'Ribeirão Preto', 'Campinas', 'São Paulo', 'Bauru', 'Franca', 'Limeira']
@@ -24,7 +29,8 @@ export default function SEOCategoria() {
   const [prestadores, setPrestadores] = useState([])
   const [carregando, setCarregando] = useState(true)
 
-  const catConfig = categoriasMap[categoria] || { nome: categoria, emoji: '🔧', desc: 'Serviços profissionais' }
+  const catConfig = categoriasMap[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
+  const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
 
   useEffect(() => {
     carregarPrestadores()
@@ -50,75 +56,73 @@ export default function SEOCategoria() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <nav className="flex items-center gap-2 text-xs mb-4" style={{ color: '#7C9485' }}>
-        <Link to="/" style={{ color: '#1FA855' }}>Início</Link>
+      <nav className="flex items-center gap-2 text-xs mb-4" style={{ color: colors.textSub }}>
+        <Link to="/" style={{ color: colors.primary }}>Início</Link>
         <span>›</span>
         <span>{catConfig.nome}</span>
       </nav>
 
-      <div className="bg-white rounded-2xl p-6 mb-5" style={{ border: '0.5px solid #DDE3DD' }}>
+      <Card padding={24} style={{ marginBottom: 20 }}>
         <div className="flex items-center gap-3 mb-3">
-          <span style={{ fontSize: 44 }}>{catConfig.emoji}</span>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: catBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <CatIcon size={26} color={catColor} />
+          </div>
           <div>
-            <h1 className="text-xl font-semibold" style={{ color: '#1F2D24' }}>{catConfig.nome}</h1>
-            <p className="text-sm" style={{ color: '#7C9485' }}>{catConfig.desc}</p>
+            <h1 className="text-xl font-semibold" style={{ color: colors.text }}>{catConfig.nome}</h1>
+            <p className="text-sm" style={{ color: colors.textSub }}>{catConfig.desc}</p>
           </div>
         </div>
-        <p className="text-sm mb-4" style={{ color: '#5F6F65' }}>
+        <p className="text-sm mb-4" style={{ color: colors.textSub }}>
           Encontre os melhores {catConfig.nome.toLowerCase()}s do Brasil com avaliações verificadas, fotos dos serviços e atendimento por chat direto.
         </p>
-        <button onClick={() => navigate(`/busca?categoria=${categoria}`)}
-          className="w-full py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90"
-          style={{ background: '#1FA855' }}>
+        <Button fullWidth onClick={() => navigate(`/busca?categoria=${categoria}`)}>
           Buscar {catConfig.nome.toLowerCase()} perto de mim
-        </button>
-      </div>
+        </Button>
+      </Card>
 
       {/* Por cidade */}
-      <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: '0.5px solid #DDE3DD' }}>
-        <h2 className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>
-          {catConfig.emoji} {catConfig.nome} por cidade
+      <Card padding={20} style={{ marginBottom: 20 }}>
+        <h2 className="text-sm font-medium mb-3" style={{ color: colors.text }}>
+          {catConfig.nome} por cidade
         </h2>
         <div className="grid grid-cols-2 gap-2">
           {cidadesSP.map(c => (
             <Link key={c}
               to={`/s/${categoria}/${c.toLowerCase().replace(/ /g, '-')}`}
               className="flex items-center gap-2 p-3 rounded-xl hover:opacity-80 transition-opacity"
-              style={{ background: '#F0F2F0', color: '#1F2D24' }}>
-              <i className="ti ti-map-pin" style={{ fontSize: 14, color: '#1FA855' }} aria-hidden="true"></i>
+              style={{ background: colors.bg, color: colors.text }}>
+              <MapPin size={14} color={colors.primary} />
               <span className="text-sm">{catConfig.nome} em {c}</span>
             </Link>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Profissionais */}
-      <h2 className="text-base font-semibold mb-3" style={{ color: '#1F2D24' }}>
+      <h2 className="text-base font-semibold mb-3" style={{ color: colors.text }}>
         {catConfig.nome}s em destaque
       </h2>
 
       {carregando ? (
-        <p className="text-sm text-center py-8" style={{ color: '#C9BFA8' }}>Carregando...</p>
+        <p className="text-sm text-center py-8" style={{ color: '#9CA3AF' }}>Carregando...</p>
       ) : prestadores.length === 0 ? (
-        <div className="bg-white rounded-2xl p-6 text-center" style={{ border: '0.5px solid #DDE3DD' }}>
-          <p className="text-sm" style={{ color: '#7C9485' }}>Nenhum profissional cadastrado ainda nesta categoria.</p>
-        </div>
+        <Card padding={24} style={{ textAlign: 'center' }}>
+          <p className="text-sm" style={{ color: colors.textSub }}>Nenhum profissional cadastrado ainda nesta categoria.</p>
+        </Card>
       ) : (
         <div className="flex flex-col gap-3">
           {prestadores.map(p => {
             const iniciais = p.nome?.split(' ').map(w => w[0]).slice(0,2).join('') || 'P'
             return (
-              <div key={p.id} onClick={() => navigate(`/profissional/${p.id}`)}
-                className="bg-white rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:opacity-90"
-                style={{ border: '0.5px solid #DDE3DD' }}>
+              <Card key={p.id} interactive padding={16} onClick={() => navigate(`/profissional/${p.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0"
-                  style={{ background: '#1FA855' }}>{iniciais}</div>
+                  style={{ background: colors.primary }}>{iniciais}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium mb-0.5" style={{ color: '#1F2D24' }}>{p.nome}</p>
-                  <p className="text-xs mb-1" style={{ color: '#7C9485' }}>{p.cidade}, {p.estado}</p>
+                  <p className="text-sm font-medium mb-0.5" style={{ color: colors.text }}>{p.nome}</p>
+                  <p className="text-xs mb-1" style={{ color: colors.textSub }}>{p.cidade}, {p.estado}</p>
                   <ReputacaoBadge nota={p.avaliacao_media} totalAvaliacoes={p.total_avaliacoes} size="small" />
                 </div>
-              </div>
+              </Card>
             )
           })}
         </div>

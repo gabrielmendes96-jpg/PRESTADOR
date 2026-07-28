@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut } from 'lucide-react'
 import Home from './pages/Home'
 import Busca from './pages/Busca'
 import Perfil from './pages/Perfil'
@@ -33,11 +34,14 @@ import NotFound from './pages/NotFound'
 import PerfilCliente from './pages/PerfilCliente'
 import ComoFunciona from './pages/ComoFunciona'
 import Onboarding from './pages/Onboarding'
+import Comparar from './pages/Comparar'
 import BottomNav from './components/BottomNav'
+import BarraComparacao from './components/BarraComparacao'
 import CentralNotificacoes from './components/CentralNotificacoes'
 import Logo from './components/Logo'
 import InstallPWA from './components/InstallPWA'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import { ComparacaoProvider } from './lib/ComparacaoContext'
 import { supabase } from './lib/supabase'
 
 function Navbar() {
@@ -91,7 +95,7 @@ function Navbar() {
                   <span className="hidden sm:block" style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>
                     Meu perfil
                   </span>
-                  <i className="ti ti-chevron-down" style={{ fontSize: 14, color: '#6B7280' }} aria-hidden="true"></i>
+                  <ChevronDown size={14} color="#6B7280" />
                 </button>
 
                 {menuAberto && (
@@ -106,24 +110,24 @@ function Navbar() {
                         <p style={{ fontSize: 12, color: '#6B7280' }}>{usuario.email}</p>
                       </div>
                       {[
-                        { label: 'Meu perfil', path: '/perfil-cliente', icon: 'ti-user' },
-                        { label: 'Painel do prestador', path: '/painel', icon: 'ti-tool' },
-                        { label: 'Mensagens', path: '/mensagens', icon: 'ti-message' },
-                        { label: 'Meus pedidos', path: '/pedidos', icon: 'ti-clipboard-list' },
-                        { label: 'Indicar amigos', path: '/indicacao', icon: 'ti-gift' },
+                        { label: 'Meu perfil', path: '/perfil-cliente', icon: User },
+                        { label: 'Painel do prestador', path: '/painel', icon: Wrench },
+                        { label: 'Mensagens', path: '/mensagens', icon: MessageCircle },
+                        { label: 'Meus pedidos', path: '/pedidos', icon: ClipboardList },
+                        { label: 'Indicar amigos', path: '/indicacao', icon: Gift },
                       ].map(item => (
                         <Link key={item.path} to={item.path} onClick={() => setMenuAberto(false)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', color: '#1F2937', textDecoration: 'none', transition: 'background 0.15s' }}
                           onMouseOver={e => e.currentTarget.style.background = '#F3F6F2'}
                           onMouseOut={e => e.currentTarget.style.background = 'none'}>
-                          <i className={`ti ${item.icon}`} style={{ fontSize: 16, color: '#6B7280' }} aria-hidden="true"></i>
+                          <item.icon size={16} color="#6B7280" />
                           <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
                         </Link>
                       ))}
                       <div style={{ borderTop: '1px solid #F3F6F2', marginTop: 4, paddingTop: 4 }}>
                         <button onClick={() => { sair(); setMenuAberto(false) }}
                           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 500 }}>
-                          <i className="ti ti-logout" style={{ fontSize: 16 }} aria-hidden="true"></i>
+                          <LogOut size={16} />
                           Sair
                         </button>
                       </div>
@@ -159,6 +163,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+      <ComparacaoProvider>
         <div style={{ background: '#F3F6F2', minHeight: '100vh' }}>
           <Navbar />
           <main className="max-w-6xl mx-auto px-4 py-6 pb-20 sm:pb-6">
@@ -195,12 +200,15 @@ export default function App() {
               <Route path="/perfil-cliente" element={<PerfilCliente />} />
               <Route path="/como-funciona" element={<ComoFunciona />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/comparar" element={<Comparar />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
           <InstallPWA />
+          <BarraComparacao />
           <BottomNav />
         </div>
+      </ComparacaoProvider>
       </AuthProvider>
     </BrowserRouter>
   )

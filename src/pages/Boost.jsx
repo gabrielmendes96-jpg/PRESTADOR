@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Rocket, TrendingUp, Home, Star, Check, Info } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
+import Button from '../components/ui/Button'
 
 const planos = [
   {
@@ -91,32 +94,34 @@ export default function Boost() {
 
   if (carregando) return (
     <div className="flex items-center justify-center min-h-64">
-      <p className="text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
+      <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
     </div>
   )
 
   if (!prestador) return (
     <div className="max-w-lg mx-auto text-center py-16">
-      <p className="text-sm" style={{ color: '#7C9485' }}>Você precisa ter um perfil de prestador para impulsionar.</p>
+      <p className="text-sm" style={{ color: '#6B7280' }}>Você precisa ter um perfil de prestador para impulsionar.</p>
       <button onClick={() => navigate('/cadastro-pro')}
         className="mt-4 px-6 py-3 text-white text-sm font-medium rounded-xl"
-        style={{ background: '#1FA855' }}>Criar perfil</button>
+        style={{ background: '#16A34A' }}>Criar perfil</button>
     </div>
   )
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>🚀 Impulsionar perfil</h1>
-      <p className="text-sm mb-5" style={{ color: '#7C9485' }}>Apareça no topo das buscas e na home para mais clientes te encontrarem</p>
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>
+        <Rocket size={19} color={colors.primary} /> Impulsionar perfil
+      </h1>
+      <p className="text-sm mb-5" style={{ color: '#6B7280' }}>Apareça no topo das buscas e na home para mais clientes te encontrarem</p>
 
       {/* Boost ativo */}
       {boostAtivo && (
-        <div className="p-4 rounded-2xl mb-5" style={{ background: '#E3F6E9', border: '1px solid #1FA855' }}>
+        <div className="p-4 rounded-2xl mb-5" style={{ background: '#DCFCE7', border: '1px solid #16A34A' }}>
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🚀</span>
+            <Rocket size={26} color={colors.primaryHover} />
             <div>
-              <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>Boost ativo!</p>
-              <p className="text-xs" style={{ color: '#3A7A5C' }}>
+              <p className="text-sm font-medium" style={{ color: '#14853D' }}>Boost ativo!</p>
+              <p className="text-xs" style={{ color: '#14853D' }}>
                 Expira em {new Date(boostAtivo.expira_em).toLocaleDateString('pt-BR')} ·{' '}
                 {Math.ceil((new Date(boostAtivo.expira_em) - new Date()) / (1000 * 60 * 60 * 24))} dias restantes
               </p>
@@ -126,27 +131,29 @@ export default function Boost() {
       )}
 
       {sucesso && (
-        <div className="p-4 rounded-2xl mb-5 text-center" style={{ background: '#E3F6E9' }}>
-          <div className="text-4xl mb-2">🎉</div>
-          <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>Boost ativado com sucesso!</p>
-          <p className="text-xs mt-1" style={{ color: '#3A7A5C' }}>Seu perfil já está aparecendo em destaque.</p>
+        <div className="p-4 rounded-2xl mb-5 text-center" style={{ background: '#DCFCE7' }}>
+          <Check size={32} strokeWidth={2.5} color={colors.primaryHover} style={{ margin: '0 auto 8px' }} />
+          <p className="text-sm font-medium" style={{ color: '#14853D' }}>Boost ativado com sucesso!</p>
+          <p className="text-xs mt-1" style={{ color: '#14853D' }}>Seu perfil já está aparecendo em destaque.</p>
         </div>
       )}
 
       {/* Como funciona */}
-      <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: '0.5px solid #DDE3DD' }}>
-        <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>Como o boost funciona</p>
+      <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: '0.5px solid #E4E7E4' }}>
+        <p className="text-sm font-medium mb-4" style={{ color: '#1F2937' }}>Como o boost funciona</p>
         <div className="space-y-3">
           {[
-            { emoji: '🔝', titulo: 'Topo das buscas', desc: 'Seu perfil aparece antes de todos na busca da sua categoria' },
-            { emoji: '🏠', titulo: 'Banner na home', desc: 'Aparece no carrossel de destaque que todos os clientes veem ao entrar no app' },
-            { emoji: '⭐', titulo: 'Badge de destaque', desc: 'Um badge especial no seu card mostra que você está impulsionado' },
+            { icon: TrendingUp, titulo: 'Topo das buscas', desc: 'Seu perfil aparece antes de todos na busca da sua categoria' },
+            { icon: Home, titulo: 'Banner na home', desc: 'Aparece no carrossel de destaque que todos os clientes veem ao entrar no app' },
+            { icon: Star, titulo: 'Badge de destaque', desc: 'Um badge especial no seu card mostra que você está impulsionado' },
           ].map(i => (
             <div key={i.titulo} className="flex items-start gap-3">
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{i.emoji}</span>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <i.icon size={16} color={colors.primary} />
+              </div>
               <div>
-                <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{i.titulo}</p>
-                <p className="text-xs" style={{ color: '#7C9485' }}>{i.desc}</p>
+                <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{i.titulo}</p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{i.desc}</p>
               </div>
             </div>
           ))}
@@ -154,54 +161,54 @@ export default function Boost() {
       </div>
 
       {/* Planos */}
-      <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#7C9485' }}>Escolha o período</p>
+      <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6B7280' }}>Escolha o período</p>
       <div className="space-y-3 mb-5">
         {planos.map(p => (
           <label key={p.id}
             className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-colors"
             style={planoSelecionado === p.id
-              ? { border: '2px solid #1FA855', background: '#F0FAF4' }
-              : { border: '0.5px solid #DDE3DD', background: '#fff' }
+              ? { border: '2px solid #16A34A', background: '#F0FDF4' }
+              : { border: '0.5px solid #E4E7E4', background: '#fff' }
             }>
             <input type="radio" name="plano" value={p.id}
               checked={planoSelecionado === p.id}
               onChange={() => setPlanoSelecionado(p.id)}
               className="hidden" />
             <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-              style={{ borderColor: planoSelecionado === p.id ? '#1FA855' : '#DDE3DD' }}>
+              style={{ borderColor: planoSelecionado === p.id ? '#16A34A' : '#E4E7E4' }}>
               {planoSelecionado === p.id && (
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#1FA855' }}></div>
+                <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#16A34A' }}></div>
               )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{p.nome}</p>
+                <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{p.nome}</p>
                 {p.destaque && (
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FFF4D6', color: '#8A5A00' }}>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92610A' }}>
                     Mais popular
                   </span>
                 )}
               </div>
-              <p className="text-xs" style={{ color: '#7C9485' }}>{p.desc}</p>
-              <div className="flex flex-wrap gap-1 mt-2">
+              <p className="text-xs" style={{ color: '#6B7280' }}>{p.desc}</p>
+              <div className="flex flex-wrap gap-2 mt-2">
                 {p.beneficios.map(b => (
-                  <span key={b} className="text-xs" style={{ color: '#0F6E3D' }}>✓ {b}</span>
+                  <span key={b} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, color: '#14853D' }}>
+                    <Check size={11} strokeWidth={3} /> {b}
+                  </span>
                 ))}
               </div>
             </div>
-            <p className="text-lg font-semibold flex-shrink-0" style={{ color: '#1FA855' }}>R${p.valor}</p>
+            <p className="text-lg font-semibold flex-shrink-0" style={{ color: '#16A34A' }}>R${p.valor}</p>
           </label>
         ))}
       </div>
 
-      <button onClick={contratar} disabled={contratando}
-        className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-        style={{ background: '#1FA855' }}>
-        {contratando ? 'Ativando...' : `🚀 Impulsionar por R$${planos.find(p => p.id === planoSelecionado)?.valor}`}
-      </button>
+      <Button fullWidth icon={<Rocket size={16} />} disabled={contratando} onClick={contratar}>
+        {contratando ? 'Ativando...' : `Impulsionar por R$${planos.find(p => p.id === planoSelecionado)?.valor}`}
+      </Button>
 
-      <p className="text-xs text-center mt-3" style={{ color: '#C9BFA8' }}>
-        ⚠️ Pagamento via Pix integrado em breve. Por ora o boost é ativado diretamente.
+      <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 12, textAlign: 'center', marginTop: 12, color: '#9CA3AF' }}>
+        <Info size={13} /> Pagamento via Pix integrado em breve. Por ora o boost é ativado diretamente.
       </p>
     </div>
   )

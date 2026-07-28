@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { MailCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Logo from '../components/Logo'
+import { colors } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+
+const inputStyle = {
+  width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 12,
+  border: `1px solid ${colors.border}`, background: colors.bg, outline: 'none', color: colors.text,
+}
 
 export default function EsqueciSenha() {
   const [email, setEmail] = useState('')
@@ -29,76 +38,65 @@ export default function EsqueciSenha() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#FAF6EE' }}>
-      <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: colors.bg }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
           <Link to="/"><Logo size={40} /></Link>
         </div>
 
-        <div className="bg-white rounded-2xl p-6" style={{ border: '0.5px solid #EDE3CE' }}>
+        <Card padding={24}>
           {enviado ? (
-            <div className="text-center">
-              <div className="text-5xl mb-4">✉️</div>
-              <h1 className="text-xl font-semibold mb-2" style={{ color: '#1F2D24' }}>E-mail enviado!</h1>
-              <p className="text-sm mb-5" style={{ color: '#7C9485' }}>
-                Enviamos um link para <strong>{email}</strong>. Clique no link para criar uma nova senha.
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <MailCheck size={32} color={colors.primary} strokeWidth={1.8} />
+              </div>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>E-mail enviado!</h1>
+              <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 16 }}>
+                Enviamos um link para <strong style={{ color: colors.text }}>{email}</strong>. Clique no link para criar uma nova senha.
               </p>
-              <p className="text-xs" style={{ color: '#C9BFA8' }}>
+              <p style={{ fontSize: 12, color: '#9CA3AF' }}>
                 Não recebeu? Verifique a caixa de spam ou tente novamente.
               </p>
               <button
                 onClick={() => setEnviado(false)}
-                className="mt-4 text-sm hover:underline"
-                style={{ color: '#1FA855' }}
+                style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: colors.primary, background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 Tentar novamente
               </button>
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24', fontFamily: 'Quicksand, sans-serif' }}>
-                Esqueceu a senha?
-              </h1>
-              <p className="text-sm mb-5" style={{ color: '#7C9485' }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Esqueceu a senha?</h1>
+              <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 20 }}>
                 Digite seu e-mail e enviaremos um link para criar uma nova senha.
               </p>
 
               <form onSubmit={enviar}>
-                <div className="mb-4">
-                  <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>E-mail</label>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>E-mail</label>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    required
-                    className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none"
-                    style={{ border: '0.5px solid #EDE3CE', background: '#FAF6EE' }}
+                    type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="seu@email.com" required style={inputStyle}
                   />
                 </div>
 
                 {erro && (
-                  <p className="text-xs mb-3 p-2 rounded-lg" style={{ color: '#A32D2D', background: '#FCEBEB' }}>
+                  <p style={{ fontSize: 12, marginBottom: 12, padding: '8px 12px', borderRadius: 10, color: '#B91C1C', background: '#FEF2F2' }}>
                     {erro}
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={carregando}
-                  className="w-full py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-                  style={{ background: '#1FA855' }}
-                >
+                <Button type="submit" fullWidth disabled={carregando}>
                   {carregando ? 'Enviando...' : 'Enviar link de recuperação'}
-                </button>
+                </Button>
               </form>
             </>
           )}
-        </div>
+        </Card>
 
-        <p className="text-center text-sm mt-4" style={{ color: '#7C9485' }}>
+        <p style={{ textAlign: 'center', fontSize: 14, color: colors.textSub, marginTop: 20 }}>
           Lembrou a senha?{' '}
-          <Link to="/login" className="font-medium hover:underline" style={{ color: '#1FA855' }}>
+          <Link to="/login" style={{ fontWeight: 700, color: colors.primary, textDecoration: 'none' }}>
             Voltar para o login
           </Link>
         </p>

@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard, HardHat, ClipboardList, Star, Flame, Wrench, Settings,
+  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
 
 const ADMIN_EMAIL = 'gabrielmendes96@gmail.com'
 
@@ -27,7 +32,7 @@ export default function Admin() {
     return () => clearTimeout(timer)
   }, [usuario])
 
-  if (authCarregando) return <p className="text-center py-16 text-sm" style={{ color: '#C9BFA8' }}>Verificando acesso...</p>
+  if (authCarregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Verificando acesso...</p>
 
   const carregarDados = async () => {
     setCarregando(true)
@@ -78,20 +83,22 @@ export default function Admin() {
   }
 
   const menuAbas = [
-    { id: 'dashboard', label: '📊 Dashboard' },
-    { id: 'prestadores', label: '👷 Prestadores' },
-    { id: 'pedidos', label: '📋 Pedidos' },
-    { id: 'avaliacoes', label: '⭐ Avaliações' },
-    { id: 'zonas', label: '🔥 Zonas pendentes' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'prestadores', label: 'Prestadores', icon: HardHat },
+    { id: 'pedidos', label: 'Pedidos', icon: ClipboardList },
+    { id: 'avaliacoes', label: 'Avaliações', icon: Star },
+    { id: 'zonas', label: 'Zonas pendentes', icon: Flame },
   ]
 
-  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#C9BFA8' }}>Carregando painel admin...</p>
+  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Carregando painel admin...</p>
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-xl font-semibold" style={{ color: '#1F2D24' }}>⚙️ Painel Admin</h1>
-        <span className="text-xs px-3 py-1 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, color: colors.text }}>
+          <Settings size={19} color={colors.primary} /> Painel Admin
+        </h1>
+        <span className="text-xs px-3 py-1 rounded-full" style={{ background: '#DCFCE7', color: '#14853D' }}>
           {usuario.email}
         </span>
       </div>
@@ -102,9 +109,9 @@ export default function Admin() {
           <button key={a.id} onClick={() => setAba(a.id)}
             className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors"
             style={aba === a.id
-              ? { background: '#1FA855', color: '#fff' }
-              : { background: '#fff', color: '#7C9485', border: '0.5px solid #DDE3DD' }}>
-            {a.label}
+              ? { background: '#16A34A', color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }
+              : { background: '#fff', color: '#6B7280', border: '0.5px solid #E4E7E4', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <a.icon size={15} /> {a.label}
           </button>
         ))}
       </div>
@@ -114,23 +121,25 @@ export default function Admin() {
         <div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
             {[
-              { label: 'Prestadores', valor: stats.totalPrestadores, emoji: '👷', cor: '#1FA855' },
-              { label: 'Pedidos', valor: stats.totalPedidos, emoji: '📋', cor: '#185FA5' },
-              { label: 'Conversas', valor: stats.totalConversas, emoji: '💬', cor: '#8A5A00' },
-              { label: 'Avaliações', valor: stats.totalAvaliacoes, emoji: '⭐', cor: '#FFC857' },
-              { label: 'Zonas pendentes', valor: zonasPendentes.length, emoji: '🔥', cor: '#A32D2D' },
+              { label: 'Prestadores', valor: stats.totalPrestadores, icon: HardHat, cor: '#16A34A' },
+              { label: 'Pedidos', valor: stats.totalPedidos, icon: ClipboardList, cor: '#2563EB' },
+              { label: 'Conversas', valor: stats.totalConversas, icon: MessageCircle, cor: '#92610A' },
+              { label: 'Avaliações', valor: stats.totalAvaliacoes, icon: Star, cor: '#D97706' },
+              { label: 'Zonas pendentes', valor: zonasPendentes.length, icon: Flame, cor: '#B91C1C' },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-2xl p-4 text-center"
-                style={{ border: '0.5px solid #DDE3DD' }}>
-                <div style={{ fontSize: 28 }}>{s.emoji}</div>
+                style={{ border: '0.5px solid #E4E7E4' }}>
+                <s.icon size={24} color={s.cor} style={{ margin: '0 auto 4px' }} />
                 <p className="text-2xl font-semibold mt-1" style={{ color: s.cor }}>{s.valor || 0}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#7C9485' }}>{s.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{s.label}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #DDE3DD' }}>
-            <p className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>🛠️ Ferramentas admin</p>
+          <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #E4E7E4' }}>
+            <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 12 }}>
+              <Wrench size={15} color={colors.primary} /> Ferramentas admin
+            </p>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Ver todos os prestadores', acao: () => setAba('prestadores') },
@@ -140,22 +149,22 @@ export default function Admin() {
               ].map(a => (
                 <button key={a.label} onClick={a.acao}
                   className="p-3 text-sm rounded-xl text-left hover:opacity-80"
-                  style={{ background: '#F0F2F0', color: '#1F2D24' }}>
+                  style={{ background: '#F3F6F2', color: '#1F2937' }}>
                   {a.label} →
                 </button>
               ))}
             </div>
 
-            <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '0.5px solid #DDE3DD' }}>
-              <p className="text-xs font-medium mb-2" style={{ color: '#7C9485' }}>AÇÕES DO SISTEMA</p>
+            <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '0.5px solid #E4E7E4' }}>
+              <p className="text-xs font-medium mb-2" style={{ color: '#6B7280' }}>AÇÕES DO SISTEMA</p>
               <button onClick={async () => {
                 const r = await fetch('/api/geocodificar', { method: 'POST' })
                 const d = await r.json()
                 alert(`Geocodificação: ${d.sucesso} sucesso, ${d.falha} falhas`)
               }}
-                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4"
-                style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
-                📍 Geocodificar prestadores sem coordenadas
+                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
+                style={{ background: '#DCFCE7', color: '#14853D' }}>
+                <MapPin size={15} /> Geocodificar prestadores sem coordenadas
               </button>
               <button onClick={async () => {
                 const r = await fetch('/api/verificar-inadimplencia', {
@@ -165,9 +174,9 @@ export default function Admin() {
                 const d = await r.json()
                 alert(`Inadimplência: ${d.suspensos} suspensos, ${d.reativados} reativados`)
               }}
-                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4"
-                style={{ background: '#FFF4D6', color: '#8A5A00' }}>
-                ⚠️ Verificar assinaturas vencidas
+                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
+                style={{ background: '#FEF3C7', color: '#92610A' }}>
+                <TriangleAlert size={15} /> Verificar assinaturas vencidas
               </button>
             </div>
           </div>
@@ -177,43 +186,43 @@ export default function Admin() {
       {/* PRESTADORES */}
       {aba === 'prestadores' && (
         <div>
-          <p className="text-sm mb-4" style={{ color: '#7C9485' }}>
+          <p className="text-sm mb-4" style={{ color: '#6B7280' }}>
             {stats.totalPrestadores} prestadores cadastrados
           </p>
           <div className="flex flex-col gap-3">
             {prestadores.map(p => (
               <div key={p.id} className="bg-white rounded-2xl p-4 flex items-center gap-3"
-                style={{ border: '0.5px solid #DDE3DD' }}>
+                style={{ border: '0.5px solid #E4E7E4' }}>
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0"
-                  style={{ background: '#1FA855' }}>
+                  style={{ background: '#16A34A' }}>
                   {p.nome?.[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{p.nome}</p>
-                  <p className="text-xs capitalize" style={{ color: '#7C9485' }}>
+                  <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{p.nome}</p>
+                  <p className="text-xs capitalize" style={{ color: '#6B7280' }}>
                     {p.categoria_id} · {p.cidade}, {p.estado} · {p.plano_id}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: '#C9BFA8' }}>
+                  <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
                     {new Date(p.criado_em).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs px-2 py-0.5 rounded-full text-center"
                     style={p.plano_status === 'ativo'
-                      ? { background: '#E3F6E9', color: '#0F6E3D' }
-                      : { background: '#FFF4D6', color: '#8A5A00' }}>
+                      ? { background: '#DCFCE7', color: '#14853D' }
+                      : { background: '#FEF3C7', color: '#92610A' }}>
                     {p.plano_status || 'inativo'}
                   </span>
                   {p.plano_status !== 'ativo' && (
                     <button onClick={() => ativarPrestador(p.id)}
                       className="text-xs px-2 py-0.5 rounded-full text-white"
-                      style={{ background: '#1FA855' }}>
+                      style={{ background: '#16A34A' }}>
                       Ativar
                     </button>
                   )}
                   <button onClick={() => navigate(`/profissional/${p.id}`)}
                     className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: '#F0F2F0', color: '#7C9485' }}>
+                    style={{ background: '#F3F6F2', color: '#6B7280' }}>
                     Ver perfil
                   </button>
                 </div>
@@ -226,25 +235,27 @@ export default function Admin() {
       {/* PEDIDOS */}
       {aba === 'pedidos' && (
         <div>
-          <p className="text-sm mb-4" style={{ color: '#7C9485' }}>{pedidos.length} pedidos cadastrados</p>
+          <p className="text-sm mb-4" style={{ color: '#6B7280' }}>{pedidos.length} pedidos cadastrados</p>
           <div className="flex flex-col gap-3">
             {pedidos.map(p => (
               <div key={p.id} className="bg-white rounded-2xl p-4 flex items-center gap-3"
-                style={{ border: '0.5px solid #DDE3DD' }}>
-                <span style={{ fontSize: 28 }}>{p.categorias?.emoji || '🔧'}</span>
+                style={{ border: '0.5px solid #E4E7E4' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Wrench size={18} color="#14853D" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: '#1F2D24' }}>{p.titulo}</p>
-                  <p className="text-xs" style={{ color: '#7C9485' }}>
+                  <p className="text-sm font-medium truncate" style={{ color: '#1F2937' }}>{p.titulo}</p>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>
                     {p.cidade}, {p.estado} · {p.cliente_nome}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: '#C9BFA8' }}>
+                  <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
                     {new Date(p.criado_em).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
                   style={p.status === 'aberto'
-                    ? { background: '#E3F6E9', color: '#0F6E3D' }
-                    : { background: '#F0F2F0', color: '#7C9485' }}>
+                    ? { background: '#DCFCE7', color: '#14853D' }
+                    : { background: '#F3F6F2', color: '#6B7280' }}>
                   {p.status}
                 </span>
               </div>
@@ -256,25 +267,25 @@ export default function Admin() {
       {/* AVALIAÇÕES */}
       {aba === 'avaliacoes' && (
         <div>
-          <p className="text-sm mb-4" style={{ color: '#7C9485' }}>{avaliacoes.length} avaliações cadastradas</p>
+          <p className="text-sm mb-4" style={{ color: '#6B7280' }}>{avaliacoes.length} avaliações cadastradas</p>
           <div className="flex flex-col gap-3">
             {avaliacoes.map(a => (
               <div key={a.id} className="bg-white rounded-2xl p-4"
-                style={{ border: '0.5px solid #DDE3DD' }}>
+                style={{ border: '0.5px solid #E4E7E4' }}>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{a.autor_nome}</p>
-                    <p className="text-xs" style={{ color: '#7C9485' }}>para {a.prestadores?.nome}</p>
+                    <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{a.autor_nome}</p>
+                    <p className="text-xs" style={{ color: '#6B7280' }}>para {a.prestadores?.nome}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span style={{ color: '#FFC857', fontSize: 13 }}>{'★'.repeat(a.nota)}</span>
-                    <span className="text-xs font-medium" style={{ color: '#1F2D24' }}>{a.nota}</span>
+                    <Star size={14} fill="#F6C64D" color="#F6C64D" strokeWidth={0} />
+                    <span className="text-xs font-medium" style={{ color: '#1F2937' }}>{a.nota}</span>
                   </div>
                 </div>
                 {a.comentario && (
-                  <p className="text-xs" style={{ color: '#5F6F65' }}>{a.comentario}</p>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>{a.comentario}</p>
                 )}
-                <p className="text-xs mt-2" style={{ color: '#C9BFA8' }}>
+                <p className="text-xs mt-2" style={{ color: '#9CA3AF' }}>
                   {new Date(a.criado_em).toLocaleDateString('pt-BR')}
                 </p>
               </div>
@@ -287,38 +298,42 @@ export default function Admin() {
       {aba === 'zonas' && (
         <div>
           {zonasPendentes.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl" style={{ border: '0.5px solid #DDE3DD' }}>
-              <div className="text-4xl mb-3">✅</div>
-              <p className="text-sm" style={{ color: '#7C9485' }}>Nenhuma zona pendente de aprovação!</p>
+            <div className="text-center py-16 bg-white rounded-2xl" style={{ border: '0.5px solid #E4E7E4' }}>
+              <CheckCircle2 size={40} color={colors.primary} style={{ margin: '0 auto 12px' }} />
+              <p className="text-sm" style={{ color: '#6B7280' }}>Nenhuma zona pendente de aprovação!</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
               {zonasPendentes.map(z => (
                 <div key={z.id} className="bg-white rounded-2xl p-5"
-                  style={{ border: '0.5px solid #FFC857' }}>
+                  style={{ border: '0.5px solid #F6C64D' }}>
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{z.nome}</p>
-                      <p className="text-xs capitalize" style={{ color: '#7C9485' }}>
+                      <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{z.nome}</p>
+                      <p className="text-xs capitalize" style={{ color: '#6B7280' }}>
                         {z.tipo} · {z.cidade}, {z.estado}
                       </p>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FFF4D6', color: '#8A5A00' }}>
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92610A' }}>
                       Pendente
                     </span>
                   </div>
-                  {z.descricao && <p className="text-xs mb-3" style={{ color: '#5F6F65' }}>{z.descricao}</p>}
-                  {z.endereco && <p className="text-xs mb-3" style={{ color: '#7C9485' }}>📍 {z.endereco}</p>}
+                  {z.descricao && <p className="text-xs mb-3" style={{ color: '#6B7280' }}>{z.descricao}</p>}
+                  {z.endereco && (
+                    <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, marginBottom: 12, color: '#6B7280' }}>
+                      <MapPin size={12} /> {z.endereco}
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <button onClick={() => rejeitarZona(z.id)}
                       className="flex-1 py-2 text-sm rounded-xl"
-                      style={{ border: '0.5px solid #DDE3DD', color: '#7C9485' }}>
+                      style={{ border: '0.5px solid #E4E7E4', color: '#6B7280' }}>
                       Rejeitar
                     </button>
                     <button onClick={() => aprovarZona(z.id)}
-                      className="flex-1 py-2 text-white text-sm font-medium rounded-xl"
-                      style={{ background: '#1FA855' }}>
-                      ✓ Aprovar e publicar
+                      className="flex-1 py-2 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2"
+                      style={{ background: '#16A34A' }}>
+                      <Check size={14} strokeWidth={3} /> Aprovar e publicar
                     </button>
                   </div>
                 </div>

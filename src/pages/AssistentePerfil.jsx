@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  BarChart3, Check, X, Bot, PenLine, Tag, Camera, ChevronRight, ArrowLeft, Sparkles,
+  Sun, Ruler, Search, Sparkle, Smartphone, CheckCheck, Wrench,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 
 function NotaCompletude({ prestador }) {
   const itens = [
@@ -16,17 +23,19 @@ function NotaCompletude({ prestador }) {
   ]
 
   const nota = itens.reduce((acc, i) => acc + (i.ok ? i.peso : 0), 0)
-  const cor = nota >= 80 ? '#1FA855' : nota >= 50 ? '#FFC857' : '#A32D2D'
+  const cor = nota >= 80 ? '#16A34A' : nota >= 50 ? '#F6C64D' : '#B91C1C'
   const label = nota >= 80 ? 'Ótimo!' : nota >= 50 ? 'Bom, mas pode melhorar' : 'Precisa de atenção'
 
   return (
-    <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '0.5px solid #DDE3DD' }}>
-      <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>📊 Completude do seu perfil</p>
+    <Card padding={20} style={{ marginBottom: 16 }}>
+      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 16 }}>
+        <BarChart3 size={16} color={colors.primary} /> Completude do seu perfil
+      </p>
 
       <div className="flex items-center gap-4 mb-4">
         <div className="relative w-20 h-20 flex-shrink-0">
           <svg viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)', width: 80, height: 80 }}>
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#EDE3CE" strokeWidth="3" />
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#E4E7E4" strokeWidth="3" />
             <circle cx="18" cy="18" r="15.9" fill="none" stroke={cor} strokeWidth="3"
               strokeDasharray={`${nota} ${100 - nota}`} strokeLinecap="round" />
           </svg>
@@ -36,8 +45,8 @@ function NotaCompletude({ prestador }) {
         </div>
         <div>
           <p className="text-base font-semibold" style={{ color: cor }}>{label}</p>
-          <p className="text-xs mt-1" style={{ color: '#7C9485' }}>
-            {nota < 100 ? `Complete seu perfil para atrair mais clientes!` : 'Seu perfil está completo! 🎉'}
+          <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
+            {nota < 100 ? `Complete seu perfil para atrair mais clientes!` : 'Seu perfil está completo!'}
           </p>
         </div>
       </div>
@@ -46,23 +55,23 @@ function NotaCompletude({ prestador }) {
         {itens.map(item => (
           <div key={item.label} className="flex items-center gap-3">
             <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: item.ok ? '#E3F6E9' : '#FCEBEB' }}>
-              <span style={{ fontSize: 11, color: item.ok ? '#0F6E3D' : '#A32D2D' }}>
-                {item.ok ? '✓' : '✗'}
-              </span>
+              style={{ background: item.ok ? '#DCFCE7' : '#FEF2F2' }}>
+              {item.ok
+                ? <Check size={11} strokeWidth={3} color="#14853D" />
+                : <X size={11} strokeWidth={3} color="#B91C1C" />}
             </div>
-            <span className="text-sm" style={{ color: item.ok ? '#5F6F65' : '#1F2D24', fontWeight: item.ok ? 400 : 500 }}>
+            <span className="text-sm" style={{ color: item.ok ? '#6B7280' : '#1F2937', fontWeight: item.ok ? 400 : 500 }}>
               {item.label}
             </span>
             {!item.ok && (
-              <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: '#FFF4D6', color: '#8A5A00' }}>
+              <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92610A' }}>
                 +{item.peso} pts
               </span>
             )}
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -162,14 +171,14 @@ Regras:
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #DDE3DD' }}>
+    <Card padding={20}>
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#E3F6E9' }}>
-          <span style={{ fontSize: 20 }}>🤖</span>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#DCFCE7' }}>
+          <Bot size={20} color={colors.primary} />
         </div>
         <div>
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>Assistente de Perfil</p>
-          <p className="text-xs" style={{ color: '#7C9485' }}>Powered by IA — te ajudo a montar o melhor perfil</p>
+          <p className="text-sm font-medium" style={{ color: '#1F2937' }}>Assistente de Perfil</p>
+          <p className="text-xs" style={{ color: '#6B7280' }}>Powered by IA — te ajudo a montar o melhor perfil</p>
         </div>
       </div>
 
@@ -178,35 +187,41 @@ Regras:
         <div className="space-y-3">
           <button onClick={() => setEtapa('bio')}
             className="w-full flex items-center gap-3 p-4 rounded-xl text-left hover:opacity-90 transition-opacity"
-            style={{ background: '#F0FAF4', border: '0.5px solid #1FA855' }}>
-            <span className="text-2xl">✍️</span>
-            <div>
-              <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>Criar minha bio com IA</p>
-              <p className="text-xs" style={{ color: '#3A7A5C' }}>Responda 4 perguntas simples e a IA escreve por você</p>
+            style={{ background: '#F0FDF4', border: '0.5px solid #16A34A' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <PenLine size={19} color="#14853D" />
             </div>
-            <i className="ti ti-chevron-right ml-auto" style={{ color: '#1FA855', fontSize: 18 }} aria-hidden="true"></i>
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#14853D' }}>Criar minha bio com IA</p>
+              <p className="text-xs" style={{ color: '#14853D' }}>Responda 4 perguntas simples e a IA escreve por você</p>
+            </div>
+            <ChevronRight className="ml-auto" size={18} color="#16A34A" />
           </button>
 
           <button onClick={() => setEtapa('hashtags')}
             className="w-full flex items-center gap-3 p-4 rounded-xl text-left hover:opacity-90 transition-opacity"
-            style={{ background: '#F0FAF4', border: '0.5px solid #1FA855' }}>
-            <span className="text-2xl">🏷️</span>
-            <div>
-              <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>Sugerir hashtags</p>
-              <p className="text-xs" style={{ color: '#3A7A5C' }}>A IA sugere as melhores tags para te encontrarem</p>
+            style={{ background: '#F0FDF4', border: '0.5px solid #16A34A' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Tag size={19} color="#14853D" />
             </div>
-            <i className="ti ti-chevron-right ml-auto" style={{ color: '#1FA855', fontSize: 18 }} aria-hidden="true"></i>
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#14853D' }}>Sugerir hashtags</p>
+              <p className="text-xs" style={{ color: '#14853D' }}>A IA sugere as melhores tags para te encontrarem</p>
+            </div>
+            <ChevronRight className="ml-auto" size={18} color="#16A34A" />
           </button>
 
           <button onClick={() => setEtapa('fotos')}
             className="w-full flex items-center gap-3 p-4 rounded-xl text-left hover:opacity-90 transition-opacity"
-            style={{ background: '#FFF4D6', border: '0.5px solid #FFC857' }}>
-            <span className="text-2xl">📸</span>
-            <div>
-              <p className="text-sm font-medium" style={{ color: '#8A5A00' }}>Dicas de fotos</p>
-              <p className="text-xs" style={{ color: '#9A6B10' }}>Como tirar as melhores fotos dos seus serviços</p>
+            style={{ background: '#FEF3C7', border: '0.5px solid #F6C64D' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Camera size={19} color="#92610A" />
             </div>
-            <i className="ti ti-chevron-right ml-auto" style={{ color: '#FFC857', fontSize: 18 }} aria-hidden="true"></i>
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#92610A' }}>Dicas de fotos</p>
+              <p className="text-xs" style={{ color: '#92610A' }}>Como tirar as melhores fotos dos seus serviços</p>
+            </div>
+            <i className="ti ti-chevron-right ml-auto" style={{ color: '#F6C64D', fontSize: 18 }} aria-hidden="true"></i>
           </button>
         </div>
       )}
@@ -214,72 +229,70 @@ Regras:
       {/* BIO */}
       {etapa === 'bio' && (
         <div>
-          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#7C9485' }}>
-            <i className="ti ti-arrow-left" aria-hidden="true"></i> Voltar
+          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#6B7280' }}>
+            <ArrowLeft size={14} /> Voltar
           </button>
-          <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>Responda as perguntas abaixo — a IA vai criar sua bio:</p>
+          <p className="text-sm font-medium mb-4" style={{ color: '#1F2937' }}>Responda as perguntas abaixo — a IA vai criar sua bio:</p>
           <div className="space-y-3 mb-5">
             {perguntasBio.map(p => (
               <div key={p.id}>
-                <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>{p.label}</label>
+                <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>{p.label}</label>
                 <input type="text" value={respostas[p.id] || ''}
                   onChange={e => setRespostas({ ...respostas, [p.id]: e.target.value })}
                   placeholder={p.placeholder}
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none"
-                  style={{ border: '0.5px solid #DDE3DD', background: '#F8F9F8' }} />
+                  style={{ border: '0.5px solid #E4E7E4', background: '#F3F6F2' }} />
               </div>
             ))}
           </div>
-          <button onClick={gerarBio} disabled={gerando}
-            className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-            style={{ background: '#1FA855' }}>
-            {gerando ? '🤖 Gerando sua bio...' : '✨ Gerar bio com IA'}
-          </button>
+          <Button fullWidth disabled={gerando} icon={gerando ? <Bot size={16} /> : <Sparkles size={16} />} onClick={gerarBio}>
+            {gerando ? 'Gerando sua bio...' : 'Gerar bio com IA'}
+          </Button>
         </div>
       )}
 
       {/* HASHTAGS */}
       {etapa === 'hashtags' && (
         <div>
-          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#7C9485' }}>
-            <i className="ti ti-arrow-left" aria-hidden="true"></i> Voltar
+          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#6B7280' }}>
+            <ArrowLeft size={14} /> Voltar
           </button>
-          <p className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>Qual é o seu principal serviço?</p>
+          <p className="text-sm font-medium mb-3" style={{ color: '#1F2937' }}>Qual é o seu principal serviço?</p>
           <input type="text"
             value={respostas.especialidadeHash || ''}
             onChange={e => setRespostas({ ...respostas, especialidadeHash: e.target.value })}
             placeholder="Ex: Instalação e manutenção elétrica residencial"
             className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none mb-4"
-            style={{ border: '0.5px solid #DDE3DD', background: '#F8F9F8' }} />
-          <button onClick={gerarHashtags} disabled={gerando}
-            className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-            style={{ background: '#1FA855' }}>
-            {gerando ? '🤖 Gerando hashtags...' : '✨ Sugerir hashtags com IA'}
-          </button>
+            style={{ border: '0.5px solid #E4E7E4', background: '#F3F6F2' }} />
+          <Button fullWidth disabled={gerando} icon={gerando ? <Bot size={16} /> : <Sparkles size={16} />} onClick={gerarHashtags}>
+            {gerando ? 'Gerando hashtags...' : 'Sugerir hashtags com IA'}
+          </Button>
         </div>
       )}
 
       {/* FOTOS */}
       {etapa === 'fotos' && (
         <div>
-          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#7C9485' }}>
-            <i className="ti ti-arrow-left" aria-hidden="true"></i> Voltar
+          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#6B7280' }}>
+            <ArrowLeft size={14} /> Voltar
           </button>
-          <p className="text-sm font-medium mb-4" style={{ color: '#1F2D24' }}>📸 Dicas para fotos que convertem</p>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 16 }}>
+            <Camera size={16} color={colors.primary} /> Dicas para fotos que convertem
+          </p>
           <div className="space-y-3">
             {[
-              { emoji: '☀️', titulo: 'Use boa iluminação', desc: 'Tire fotos durante o dia, perto de janelas ou do lado de fora. Ambientes bem iluminados passam mais profissionalismo.' },
-              { emoji: '📐', titulo: 'Mostre o antes e depois', desc: 'A foto mais poderosa é a comparação. Tire uma foto antes de começar e outra ao terminar o serviço.' },
-              { emoji: '🔍', titulo: 'Detalhe o acabamento', desc: 'Aproxime a câmera para mostrar a qualidade do acabamento — pintura, fiação, encanamento bem feito.' },
-              { emoji: '🧹', titulo: 'Local limpo e organizado', desc: 'Sempre fotografe após limpar o ambiente. Bagunça na foto afasta clientes mesmo que o serviço seja ótimo.' },
-              { emoji: '📱', titulo: 'Segure o celular na horizontal', desc: 'Fotos horizontais ficam melhor no app e mostram mais do ambiente.' },
-              { emoji: '✅', titulo: 'Mínimo 5 fotos no portfólio', desc: 'Perfis com 5+ fotos recebem 3x mais contatos do que perfis sem foto.' },
+              { icon: Sun, titulo: 'Use boa iluminação', desc: 'Tire fotos durante o dia, perto de janelas ou do lado de fora. Ambientes bem iluminados passam mais profissionalismo.' },
+              { icon: Ruler, titulo: 'Mostre o antes e depois', desc: 'A foto mais poderosa é a comparação. Tire uma foto antes de começar e outra ao terminar o serviço.' },
+              { icon: Search, titulo: 'Detalhe o acabamento', desc: 'Aproxime a câmera para mostrar a qualidade do acabamento — pintura, fiação, encanamento bem feito.' },
+              { icon: Sparkle, titulo: 'Local limpo e organizado', desc: 'Sempre fotografe após limpar o ambiente. Bagunça na foto afasta clientes mesmo que o serviço seja ótimo.' },
+              { icon: Smartphone, titulo: 'Segure o celular na horizontal', desc: 'Fotos horizontais ficam melhor no app e mostram mais do ambiente.' },
+              { icon: CheckCheck, titulo: 'Mínimo 5 fotos no portfólio', desc: 'Perfis com 5+ fotos recebem 3x mais contatos do que perfis sem foto.' },
             ].map(d => (
-              <div key={d.titulo} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#F8F9F8' }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>{d.emoji}</span>
+              <div key={d.titulo} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: '#F3F6F2' }}>
+                <d.icon size={18} color={colors.textSub} style={{ flexShrink: 0, marginTop: 1 }} />
                 <div>
-                  <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{d.titulo}</p>
-                  <p className="text-xs mt-0.5" style={{ color: '#7C9485' }}>{d.desc}</p>
+                  <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{d.titulo}</p>
+                  <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{d.desc}</p>
                 </div>
               </div>
             ))}
@@ -290,23 +303,25 @@ Regras:
       {/* RESULTADO */}
       {etapa === 'resultado' && (
         <div>
-          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#7C9485' }}>
-            <i className="ti ti-arrow-left" aria-hidden="true"></i> Gerar outro
+          <button onClick={() => setEtapa('menu')} className="text-sm mb-4 flex items-center gap-1" style={{ color: '#6B7280' }}>
+            <ArrowLeft size={14} /> Gerar outro
           </button>
-          <p className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>✨ Resultado gerado pela IA:</p>
-          <div className="p-4 rounded-xl mb-4" style={{ background: '#F0FAF4', border: '0.5px solid #1FA855' }}>
-            <p className="text-sm" style={{ color: '#1F2D24', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{resultado}</p>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 12 }}>
+            <Sparkles size={15} color={colors.primary} /> Resultado gerado pela IA:
+          </p>
+          <div className="p-4 rounded-xl mb-4" style={{ background: '#F0FDF4', border: '0.5px solid #16A34A' }}>
+            <p className="text-sm" style={{ color: '#1F2937', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{resultado}</p>
           </div>
           <button onClick={copiar}
-            className="w-full py-2.5 text-sm font-medium rounded-xl hover:opacity-90 transition-colors"
+            className="w-full py-2.5 text-sm font-medium rounded-xl hover:opacity-90 transition-colors flex items-center justify-center gap-2"
             style={copiado
-              ? { background: '#E3F6E9', color: '#0F6E3D', border: '1px solid #1FA855' }
-              : { background: '#1FA855', color: '#fff' }}>
-            {copiado ? '✓ Copiado! Cole no seu perfil' : 'Copiar e usar no perfil'}
+              ? { background: '#DCFCE7', color: '#14853D', border: '1px solid #16A34A' }
+              : { background: '#16A34A', color: '#fff' }}>
+            {copiado && <Check size={15} strokeWidth={3} />} {copiado ? 'Copiado! Cole no seu perfil' : 'Copiar e usar no perfil'}
           </button>
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -346,26 +361,24 @@ export default function AssistentePerfil() {
 
   if (carregando) return (
     <div className="flex items-center justify-center min-h-64">
-      <p className="text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
+      <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
     </div>
   )
 
   if (!prestador) return (
     <div className="max-w-lg mx-auto text-center py-16">
-      <div className="text-5xl mb-4">🔧</div>
-      <p className="text-sm font-medium mb-2" style={{ color: '#1F2D24' }}>Você ainda não tem perfil de prestador</p>
-      <button onClick={() => navigate('/cadastro-pro')}
-        className="px-6 py-3 text-white text-sm font-medium rounded-xl hover:opacity-90"
-        style={{ background: '#1FA855' }}>
-        Criar meu perfil
-      </button>
+      <Wrench size={44} color="#D1D5DB" style={{ margin: '0 auto 16px' }} />
+      <p className="text-sm font-medium mb-2" style={{ color: '#1F2937' }}>Você ainda não tem perfil de prestador</p>
+      <Button onClick={() => navigate('/cadastro-pro')}>Criar meu perfil</Button>
     </div>
   )
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>🤖 Assistente de Perfil</h1>
-      <p className="text-sm mb-5" style={{ color: '#7C9485' }}>
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>
+        <Bot size={19} color={colors.primary} /> Assistente de Perfil
+      </h1>
+      <p className="text-sm mb-5" style={{ color: '#6B7280' }}>
         Veja como está seu perfil e deixe a IA te ajudar a melhorá-lo
       </p>
       <NotaCompletude prestador={prestador} />

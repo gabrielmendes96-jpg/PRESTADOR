@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Info, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useCategorias } from '../lib/hooks'
+import { colors, spacing } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
 
 const pacotes = [
   { id: 'avulso', nome: 'Avulso', preco: 9, creditos: 1, destaque: false, desc: '1 pedido' },
@@ -10,6 +15,13 @@ const pacotes = [
   { id: 'popular', nome: 'Popular', preco: 59, creditos: 10, destaque: true, desc: '10 pedidos · R$5,90/pedido' },
   { id: 'pro', nome: 'Pro', preco: 99, creditos: 20, destaque: false, desc: '20 pedidos · R$4,95/pedido' },
 ]
+
+const inputStyle = {
+  width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 12,
+  border: `1px solid ${colors.border}`, outline: 'none', color: colors.text, fontFamily: 'inherit',
+}
+
+const labelStyle = { display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }
 
 export default function NovoPedido() {
   const { usuario } = useAuth()
@@ -114,174 +126,144 @@ export default function NovoPedido() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Progress */}
-      <div className="flex gap-2 mb-6">
-        {[1,2,3].map(e => (
-          <div key={e} className="h-1.5 flex-1 rounded-full" style={{ background: e <= etapa ? '#1FA855' : '#EDE3CE' }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {[1, 2, 3].map(e => (
+          <div key={e} style={{ height: 6, flex: 1, borderRadius: 999, transition: 'background 0.25s ease', background: e <= etapa ? colors.primary : colors.border }} />
         ))}
       </div>
 
       {/* ETAPA 1 — Formulário do pedido */}
       {etapa === 1 && (
-        <div>
-          <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>Postar pedido de serviço</h1>
-          <p className="text-sm mb-5" style={{ color: '#7C9485' }}>
-            Você tem <strong style={{ color: '#1FA855' }}>{creditosDisponiveis} crédito{creditosDisponiveis !== 1 ? 's' : ''}</strong> disponíve{creditosDisponiveis !== 1 ? 'is' : 'l'}.
+        <Card padding={24}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Postar pedido de serviço</h1>
+          <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 20 }}>
+            Você tem <strong style={{ color: colors.primary }}>{creditosDisponiveis} crédito{creditosDisponiveis !== 1 ? 's' : ''}</strong> disponíve{creditosDisponiveis !== 1 ? 'is' : 'l'}.
             {creditosDisponiveis === 0 && ' Será necessário comprar créditos para publicar.'}
           </p>
 
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Título do pedido *</label>
+              <label style={labelStyle}>Título do pedido *</label>
               <input type="text" value={dados.titulo} onChange={e => atualizar('titulo', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                placeholder="Ex: Preciso pintar sala e quartos" />
+                style={inputStyle} placeholder="Ex: Preciso pintar sala e quartos" />
             </div>
             <div>
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Descrição</label>
+              <label style={labelStyle}>Descrição</label>
               <textarea value={dados.descricao} onChange={e => atualizar('descricao', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none resize-none"
-                rows={3} placeholder="Detalhes do serviço que você precisa..." />
+                style={{ ...inputStyle, resize: 'none' }} rows={3} placeholder="Detalhes do serviço que você precisa..." />
             </div>
             <div>
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Categoria *</label>
-              <select value={dados.categoria_id} onChange={e => atualizar('categoria_id', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none">
+              <label style={labelStyle}>Categoria *</label>
+              <select value={dados.categoria_id} onChange={e => atualizar('categoria_id', e.target.value)} style={inputStyle}>
                 <option value="">Selecione a categoria</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nome}</option>)}
+                {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Cidade *</label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Cidade *</label>
                 <input type="text" value={dados.cidade} onChange={e => atualizar('cidade', e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                  placeholder="Sua cidade" />
+                  style={inputStyle} placeholder="Sua cidade" />
               </div>
-              <div className="w-20">
-                <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Estado</label>
+              <div style={{ width: 80 }}>
+                <label style={labelStyle}>Estado</label>
                 <input type="text" value={dados.estado} onChange={e => atualizar('estado', e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                  placeholder="SP" maxLength={2} />
+                  style={inputStyle} placeholder="SP" maxLength={2} />
               </div>
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Orçamento mínimo (R$)</label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Orçamento mínimo (R$)</label>
                 <input type="number" value={dados.orcamento_min} onChange={e => atualizar('orcamento_min', e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                  placeholder="0" />
+                  style={inputStyle} placeholder="0" />
               </div>
-              <div className="flex-1">
-                <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Orçamento máximo (R$)</label>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Orçamento máximo (R$)</label>
                 <input type="number" value={dados.orcamento_max} onChange={e => atualizar('orcamento_max', e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                  placeholder="0" />
+                  style={inputStyle} placeholder="0" />
               </div>
             </div>
             <div>
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Prazo desejado</label>
+              <label style={labelStyle}>Prazo desejado</label>
               <input type="text" value={dados.prazo} onChange={e => atualizar('prazo', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                placeholder="Ex: Esta semana, Em 15 dias, Sem pressa..." />
+                style={inputStyle} placeholder="Ex: Esta semana, Em 15 dias, Sem pressa..." />
             </div>
           </div>
 
-          <div className="flex gap-3 mt-6">
-            <button onClick={() => navigate('/pedidos')}
-              className="flex-1 py-2.5 text-sm rounded-xl"
-              style={{ border: '0.5px solid #EDE3CE', color: '#7C9485' }}>
-              Cancelar
-            </button>
-            <button
-              onClick={publicarPedido}
+          <div style={{ display: 'flex', gap: 10, marginTop: spacing.xl }}>
+            <Button variant="secondary" fullWidth onClick={() => navigate('/pedidos')}>Cancelar</Button>
+            <Button
+              fullWidth
               disabled={!dados.titulo || !dados.categoria_id || !dados.cidade || enviando}
-              className="flex-1 py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#1FA855' }}
+              onClick={publicarPedido}
             >
               {enviando ? 'Publicando...' : creditosDisponiveis > 0 ? 'Publicar (1 crédito)' : 'Continuar'}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ETAPA 2 — Comprar créditos */}
       {etapa === 2 && (
-        <div>
-          <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>Comprar créditos</h1>
-          <p className="text-sm mb-5" style={{ color: '#7C9485' }}>Escolha um pacote para publicar seu pedido. Créditos não expiram!</p>
+        <Card padding={24}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Comprar créditos</h1>
+          <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 20 }}>Escolha um pacote para publicar seu pedido. Créditos não expiram!</p>
 
-          <div className="flex flex-col gap-3 mb-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
             {pacotes.map(p => (
               <label
                 key={p.id}
-                className="flex items-center gap-3 p-4 rounded-xl cursor-pointer"
-                style={pacoteSelecionado === p.id
-                  ? { border: '2px solid #1FA855', background: '#F4FAF6' }
-                  : { border: '0.5px solid #EDE3CE' }
-                }
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, cursor: 'pointer',
+                  ...(pacoteSelecionado === p.id ? { border: `2px solid ${colors.primary}`, background: '#F0FDF4' } : { border: `1px solid ${colors.border}` }),
+                }}
               >
                 <input type="radio" name="pacote" value={p.id}
                   checked={pacoteSelecionado === p.id}
                   onChange={() => setPacoteSelecionado(p.id)} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{p.nome}</p>
-                    {p.destaque && (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FFF4D6', color: '#8A5A00' }}>
-                        Mais popular
-                      </span>
-                    )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{p.nome}</p>
+                    {p.destaque && <Badge tone="plan">Mais popular</Badge>}
                   </div>
-                  <p className="text-xs" style={{ color: '#7C9485' }}>{p.desc}</p>
+                  <p style={{ fontSize: 12, color: colors.textSub, margin: 0 }}>{p.desc}</p>
                 </div>
-                <p className="text-base font-semibold" style={{ color: '#1FA855' }}>R${p.preco}</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: colors.primary, margin: 0 }}>R${p.preco}</p>
               </label>
             ))}
           </div>
 
-          <div className="p-4 rounded-xl mb-5" style={{ background: '#FFF4D6' }}>
-            <p className="text-xs" style={{ color: '#8A5A00' }}>
-              ⚠️ <strong>Atenção:</strong> O pagamento real será integrado com Asaas (Pix/cartão) em breve.
+          <div style={{ display: 'flex', gap: 10, padding: 14, borderRadius: 14, marginBottom: 20, background: '#FFFBEB' }}>
+            <Info size={16} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
+            <p style={{ fontSize: 12, color: '#92610A', margin: 0, lineHeight: 1.5 }}>
+              <strong>Atenção:</strong> o pagamento real será integrado com Asaas (Pix/cartão) em breve.
               Por enquanto, os créditos são adicionados diretamente para teste.
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <button onClick={() => setEtapa(1)}
-              className="flex-1 py-2.5 text-sm rounded-xl"
-              style={{ border: '0.5px solid #EDE3CE', color: '#7C9485' }}>
-              Voltar
-            </button>
-            <button
-              onClick={comprarCreditos}
-              disabled={!pacoteSelecionado || enviando}
-              className="flex-1 py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#1FA855' }}
-            >
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button variant="secondary" fullWidth onClick={() => setEtapa(1)}>Voltar</Button>
+            <Button fullWidth disabled={!pacoteSelecionado || enviando} onClick={comprarCreditos}>
               {enviando ? 'Processando...' : 'Confirmar compra'}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ETAPA 3 — Créditos comprados, publicar */}
       {etapa === 3 && (
-        <div className="text-center">
-          <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-xl font-semibold mb-2" style={{ color: '#1F2D24' }}>Créditos adicionados!</h2>
-          <p className="text-sm mb-6" style={{ color: '#7C9485' }}>
-            Você agora tem <strong style={{ color: '#1FA855' }}>{creditosDisponiveis} crédito{creditosDisponiveis !== 1 ? 's' : ''}</strong>. Publique seu pedido agora!
+        <Card padding={24} style={{ textAlign: 'center' }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <CheckCircle2 size={32} color={colors.primary} strokeWidth={1.8} />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>Créditos adicionados!</h2>
+          <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 24 }}>
+            Você agora tem <strong style={{ color: colors.primary }}>{creditosDisponiveis} crédito{creditosDisponiveis !== 1 ? 's' : ''}</strong>. Publique seu pedido agora!
           </p>
-          <button
-            onClick={() => { setEtapa(1); publicarPedido() }}
-            className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90"
-            style={{ background: '#1FA855' }}
-          >
-            Publicar pedido agora
-          </button>
-        </div>
+          <Button fullWidth onClick={() => { setEtapa(1); publicarPedido() }}>Publicar pedido agora</Button>
+        </Card>
       )}
     </div>
   )

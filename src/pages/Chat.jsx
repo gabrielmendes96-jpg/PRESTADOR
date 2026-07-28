@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors, radius, shadow } from '../lib/design'
+import Card from '../components/ui/Card'
+import IconButton from '../components/ui/IconButton'
 
 export default function Chat() {
   const { conversaId } = useParams()
@@ -133,56 +137,52 @@ export default function Chat() {
   }
 
   if (carregando) return (
-    <div className="flex items-center justify-center min-h-64">
-      <p className="text-sm" style={{ color: '#7C9485' }}>Carregando conversa...</p>
-    </div>
+    <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando conversa...</div>
   )
 
+  const nomeContato = conversa?.prestadores?.user_id === usuario?.id
+    ? conversa?.cliente_nome || 'Cliente'
+    : conversa?.prestadores?.nome || 'Prestador'
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
       {/* Header */}
-      <div className="bg-white rounded-2xl p-4 mb-3 flex items-center gap-3" style={{ border: '0.5px solid #EDE3CE' }}>
-        <button onClick={() => navigate(-1)} className="p-1 rounded-lg hover:opacity-70" style={{ color: '#7C9485' }}>
-          <i className="ti ti-arrow-left" style={{ fontSize: '20px' }} aria-hidden="true"></i>
-        </button>
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
-          {(conversa?.prestadores?.nome || conversa?.cliente_nome || 'U')[0].toUpperCase()}
+      <Card padding={16} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <IconButton icon={<ArrowLeft size={18} />} tone="ghost" size={36} onClick={() => navigate(-1)} aria-label="Voltar" />
+        <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, background: '#DCFCE7', color: colors.primaryHover, flexShrink: 0 }}>
+          {nomeContato[0]?.toUpperCase()}
         </div>
-        <div>
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>
-            {conversa?.prestadores?.user_id === usuario?.id
-              ? conversa?.cliente_nome || 'Cliente'
-              : conversa?.prestadores?.nome || 'Prestador'
-            }
-          </p>
-          <p className="text-xs capitalize" style={{ color: '#7C9485' }}>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{nomeContato}</p>
+          <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>
             {conversa?.prestadores?.categoria_id} · {conversa?.prestadores?.cidade}, {conversa?.prestadores?.estado}
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* Mensagens */}
-      <div className="bg-white rounded-2xl p-4 mb-3" style={{ border: '0.5px solid #EDE3CE', minHeight: '400px', maxHeight: '500px', overflowY: 'auto' }}>
+      <Card padding={16} style={{ marginBottom: 12, minHeight: 400, maxHeight: 500, overflowY: 'auto' }}>
         {mensagens.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="text-4xl mb-2">💬</div>
-              <p className="text-sm" style={{ color: '#7C9485' }}>Nenhuma mensagem ainda. Diga olá!</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 256 }}>
+            <div style={{ textAlign: 'center' }}>
+              <MessageCircle size={40} color="#D1D5DB" style={{ margin: '0 auto 8px' }} />
+              <p style={{ fontSize: 14, color: colors.textSub }}>Nenhuma mensagem ainda. Diga olá!</p>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {mensagens.map((msg, i) => (
-              <div key={msg.id || i} className={`flex ${ehMinha(msg) ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg.id || i} style={{ display: 'flex', justifyContent: ehMinha(msg) ? 'flex-end' : 'flex-start' }}>
                 <div
-                  className="max-w-xs px-4 py-2.5 rounded-2xl text-sm"
-                  style={ehMinha(msg)
-                    ? { background: '#1FA855', color: '#fff', borderBottomRightRadius: '4px' }
-                    : { background: '#FAF6EE', color: '#1F2D24', borderBottomLeftRadius: '4px', border: '0.5px solid #EDE3CE' }
-                  }
+                  style={{
+                    maxWidth: '75%', padding: '10px 14px', borderRadius: 18, fontSize: 14,
+                    ...(ehMinha(msg)
+                      ? { background: colors.primary, color: '#fff', borderBottomRightRadius: 4 }
+                      : { background: colors.bg, color: colors.text, borderBottomLeftRadius: 4, border: `1px solid ${colors.border}` })
+                  }}
                 >
-                  <p>{msg.texto}</p>
-                  <p className="text-xs mt-1 opacity-70">
+                  <p style={{ margin: 0 }}>{msg.texto}</p>
+                  <p style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>
                     {new Date(msg.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -191,28 +191,32 @@ export default function Chat() {
             <div ref={bottomRef} />
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Input */}
-      <div className="bg-white rounded-2xl p-3 flex gap-2 items-end" style={{ border: '0.5px solid #EDE3CE' }}>
+      <Card padding={10} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea
           value={texto}
           onChange={e => setTexto(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Digite sua mensagem... (Enter para enviar)"
           rows={1}
-          className="flex-1 px-3 py-2 text-sm rounded-xl focus:outline-none resize-none"
-          style={{ border: '0.5px solid #EDE3CE', background: '#FAF6EE', maxHeight: '120px' }}
+          style={{
+            flex: 1, padding: '10px 14px', fontSize: 14, borderRadius: radius.input,
+            border: `1px solid ${colors.border}`, background: colors.bg, outline: 'none',
+            resize: 'none', maxHeight: 120, fontFamily: 'inherit',
+          }}
         />
-        <button
+        <IconButton
+          icon={<Send size={18} />}
+          tone="primary"
+          size={42}
           onClick={enviar}
           disabled={!texto.trim() || enviando}
-          className="w-10 h-10 rounded-xl flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity flex-shrink-0"
-          style={{ background: '#1FA855', color: '#fff' }}
-        >
-          <i className="ti ti-send" style={{ fontSize: '18px' }} aria-hidden="true"></i>
-        </button>
-      </div>
+          aria-label="Enviar mensagem"
+          style={{ opacity: (!texto.trim() || enviando) ? 0.4 : 1, boxShadow: shadow.btn }}
+        />
+      </Card>
     </div>
   )
 }

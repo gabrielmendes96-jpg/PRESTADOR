@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Wallet, Clock, Crown, Check, Send } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors, spacing } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
+
+function InfoTile({ label, value, valueColor }) {
+  return (
+    <div style={{ padding: 12, borderRadius: 14, background: colors.bg }}>
+      <p style={{ fontSize: 11, color: '#9CA3AF', margin: '0 0 2px' }}>{label}</p>
+      <p style={{ fontSize: 14, fontWeight: 700, color: valueColor || colors.text, margin: 0 }}>{value}</p>
+    </div>
+  )
+}
 
 export default function DetalhePedido() {
   const { id } = useParams()
@@ -92,119 +106,100 @@ export default function DetalhePedido() {
     if (conv) navigate(`/chat/${conv.id}`)
   }
 
-  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
-  if (!pedido) return <p className="text-center py-16 text-sm" style={{ color: '#C9BFA8' }}>Pedido não encontrado.</p>
+  if (carregando) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando...</p>
+  if (!pedido) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Pedido não encontrado.</p>
 
   const ehDono = usuario?.id === pedido.cliente_user_id
+  const orcamentoTexto = pedido.orcamento_min && pedido.orcamento_max
+    ? `R$${pedido.orcamento_min} – R$${pedido.orcamento_max}`
+    : pedido.orcamento_max ? `até R$${pedido.orcamento_max}` : pedido.orcamento_min ? `a partir de R$${pedido.orcamento_min}` : null
+
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 12,
+    border: `1px solid ${colors.border}`, outline: 'none', fontFamily: 'inherit',
+  }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
       {/* Detalhes do pedido */}
-      <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #EDE3CE' }}>
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>{pedido.titulo}</h1>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
-                {pedido.categorias?.emoji} {pedido.categorias?.nome}
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: pedido.status === 'aberto' ? '#E3F6E9' : '#FFF4D6', color: pedido.status === 'aberto' ? '#0F6E3D' : '#8A5A00' }}>
-                {pedido.status}
-              </span>
-            </div>
-          </div>
+      <Card padding={24} style={{ marginBottom: spacing.card }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>{pedido.titulo}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#DCFCE7', color: colors.primaryHover }}>
+            {pedido.categorias?.nome}
+          </span>
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, textTransform: 'capitalize',
+            background: pedido.status === 'aberto' ? '#DCFCE7' : '#FEF3C7',
+            color: pedido.status === 'aberto' ? colors.primaryHover : '#92610A',
+          }}>
+            {pedido.status}
+          </span>
         </div>
 
         {pedido.descricao && (
-          <p className="text-sm mb-4" style={{ color: '#5F6F65' }}>{pedido.descricao}</p>
+          <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 16, lineHeight: 1.6 }}>{pedido.descricao}</p>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="p-3 rounded-xl" style={{ background: '#FAF6EE' }}>
-            <p className="text-xs mb-0.5" style={{ color: '#C9BFA8' }}>Localização</p>
-            <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{pedido.cidade}, {pedido.estado}</p>
-          </div>
-          {(pedido.orcamento_min || pedido.orcamento_max) && (
-            <div className="p-3 rounded-xl" style={{ background: '#FAF6EE' }}>
-              <p className="text-xs mb-0.5" style={{ color: '#C9BFA8' }}>Orçamento</p>
-              <p className="text-sm font-medium" style={{ color: '#1FA855' }}>
-                {pedido.orcamento_min && pedido.orcamento_max
-                  ? `R$${pedido.orcamento_min} – R$${pedido.orcamento_max}`
-                  : pedido.orcamento_max ? `até R$${pedido.orcamento_max}` : `a partir de R$${pedido.orcamento_min}`
-                }
-              </p>
-            </div>
-          )}
-          {pedido.prazo && (
-            <div className="p-3 rounded-xl" style={{ background: '#FAF6EE' }}>
-              <p className="text-xs mb-0.5" style={{ color: '#C9BFA8' }}>Prazo desejado</p>
-              <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{pedido.prazo}</p>
-            </div>
-          )}
-          <div className="p-3 rounded-xl" style={{ background: '#FAF6EE' }}>
-            <p className="text-xs mb-0.5" style={{ color: '#C9BFA8' }}>Candidaturas</p>
-            <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{candidaturas.length} prestador{candidaturas.length !== 1 ? 'es' : ''}</p>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <InfoTile label="Localização" value={`${pedido.cidade}, ${pedido.estado}`} />
+          {orcamentoTexto && <InfoTile label="Orçamento" value={orcamentoTexto} valueColor={colors.primary} />}
+          {pedido.prazo && <InfoTile label="Prazo desejado" value={pedido.prazo} />}
+          <InfoTile label="Candidaturas" value={`${candidaturas.length} prestador${candidaturas.length !== 1 ? 'es' : ''}`} />
         </div>
 
-        <p className="text-xs" style={{ color: '#C9BFA8' }}>
+        <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>
           Postado por {pedido.cliente_nome} · {new Date(pedido.criado_em).toLocaleDateString('pt-BR')}
         </p>
-      </div>
+      </Card>
 
-      {/* Botão de candidatura (para prestadores Premium) */}
+      {/* Ação de candidatura (para prestadores Premium) */}
       {meuPrestador && !ehDono && pedido.status === 'aberto' && (
-        <div className="mb-4">
+        <div style={{ marginBottom: spacing.card }}>
           {jaCandidatei ? (
-            <div className="p-4 rounded-xl text-center" style={{ background: '#E3F6E9' }}>
-              <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>✓ Você já se candidatou a este pedido!</p>
-            </div>
+            <Card padding={16} style={{ textAlign: 'center', background: '#DCFCE7', border: 'none' }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: colors.primaryHover, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0 }}>
+                <Check size={16} strokeWidth={3} /> Você já se candidatou a este pedido!
+              </p>
+            </Card>
           ) : meuPrestador.plano_id !== 'premium' ? (
-            <div className="p-4 rounded-xl" style={{ background: '#FFF4D6', border: '0.5px solid #EDE3CE' }}>
-              <p className="text-sm font-medium mb-1" style={{ color: '#8A5A00' }}>⭐ Recurso exclusivo Premium</p>
-              <p className="text-xs mb-3" style={{ color: '#7C9485' }}>Apenas prestadores com plano Premium podem se candidatar a pedidos de serviço.</p>
-              <button onClick={() => navigate('/planos')} className="px-4 py-2 text-white text-sm rounded-lg hover:opacity-90" style={{ background: '#1FA855' }}>
-                Fazer upgrade para Premium
-              </button>
-            </div>
+            <Card padding={16}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#92610A', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Crown size={16} /> Recurso exclusivo Premium
+              </p>
+              <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>Apenas prestadores com plano Premium podem se candidatar a pedidos de serviço.</p>
+              <Button size="sm" onClick={() => navigate('/planos')}>Fazer upgrade para Premium</Button>
+            </Card>
           ) : (
             <div>
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90"
-                style={{ background: '#1FA855' }}
-              >
-                <i className="ti ti-hand-finger" aria-hidden="true"></i> Me candidatar a este pedido
-              </button>
+              <Button variant="dark" fullWidth icon={<Send size={16} />} onClick={() => setShowForm(!showForm)}>
+                Me candidatar a este pedido
+              </Button>
 
               {showForm && (
-                <div className="mt-3 p-4 bg-white rounded-xl space-y-3" style={{ border: '0.5px solid #EDE3CE' }}>
+                <Card padding={16} style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
-                    <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Sua mensagem *</label>
+                    <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Sua mensagem *</label>
                     <textarea value={form.mensagem} onChange={e => setForm({ ...form, mensagem: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none resize-none"
+                      style={{ ...inputStyle, resize: 'none' }}
                       rows={3} placeholder="Apresente-se e explique por que você é o profissional ideal..." />
                   </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Seu valor (R$)</label>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Seu valor (R$)</label>
                       <input type="number" value={form.valor_proposto} onChange={e => setForm({ ...form, valor_proposto: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                        placeholder="0" />
+                        style={inputStyle} placeholder="0" />
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Prazo</label>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Prazo</label>
                       <input type="text" value={form.prazo_proposto} onChange={e => setForm({ ...form, prazo_proposto: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                        placeholder="Ex: 3 dias" />
+                        style={inputStyle} placeholder="Ex: 3 dias" />
                     </div>
                   </div>
-                  <button onClick={candidatar} disabled={!form.mensagem || enviando}
-                    className="w-full py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-50"
-                    style={{ background: '#1FA855' }}>
+                  <Button variant="dark" fullWidth disabled={!form.mensagem || enviando} onClick={candidatar}>
                     {enviando ? 'Enviando...' : 'Enviar candidatura'}
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               )}
             </div>
           )}
@@ -213,70 +208,63 @@ export default function DetalhePedido() {
 
       {/* Lista de candidaturas (visível para o dono do pedido) */}
       {ehDono && (
-        <div className="bg-white rounded-2xl p-6" style={{ border: '0.5px solid #EDE3CE' }}>
-          <h2 className="text-base font-semibold mb-4" style={{ color: '#1F2D24' }}>
+        <Card padding={24}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 16 }}>
             {candidaturas.length} candidatura{candidaturas.length !== 1 ? 's' : ''} recebida{candidaturas.length !== 1 ? 's' : ''}
           </h2>
 
           {candidaturas.length === 0 ? (
-            <p className="text-sm text-center py-8" style={{ color: '#C9BFA8' }}>Nenhuma candidatura ainda. Aguarde os prestadores se candidatarem!</p>
+            <p style={{ fontSize: 14, textAlign: 'center', padding: '32px 0', color: colors.textSub }}>Nenhuma candidatura ainda. Aguarde os prestadores se candidatarem!</p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
               {candidaturas.map(c => (
-                <div key={c.id} className="p-4 rounded-xl" style={{ background: '#FAF6EE', border: c.status === 'aceito' ? '2px solid #1FA855' : '0.5px solid #EDE3CE' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
+                <div key={c.id} style={{
+                  padding: 16, borderRadius: 14, background: colors.bg,
+                  border: c.status === 'aceito' ? `2px solid ${colors.primary}` : `1px solid ${colors.border}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: '#DCFCE7', color: colors.primaryHover }}>
                         {c.prestadores?.nome?.[0]?.toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{c.prestadores?.nome}</p>
-                        <p className="text-xs capitalize" style={{ color: '#7C9485' }}>{c.prestadores?.cidade}, {c.prestadores?.estado}</p>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{c.prestadores?.nome}</p>
+                        <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>{c.prestadores?.cidade}, {c.prestadores?.estado}</p>
                       </div>
                     </div>
-                    {c.status === 'aceito' && (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>✓ Aceito</span>
-                    )}
+                    {c.status === 'aceito' && <Badge tone="success" icon={<Check size={10} strokeWidth={3} />}>Aceito</Badge>}
                   </div>
 
-                  {c.mensagem && <p className="text-sm mb-2" style={{ color: '#5F6F65' }}>{c.mensagem}</p>}
+                  {c.mensagem && <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 10 }}>{c.mensagem}</p>}
 
-                  <div className="flex items-center gap-3 mb-3">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                     {c.valor_proposto && (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#E3F6E9', color: '#0F6E3D' }}>
-                        R${c.valor_proposto}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#DCFCE7', color: colors.primaryHover }}>
+                        <Wallet size={12} /> R${c.valor_proposto}
                       </span>
                     )}
                     {c.prazo_proposto && (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FAF6EE', color: '#7C9485', border: '0.5px solid #EDE3CE' }}>
-                        ⏱️ {c.prazo_proposto}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '3px 10px', borderRadius: 999, background: '#fff', color: colors.textSub, border: `1px solid ${colors.border}` }}>
+                        <Clock size={12} /> {c.prazo_proposto}
                       </span>
                     )}
                   </div>
 
                   {c.status === 'pendente' && pedido.status === 'aberto' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => navigate(`/profissional/${c.prestadores?.id}`)}
-                        className="flex-1 py-2 text-sm rounded-lg hover:opacity-80"
-                        style={{ border: '0.5px solid #EDE3CE', color: '#7C9485' }}
-                      >
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <Button variant="secondary" size="sm" fullWidth onClick={() => navigate(`/profissional/${c.prestadores?.id}`)}>
                         Ver perfil
-                      </button>
-                      <button
-                        onClick={() => aceitarCandidatura(c.id, c.prestador_id)}
-                        className="flex-1 py-2 text-white text-sm font-medium rounded-lg hover:opacity-90"
-                        style={{ background: '#1FA855' }}
-                      >
-                        ✓ Aceitar e iniciar chat
-                      </button>
+                      </Button>
+                      <Button variant="dark" size="sm" fullWidth icon={<Check size={14} strokeWidth={3} />} onClick={() => aceitarCandidatura(c.id, c.prestador_id)}>
+                        Aceitar e iniciar chat
+                      </Button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   )

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Calendar, Clock, ChevronLeft, ChevronRight, Save, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
+import Button from '../components/ui/Button'
 
 const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -60,58 +63,63 @@ export default function Disponibilidade() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>📅 Calendário de Disponibilidade</h1>
-      <p className="text-sm mb-5" style={{ color: '#7C9485' }}>Marque os dias que você está disponível para atender</p>
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>
+        <Calendar size={19} color={colors.primary} /> Calendário de Disponibilidade
+      </h1>
+      <p className="text-sm mb-5" style={{ color: '#6B7280' }}>Marque os dias que você está disponível para atender</p>
 
       {salvo && (
-        <div className="mb-4 p-3 rounded-xl text-center" style={{ background: '#E3F6E9' }}>
-          <p className="text-sm font-medium" style={{ color: '#0F6E3D' }}>✓ Disponibilidade salva!</p>
+        <div className="mb-4 p-3 rounded-xl text-center" style={{ background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <CheckCircle2 size={16} strokeWidth={2.5} color={colors.primaryHover} />
+          <p className="text-sm font-medium" style={{ color: '#14853D', margin: 0 }}>Disponibilidade salva!</p>
         </div>
       )}
 
       {/* Horários */}
-      <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '0.5px solid #DDE3DD' }}>
-        <p className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>⏰ Horário de atendimento</p>
+      <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 12 }}>
+          <Clock size={15} color={colors.primary} /> Horário de atendimento
+        </p>
         <div className="flex gap-4 items-center">
           <div className="flex-1">
-            <label className="block text-xs mb-1" style={{ color: '#7C9485' }}>Das</label>
+            <label className="block text-xs mb-1" style={{ color: '#6B7280' }}>Das</label>
             <input type="time" value={horariosDisponiveis.inicio}
               onChange={e => setHorariosDisponiveis({ ...horariosDisponiveis, inicio: e.target.value })}
               className="w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none"
-              style={{ borderColor: '#DDE3DD' }} />
+              style={{ borderColor: '#E4E7E4' }} />
           </div>
-          <span className="text-sm mt-4" style={{ color: '#7C9485' }}>até</span>
+          <span className="text-sm mt-4" style={{ color: '#6B7280' }}>até</span>
           <div className="flex-1">
-            <label className="block text-xs mb-1" style={{ color: '#7C9485' }}>Às</label>
+            <label className="block text-xs mb-1" style={{ color: '#6B7280' }}>Às</label>
             <input type="time" value={horariosDisponiveis.fim}
               onChange={e => setHorariosDisponiveis({ ...horariosDisponiveis, fim: e.target.value })}
               className="w-full px-3 py-2.5 text-sm rounded-lg border focus:outline-none"
-              style={{ borderColor: '#DDE3DD' }} />
+              style={{ borderColor: '#E4E7E4' }} />
           </div>
         </div>
       </div>
 
       {/* Calendário */}
-      <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '0.5px solid #DDE3DD' }}>
+      <div className="bg-white rounded-2xl p-5 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1))}
             className="w-8 h-8 rounded-lg flex items-center justify-center hover:opacity-70"
-            style={{ border: '0.5px solid #DDE3DD' }}>
-            <i className="ti ti-chevron-left" style={{ fontSize: 16 }} aria-hidden="true"></i>
+            style={{ border: '0.5px solid #E4E7E4' }}>
+            <ChevronLeft size={16} />
           </button>
-          <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>
+          <p className="text-sm font-medium" style={{ color: '#1F2937' }}>
             {meses[mes]} {ano}
           </p>
           <button onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1))}
             className="w-8 h-8 rounded-lg flex items-center justify-center hover:opacity-70"
-            style={{ border: '0.5px solid #DDE3DD' }}>
-            <i className="ti ti-chevron-right" style={{ fontSize: 16 }} aria-hidden="true"></i>
+            style={{ border: '0.5px solid #E4E7E4' }}>
+            <ChevronRight size={16} />
           </button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 mb-2">
           {dias.map(d => (
-            <div key={d} className="text-center text-xs font-medium py-1" style={{ color: '#7C9485' }}>{d}</div>
+            <div key={d} className="text-center text-xs font-medium py-1" style={{ color: '#6B7280' }}>{d}</div>
           ))}
         </div>
 
@@ -127,10 +135,10 @@ export default function Disponibilidade() {
               <button key={dia} onClick={() => !passado && toggleDia(dataStr)} disabled={passado}
                 className="aspect-square rounded-lg text-xs font-medium flex items-center justify-center transition-colors"
                 style={disponivel
-                  ? { background: '#1FA855', color: '#fff' }
+                  ? { background: '#16A34A', color: '#fff' }
                   : passado
-                  ? { background: '#F5F5F5', color: '#C9BFA8', cursor: 'not-allowed' }
-                  : { background: '#F8F9F8', color: '#1F2D24', border: '0.5px solid #DDE3DD' }
+                  ? { background: '#F3F6F2', color: '#9CA3AF', cursor: 'not-allowed' }
+                  : { background: '#F3F6F2', color: '#1F2937', border: '0.5px solid #E4E7E4' }
                 }>
                 {dia}
               </button>
@@ -138,23 +146,21 @@ export default function Disponibilidade() {
           })}
         </div>
 
-        <div className="flex items-center gap-4 mt-4 pt-4" style={{ borderTop: '0.5px solid #DDE3DD' }}>
+        <div className="flex items-center gap-4 mt-4 pt-4" style={{ borderTop: '0.5px solid #E4E7E4' }}>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded" style={{ background: '#1FA855' }}></div>
-            <span className="text-xs" style={{ color: '#7C9485' }}>Disponível</span>
+            <div className="w-4 h-4 rounded" style={{ background: '#16A34A' }}></div>
+            <span className="text-xs" style={{ color: '#6B7280' }}>Disponível</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded" style={{ background: '#F5F5F5', border: '0.5px solid #DDE3DD' }}></div>
-            <span className="text-xs" style={{ color: '#7C9485' }}>Indisponível</span>
+            <div className="w-4 h-4 rounded" style={{ background: '#F3F6F2', border: '0.5px solid #E4E7E4' }}></div>
+            <span className="text-xs" style={{ color: '#6B7280' }}>Indisponível</span>
           </div>
         </div>
       </div>
 
-      <button onClick={salvar} disabled={salvando}
-        className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-        style={{ background: '#1FA855' }}>
-        {salvando ? 'Salvando...' : '💾 Salvar disponibilidade'}
-      </button>
+      <Button fullWidth icon={<Save size={16} />} disabled={salvando} onClick={salvar}>
+        {salvando ? 'Salvando...' : 'Salvar disponibilidade'}
+      </Button>
     </div>
   )
 }

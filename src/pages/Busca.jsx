@@ -1,9 +1,19 @@
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { SlidersHorizontal, Star, MapPin, Zap, Crown, SearchX, ChevronDown } from 'lucide-react'
 import { useCategorias, useTopicos, usePrestadores } from '../lib/hooks'
 import CardPrestador from '../components/CardPrestador'
+import CardSkeleton from '../components/CardSkeleton'
 import FiltrosAvancados from '../components/FiltrosAvancados'
+import SearchBar from '../components/ui/SearchBar'
+import Chip from '../components/ui/Chip'
+import Card from '../components/ui/Card'
+import { colors, spacing } from '../lib/design'
+import { getCategoriaIcone } from '../lib/categoriaIcones'
 import { recuperarLocalizacao, calcularDistancia } from '../lib/gps'
+
+const DISTANCIAS = [10, 25, 50, 100]
+const NOTAS = [0, 3, 4, 4.5]
 
 export default function Busca() {
   const [params] = useSearchParams()
@@ -14,14 +24,17 @@ export default function Busca() {
     topico: topicoInicial,
     nota: '',
     disponivel: false,
+    distanciaMax: null, // filtro rápido de distância (chip), independente do slider do modal
   })
   const [showFiltros, setShowFiltros] = useState(false)
+  const [openPopover, setOpenPopover] = useState(null) // 'distancia' | 'avaliacao' | null
   const [ordenacao, setOrdenacao] = useState('relevancia')
   const [filtrosAvancados, setFiltrosAvancados] = useState({
     notaMinima: 0, distanciaMax: 50, plano: '', disponivel: false, temFoto: false
   })
 
   const userLoc = recuperarLocalizacao()
+  const { categorias } = useCategorias()
   const { topicos } = useTopicos()
 
   const categoriasDoTopico = useMemo(() => {
@@ -50,6 +63,9 @@ export default function Busca() {
     if (filtrosAvancados.temFoto) {
       lista = lista.filter(p => p.foto_perfil || (p.fotos && p.fotos.length > 0))
     }
+    if (filtro.distanciaMax && userLoc) {
+      lista = lista.filter(p => p.distanciaReal === null || p.distanciaReal <= filtro.distanciaMax)
+    }
 
     switch (ordenacao) {
       case 'nota': return [...lista].sort((a, b) => (b.avaliacao || 0) - (a.avaliacao || 0))
@@ -61,10 +77,12 @@ export default function Busca() {
       case 'recente': return [...lista].sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em))
       default: return lista
     }
-  }, [resultadosBrutos, ordenacao, filtrosAvancados.temFoto, userLoc])
+  }, [resultadosBrutos, ordenacao, filtrosAvancados.temFoto, filtro.distanciaMax, userLoc])
 
   const temFiltrosAtivos = filtrosAvancados.notaMinima > 0 || filtrosAvancados.plano || filtrosAvancados.disponivel || filtrosAvancados.temFoto
   const topicoAtual = topicos.find(t => t.id === filtro.topico)
+
+  const togglePopover = (nome) => setOpenPopover(prev => (prev === nome ? null : nome))
 
   return (
     <div>
@@ -75,99 +93,158 @@ export default function Busca() {
         />
       )}
 
-      {/* Barra de busca */}
-      <div className="bg-white rounded-2xl p-4 mb-4" style={{ border: '0.5px solid #DDE3DD' }}>
-        <div className="flex gap-2 mb-3">
-          <input
-            type="search"
-            placeholder="Buscar profissional..."
-            value={filtro.busca}
-            onChange={e => setFiltro({ ...filtro, busca: e.target.value })}
-            className="flex-1 px-3 py-2.5 text-sm rounded-xl border focus:outline-none"
-            style={{ borderColor: '#DDE3DD' }}
-          />
+      {/* Busca */}
+      <div style={{ marginBottom: spacing.card }}>
+        <SearchBar
+          value={filtro.busca}
+          onChange={e => setFiltro({ ...filtro, busca: e.target.value })}
+          placeholder="Buscar profissional..."
+          showButton={false}
+        />
+      </div>
+
+      {/* Categorias (scroll horizontal) */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12, scrollbarWidth: 'none' }}>
+        <Chip active={!filtro.categoria} onClick={() => setFiltro({ ...filtro, categoria: '' })}>
+          Todos
+        </Chip>
+        {categorias.map(cat => {
+          const { icon: Icon } = getCategoriaIcone(cat)
+          return (
+            <Chip
+              key={cat.id}
+              active={filtro.categoria === cat.id}
+              onClick={() => setFiltro({ ...filtro, categoria: filtro.categoria === cat.id ? '' : cat.id })}
+              icon={<Icon size={13} />}
+            >
+              {cat.nome}
+            </Chip>
+          )
+        })}
+      </div>
+
+      {/* Filtros rápidos */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: spacing.card, position: 'relative' }}>
+        <Chip
+          active={filtrosAvancados.disponivel}
+          onClick={() => setFiltrosAvancados({ ...filtrosAvancados, disponivel: !filtrosAvancados.disponivel })}
+          icon={<Zap size={13} />}
+        >
+          Disponível hoje
+        </Chip>
+
+        <Chip
+          active={filtrosAvancados.plano === 'premium'}
+          onClick={() => setFiltrosAvancados({ ...filtrosAvancados, plano: filtrosAvancados.plano === 'premium' ? '' : 'premium' })}
+          icon={<Crown size={13} />}
+        >
+          Premium
+        </Chip>
+
+        <div style={{ position: 'relative' }}>
+          <Chip active={!!filtro.distanciaMax} onClick={() => togglePopover('distancia')} icon={<MapPin size={13} />}>
+            Distância <ChevronDown size={13} />
+          </Chip>
+          {openPopover === 'distancia' && (
+            <Card padding={12} style={{ position: 'absolute', top: 44, left: 0, zIndex: 20, width: 180 }}>
+              <button
+                onClick={() => { setFiltro({ ...filtro, distanciaMax: null }); setOpenPopover(null) }}
+                className="btn-press"
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 10,
+                  background: !filtro.distanciaMax ? colors.primary : 'transparent',
+                  color: !filtro.distanciaMax ? '#fff' : colors.text,
+                  fontSize: 13, fontWeight: 600, border: 'none',
+                }}
+              >
+                Qualquer distância
+              </button>
+              {DISTANCIAS.map(km => (
+                <button
+                  key={km}
+                  onClick={() => { setFiltro({ ...filtro, distanciaMax: km }); setOpenPopover(null) }}
+                  className="btn-press"
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 10,
+                    background: filtro.distanciaMax === km ? colors.primary : 'transparent',
+                    color: filtro.distanciaMax === km ? '#fff' : colors.text,
+                    fontSize: 13, fontWeight: 600, border: 'none',
+                  }}
+                >
+                  Até {km} km
+                </button>
+              ))}
+            </Card>
+          )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
-          {[
-            { id: '', label: 'Todos' },
-            { id: 'construcao', label: '🏗️ Construção' },
-            { id: 'eletrica', label: '⚡ Elétrica' },
-            { id: 'hidraulica', label: '🚿 Hidráulica' },
-            { id: 'beleza', label: '💄 Beleza' },
-            { id: 'saude', label: '❤️ Saúde' },
-            { id: 'automotivo', label: '🚗 Automotivo' },
-            { id: 'tecnologia', label: '💻 Tecnologia' },
-            { id: 'educacao', label: '📚 Educação' },
-            { id: 'alimentacao', label: '🍳 Alimentação' },
-            { id: 'eventos', label: '🎉 Eventos' },
-          ].map(t => (
-            <button key={t.id} onClick={() => setFiltro({ ...filtro, topico: t.id })}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex-shrink-0"
-              style={filtro.topico === t.id
-                ? { background: '#1FA855', color: '#fff' }
-                : { background: '#F0F2F0', color: '#5F6F65' }}>
-              {t.label}
-            </button>
-          ))}
+        <div style={{ position: 'relative' }}>
+          <Chip active={filtrosAvancados.notaMinima > 0} onClick={() => togglePopover('avaliacao')} icon={<Star size={13} />}>
+            Avaliação <ChevronDown size={13} />
+          </Chip>
+          {openPopover === 'avaliacao' && (
+            <Card padding={12} style={{ position: 'absolute', top: 44, left: 0, zIndex: 20, width: 160 }}>
+              {NOTAS.map(n => (
+                <button
+                  key={n}
+                  onClick={() => { setFiltrosAvancados({ ...filtrosAvancados, notaMinima: n }); setOpenPopover(null) }}
+                  className="btn-press"
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 10,
+                    background: filtrosAvancados.notaMinima === n ? colors.primary : 'transparent',
+                    color: filtrosAvancados.notaMinima === n ? '#fff' : colors.text,
+                    fontSize: 13, fontWeight: 600, border: 'none',
+                  }}
+                >
+                  {n === 0 ? 'Qualquer nota' : `${n}+ estrelas`}
+                </button>
+              ))}
+            </Card>
+          )}
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <button onClick={() => setShowFiltros(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors"
-              style={temFiltrosAtivos
-                ? { background: '#E3F6E9', color: '#0F6E3D', border: '1px solid #1FA855' }
-                : { background: '#F0F2F0', color: '#5F6F65' }}>
-              <i className="ti ti-adjustments-horizontal" style={{ fontSize: 14 }} aria-hidden="true"></i>
-              Filtros {temFiltrosAtivos && '●'}
-            </button>
+        <Chip active={showFiltros || temFiltrosAtivos} onClick={() => setShowFiltros(true)} icon={<SlidersHorizontal size={13} />}>
+          Mais filtros
+        </Chip>
+      </div>
 
-            <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)}
-              className="px-3 py-2 text-xs rounded-lg border focus:outline-none"
-              style={{ borderColor: '#DDE3DD', color: '#5F6F65', background: '#F0F2F0' }}>
-              <option value="relevancia">Relevância</option>
-              <option value="nota">Melhor nota</option>
-              <option value="distancia">Mais próximo</option>
-              <option value="recente">Mais recente</option>
-            </select>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.card }}>
+        <select
+          value={ordenacao}
+          onChange={e => setOrdenacao(e.target.value)}
+          style={{ padding: '8px 12px', fontSize: 13, borderRadius: 10, border: `1px solid ${colors.border}`, color: colors.textSub, background: '#fff' }}
+        >
+          <option value="relevancia">Relevância</option>
+          <option value="nota">Melhor nota</option>
+          <option value="distancia">Mais próximo</option>
+          <option value="recente">Mais recente</option>
+        </select>
 
-          <p className="text-xs" style={{ color: '#C9BFA8' }}>
-            {loading ? 'buscando...' : `${resultados.length} profissional${resultados.length !== 1 ? 'is' : ''}`}
-          </p>
-        </div>
+        <p style={{ fontSize: 13, color: colors.textSub }}>
+          {loading ? 'buscando...' : `${resultados.length} ${resultados.length !== 1 ? 'profissionais' : 'profissional'}`}
+        </p>
       </div>
 
       {topicoAtual && (
-        <p className="text-sm mb-3" style={{ color: '#7C9485' }}>
-          Em <strong style={{ color: '#1F2D24' }}>{topicoAtual.nome}</strong>
+        <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 12 }}>
+          Em <strong style={{ color: colors.text }}>{topicoAtual.nome}</strong>
         </p>
       )}
 
       {loading ? (
-        <div className="flex flex-col gap-3">
-          {[1,2,3].map(i => (
-            <div key={i} className="bg-white rounded-xl p-4 flex items-center gap-3 animate-pulse"
-              style={{ border: '0.5px solid #DDE3DD' }}>
-              <div className="w-12 h-12 rounded-full flex-shrink-0" style={{ background: '#E8EAE8' }}></div>
-              <div className="flex-1">
-                <div className="h-3 rounded mb-2" style={{ background: '#E8EAE8', width: '60%' }}></div>
-                <div className="h-2.5 rounded" style={{ background: '#E8EAE8', width: '40%' }}></div>
-              </div>
-            </div>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
+          {[1, 2, 3].map(i => <CardSkeleton key={i} modo="lista" />)}
         </div>
       ) : resultados.length === 0 ? (
-        <div className="text-center py-16">
-          <div style={{ fontSize: 48 }}>🔍</div>
-          <p className="text-base font-medium mt-3 mb-1" style={{ color: '#1F2D24' }}>Nenhum profissional encontrado</p>
-          <p className="text-sm" style={{ color: '#7C9485' }}>Tente outros termos ou remova os filtros</p>
+        <div style={{ textAlign: 'center', padding: '64px 0' }}>
+          <SearchX size={44} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
+          <p style={{ fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 4 }}>Nenhum profissional encontrado</p>
+          <p style={{ fontSize: 14, color: colors.textSub }}>Tente outros termos ou remova os filtros</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
           {resultados.map(p => (
-            <CardPrestador key={p.id} prestador={p} horizontal distancia={p.distanciaReal} />
+            <CardPrestador key={p.id} prestador={p} layout="horizontal" distancia={p.distanciaReal} />
           ))}
         </div>
       )}

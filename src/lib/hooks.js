@@ -238,6 +238,65 @@ export function usePrestador(id) {
 }
 
 // ------------------------------------------------------------
+// usePrestadoresPorIds — busca vários prestadores específicos
+// (usado na ferramenta de comparação)
+// ------------------------------------------------------------
+export function usePrestadoresPorIds(ids = []) {
+  const [prestadores, setPrestadores] = useState([])
+  const [loading, setLoading] = useState(true)
+  const chave = JSON.stringify(ids)
+
+  useEffect(() => {
+    if (!ids || ids.length === 0) {
+      setPrestadores([])
+      setLoading(false)
+      return
+    }
+
+    async function carregar() {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('prestadores_completo')
+        .select('*')
+        .in('id', ids)
+
+      if (error) {
+        console.error('Erro ao buscar prestadores para comparação:', error)
+        setPrestadores([])
+        setLoading(false)
+        return
+      }
+
+      const completos = (data || []).map(p => ({
+        ...p,
+        avaliacao: p.avaliacao_media,
+        totalAvaliacoes: p.total_avaliacoes,
+        totalServicos: p.total_servicos,
+        tempoResposta: p.tempo_resposta,
+        raioAtendimento: p.raio_atendimento,
+        plano: p.plano_id,
+        categoria: p.categoria_id,
+        avaliacaoDetalhada: {
+          pontualidade: p.media_pontualidade,
+          qualidade: p.media_qualidade,
+          preco: p.media_preco,
+          limpeza: p.media_limpeza,
+        },
+      }))
+
+      // preserva a ordem em que os ids foram selecionados
+      const porId = Object.fromEntries(completos.map(p => [p.id, p]))
+      setPrestadores(ids.map(id => porId[id]).filter(Boolean))
+      setLoading(false)
+    }
+    carregar()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave])
+
+  return { prestadores, loading }
+}
+
+// ------------------------------------------------------------
 // criarAvaliacao — publica uma nova avaliação para um prestador
 // ------------------------------------------------------------
 export async function criarAvaliacao({ prestadorId, autorNome, nota, pontualidade, qualidade, preco, limpeza, comentario }) {

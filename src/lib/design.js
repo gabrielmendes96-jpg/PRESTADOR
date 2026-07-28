@@ -29,3 +29,28 @@ export const radius = {
 }
 
 export const transition = 'all 0.25s ease'
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  page: 32,
+  section: 48,
+  card: 24,
+}
+
+export const type = {
+  title: { fontSize: 34, fontWeight: 700, lineHeight: 1.2 },
+  subtitle: { fontSize: 20, fontWeight: 600, lineHeight: 1.3 },
+  body: { fontSize: 16, fontWeight: 400, lineHeight: 1.6 },
+  button: { fontSize: 16, fontWeight: 700 },
+  small: { fontSize: 13, fontWeight: 500 },
+  micro: { fontSize: 11, fontWeight: 600 },
+}
+
+export const breakpoints = {
+  sm: 640,
+}

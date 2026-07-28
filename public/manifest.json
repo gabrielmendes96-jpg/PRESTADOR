@@ -4,8 +4,8 @@
   "description": "O profissional certo, a um clique de distância",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAF6EE",
-  "theme_color": "#1FA855",
+  "background_color": "#F3F6F2",
+  "theme_color": "#16A34A",
   "orientation": "portrait",
   "icons": [
     {

@@ -1,30 +1,34 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Medal, Crown, Trophy, Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors, spacing } from '../lib/design'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 
 const niveis = [
   {
-    id: 'bronze', nome: 'Bronze', emoji: '🥉',
-    cor: '#8B6914', bg: '#FDF3DC',
+    id: 'bronze', nome: 'Bronze', icon: Medal,
+    cor: '#B45309', bg: '#FEF3C7',
     requisitos: { avaliacoes: 1, notaMin: 3.0, mesesAtivo: 0 },
     beneficios: ['Perfil visível na plataforma', 'Pode receber avaliações', 'Acesso ao chat'],
   },
   {
-    id: 'prata', nome: 'Prata', emoji: '🥈',
-    cor: '#5F6F85', bg: '#EEF2F8',
+    id: 'prata', nome: 'Prata', icon: Medal,
+    cor: '#64748B', bg: '#F1F5F9',
     requisitos: { avaliacoes: 10, notaMin: 4.0, mesesAtivo: 1 },
     beneficios: ['Tudo do Bronze', 'Badge Prata no perfil', 'Aparece antes dos Bronze nas buscas'],
   },
   {
-    id: 'ouro', nome: 'Ouro', emoji: '🥇',
-    cor: '#8A5A00', bg: '#FFF4D6',
+    id: 'ouro', nome: 'Ouro', icon: Medal,
+    cor: '#92610A', bg: '#FEF3C7',
     requisitos: { avaliacoes: 30, notaMin: 4.5, mesesAtivo: 3 },
     beneficios: ['Tudo do Prata', 'Badge Ouro no perfil', 'Destaque na aba Destaques', '10% desconto nos planos'],
   },
   {
-    id: 'embaixador', nome: 'Embaixador', emoji: '👑',
-    cor: '#1FA855', bg: '#E3F6E9',
+    id: 'embaixador', nome: 'Embaixador', icon: Crown,
+    cor: colors.primaryHover, bg: '#DCFCE7',
     requisitos: { avaliacoes: 100, notaMin: 4.8, mesesAtivo: 12 },
     beneficios: ['Tudo do Ouro', 'Badge Embaixador exclusivo', 'Prioridade máxima nas buscas', 'Suporte prioritário', '1 mês grátis a cada 6 meses'],
   },
@@ -77,13 +81,13 @@ export default function Niveis() {
     setCarregando(false)
   }
 
-  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
+  if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
   if (!prestador) return (
     <div className="text-center py-16">
-      <p className="text-sm" style={{ color: '#7C9485' }}>Você precisa ter um perfil de prestador.</p>
+      <p className="text-sm" style={{ color: '#6B7280' }}>Você precisa ter um perfil de prestador.</p>
       <button onClick={() => navigate('/cadastro-pro')}
         className="mt-4 px-6 py-3 text-white text-sm font-medium rounded-xl"
-        style={{ background: '#1FA855' }}>Criar perfil</button>
+        style={{ background: '#16A34A' }}>Criar perfil</button>
     </div>
   )
 
@@ -93,13 +97,15 @@ export default function Niveis() {
 
   return (
     <div className="max-w-lg mx-auto">
-      <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2D24' }}>🏆 Programa de Níveis</h1>
-      <p className="text-sm mb-5" style={{ color: '#7C9485' }}>Evolua e ganhe benefícios exclusivos na plataforma</p>
+      <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 4 }}>
+        <Trophy size={20} color={colors.primary} /> Programa de Níveis
+      </h1>
+      <p className="text-sm mb-5" style={{ color: '#6B7280' }}>Evolua e ganhe benefícios exclusivos na plataforma</p>
 
       {/* Nível atual */}
       <div className="p-5 rounded-2xl mb-5 text-center"
         style={{ background: nivelAtual.bg, border: `2px solid ${nivelAtual.cor}` }}>
-        <div style={{ fontSize: 56 }}>{nivelAtual.emoji}</div>
+        <nivelAtual.icon size={48} color={nivelAtual.cor} strokeWidth={1.5} style={{ margin: '0 auto' }} />
         <p className="text-xl font-semibold mt-2" style={{ color: nivelAtual.cor }}>Nível {nivelAtual.nome}</p>
         <p className="text-sm mt-1" style={{ color: nivelAtual.cor, opacity: 0.8 }}>Seu nível atual na plataforma</p>
 
@@ -121,9 +127,9 @@ export default function Niveis() {
 
       {/* Próximo nível */}
       {proximoNivel && (
-        <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: '0.5px solid #DDE3DD' }}>
-          <p className="text-sm font-medium mb-3" style={{ color: '#1F2D24' }}>
-            Para alcançar o nível {proximoNivel.emoji} {proximoNivel.nome}:
+        <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: '0.5px solid #E4E7E4' }}>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 12 }}>
+            Para alcançar o nível <proximoNivel.icon size={15} color={proximoNivel.cor} /> {proximoNivel.nome}:
           </p>
           <div className="space-y-3">
             {[
@@ -136,14 +142,14 @@ export default function Niveis() {
               return (
                 <div key={req.label}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs" style={{ color: '#7C9485' }}>{req.label}</span>
-                    <span className="text-xs font-medium" style={{ color: ok ? '#0F6E3D' : '#1F2D24' }}>
-                      {ok ? '✓ ' : ''}{req.atual} / {req.meta}
+                    <span className="text-xs" style={{ color: '#6B7280' }}>{req.label}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: ok ? colors.primaryHover : colors.text }}>
+                      {ok && <Check size={12} strokeWidth={3} />}{req.atual} / {req.meta}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full" style={{ background: '#EDE3CE' }}>
+                  <div className="h-1.5 rounded-full" style={{ background: '#E4E7E4' }}>
                     <div className="h-1.5 rounded-full transition-all"
-                      style={{ width: `${pct}%`, background: ok ? '#1FA855' : proximoNivel.cor }} />
+                      style={{ width: `${pct}%`, background: ok ? '#16A34A' : proximoNivel.cor }} />
                   </div>
                 </div>
               )
@@ -153,29 +159,31 @@ export default function Niveis() {
       )}
 
       {/* Todos os níveis */}
-      <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#7C9485' }}>Todos os níveis</p>
+      <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#6B7280' }}>Todos os níveis</p>
       <div className="space-y-3">
         {niveis.map((n, i) => {
           const atingido = i <= nivelAtualIdx
           return (
-            <div key={n.id} className="bg-white rounded-2xl p-4" style={{ border: `0.5px solid ${atingido ? n.cor : '#DDE3DD'}`, opacity: atingido ? 1 : 0.6 }}>
+            <div key={n.id} className="bg-white rounded-2xl p-4" style={{ border: `0.5px solid ${atingido ? n.cor : '#E4E7E4'}`, opacity: atingido ? 1 : 0.6 }}>
               <div className="flex items-center gap-3 mb-3">
-                <span style={{ fontSize: 28 }}>{n.emoji}</span>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: n.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <n.icon size={20} color={n.cor} strokeWidth={1.8} />
+                </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: n.cor }}>Nível {n.nome}</p>
-                  <p className="text-xs" style={{ color: '#7C9485' }}>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>
                     {n.requisitos.avaliacoes}+ aval. · nota ≥ {n.requisitos.notaMin} · {n.requisitos.mesesAtivo}+ meses
                   </p>
                 </div>
                 {atingido && (
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: n.bg, color: n.cor }}>
-                    ✓ Conquistado
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: n.bg, color: n.cor }}>
+                    <Check size={11} strokeWidth={3} /> Conquistado
                   </span>
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
                 {n.beneficios.map(b => (
-                  <span key={b} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#F8F9F8', color: '#5F6F65' }}>
+                  <span key={b} className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#F3F6F2', color: '#6B7280' }}>
                     {b}
                   </span>
                 ))}

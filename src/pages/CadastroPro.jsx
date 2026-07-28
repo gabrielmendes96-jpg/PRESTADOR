@@ -2,9 +2,21 @@ import { useState } from 'react'
 import { useCategorias } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
-import { TOPICOS, CATEGORIAS_POR_TOPICO } from '../lib/dados'
+import { TOPICOS } from '../lib/dados'
+import { colors, spacing } from '../lib/design'
+import { getCategoriaIcone } from '../lib/categoriaIcones'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Chip from '../components/ui/Chip'
 
 const topicosDisponiveis = TOPICOS
+
+const inputStyle = {
+  width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 12,
+  border: `1px solid ${colors.border}`, outline: 'none', color: colors.text, fontFamily: 'inherit',
+}
+
+const labelStyle = { display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }
 
 export function CadastroPro() {
   const [etapa, setEtapa] = useState(1)
@@ -91,163 +103,143 @@ export function CadastroPro() {
   }
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="text-2xl font-semibold mb-1" style={{ color: '#1F2D24' }}>Cadastre-se como profissional</h1>
-      <p className="text-sm mb-6" style={{ color: '#7C9485' }}>Etapa {etapa} de 3</p>
+    <div style={{ maxWidth: 480, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Cadastre-se como profissional</h1>
+      <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 24 }}>Etapa {etapa} de 3</p>
 
-      <div className="flex gap-2 mb-8">
-        {[1,2,3].map(e => (
-          <div key={e} className="h-1.5 flex-1 rounded-full transition-colors" style={{ background: e <= etapa ? '#1FA855' : '#E3E9E5' }} />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
+        {[1, 2, 3].map(e => (
+          <div key={e} style={{ height: 6, flex: 1, borderRadius: 999, transition: 'background 0.25s ease', background: e <= etapa ? colors.primary : colors.border }} />
         ))}
       </div>
 
-      {/* ETAPA 1 — Dados pessoais */}
-      {etapa === 1 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Nome completo</label>
-            <input type="text" value={dados.nome} onChange={e => atualizar('nome', e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none" placeholder="Seu nome" />
-          </div>
-          <div>
-            <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>E-mail</label>
-            <input type="email" value={dados.email} onChange={e => atualizar('email', e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none" placeholder="seu@email.com" />
-          </div>
-          <div>
-            <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>WhatsApp</label>
-            <input type="text" value={dados.whatsapp} onChange={e => atualizar('whatsapp', e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none" placeholder="(00) 00000-0000" />
-          </div>
-        </div>
-      )}
-
-      {/* ETAPA 2 — Profissão e localização */}
-      {etapa === 2 && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Profissão</label>
-            <select value={dados.categoria} onChange={e => atualizar('categoria', e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none">
-              <option value="">Selecione sua profissão</option>
-              {categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nome}</option>)}
-              <option value="__outro__">Outra profissão (digitar)</option>
-            </select>
-          </div>
-
-          {/* Campo para profissão personalizada */}
-          {dados.categoria === '__outro__' && (
+      <Card padding={24}>
+        {/* ETAPA 1 — Dados pessoais */}
+        {etapa === 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Digite sua profissão</label>
-              <input
-                type="text"
-                value={dados.categoriaCustom}
-                onChange={e => atualizar('categoriaCustom', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
-                placeholder="Ex: Gesseiro, Marmorista, Técnico em Refrigeração..."
-              />
-              <p className="text-xs mt-1" style={{ color: '#C9BFA8' }}>
-                Sua profissão será adicionada à plataforma e ficará disponível para outros prestadores também.
-              </p>
+              <label style={labelStyle}>Nome completo</label>
+              <input type="text" value={dados.nome} onChange={e => atualizar('nome', e.target.value)} style={inputStyle} placeholder="Seu nome" />
+            </div>
+            <div>
+              <label style={labelStyle}>E-mail</label>
+              <input type="email" value={dados.email} onChange={e => atualizar('email', e.target.value)} style={inputStyle} placeholder="seu@email.com" />
+            </div>
+            <div>
+              <label style={labelStyle}>WhatsApp</label>
+              <input type="text" value={dados.whatsapp} onChange={e => atualizar('whatsapp', e.target.value)} style={inputStyle} placeholder="(00) 00000-0000" />
+            </div>
+          </div>
+        )}
 
-              {/* Alocação em tópicos */}
-              <div className="mt-3">
-                <label className="block text-sm mb-2" style={{ color: '#5F6F65' }}>
-                  Em quais tópicos sua profissão se encaixa?
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {topicosDisponiveis.map(top => (
-                    <button
-                      key={top.id}
-                      type="button"
-                      onClick={() => toggleTopico(top.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors"
-                      style={dados.topicos.includes(top.id)
-                        ? { background: '#1FA855', color: '#fff' }
-                        : { background: '#FAF6EE', color: '#1F2D24', border: '0.5px solid #EDE3CE' }
-                      }
-                    >
-                      {top.emoji} {top.nome}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs mt-1" style={{ color: '#C9BFA8' }}>
-                  Selecione um ou mais tópicos para que clientes te encontrem mais facilmente.
+        {/* ETAPA 2 — Profissão e localização */}
+        {etapa === 2 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Profissão</label>
+              <select value={dados.categoria} onChange={e => atualizar('categoria', e.target.value)} style={inputStyle}>
+                <option value="">Selecione sua profissão</option>
+                {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                <option value="__outro__">Outra profissão (digitar)</option>
+              </select>
+            </div>
+
+            {/* Campo para profissão personalizada */}
+            {dados.categoria === '__outro__' && (
+              <div>
+                <label style={labelStyle}>Digite sua profissão</label>
+                <input
+                  type="text"
+                  value={dados.categoriaCustom}
+                  onChange={e => atualizar('categoriaCustom', e.target.value)}
+                  style={inputStyle}
+                  placeholder="Ex: Gesseiro, Marmorista, Técnico em Refrigeração..."
+                />
+                <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6 }}>
+                  Sua profissão será adicionada à plataforma e ficará disponível para outros prestadores também.
                 </p>
+
+                {/* Alocação em tópicos */}
+                <div style={{ marginTop: 14 }}>
+                  <label style={{ ...labelStyle, marginBottom: 8 }}>Em quais tópicos sua profissão se encaixa?</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {topicosDisponiveis.map(top => {
+                      const { icon: Icon } = getCategoriaIcone(top)
+                      return (
+                        <Chip key={top.id} active={dados.topicos.includes(top.id)} onClick={() => toggleTopico(top.id)} icon={<Icon size={13} />}>
+                          {top.nome}
+                        </Chip>
+                      )
+                    })}
+                  </div>
+                  <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 8 }}>
+                    Selecione um ou mais tópicos para que clientes te encontrem mais facilmente.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Cidade</label>
+                <input type="text" value={dados.cidade} onChange={e => atualizar('cidade', e.target.value)} style={inputStyle} placeholder="Sua cidade" />
+              </div>
+              <div style={{ width: 90 }}>
+                <label style={labelStyle}>Estado</label>
+                <input type="text" value={dados.estado} onChange={e => atualizar('estado', e.target.value)} style={inputStyle} placeholder="SP" maxLength={2} />
               </div>
             </div>
-          )}
 
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Cidade</label>
-              <input type="text" value={dados.cidade} onChange={e => atualizar('cidade', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none" placeholder="Sua cidade" />
+            <div>
+              <label style={labelStyle}>Sobre você</label>
+              <textarea value={dados.descricao} onChange={e => atualizar('descricao', e.target.value)}
+                style={{ ...inputStyle, resize: 'none' }} rows={4} placeholder="Descreva sua experiência e os serviços que oferece..." />
             </div>
-            <div className="w-24">
-              <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Estado</label>
-              <input type="text" value={dados.estado} onChange={e => atualizar('estado', e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none" placeholder="SP" maxLength={2} />
+
+            <div>
+              <label style={labelStyle}>Fotos do seu trabalho</label>
+              <p style={{ fontSize: 12, color: '#9CA3AF' }}>Adicione fotos no painel após finalizar o cadastro. Perfis com fotos recebem 3x mais contatos!</p>
             </div>
           </div>
-
-          <div>
-            <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Sobre você</label>
-            <textarea value={dados.descricao} onChange={e => atualizar('descricao', e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none resize-none"
-              rows={4} placeholder="Descreva sua experiência e os serviços que oferece..." />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1" style={{ color: '#5F6F65' }}>Fotos do seu trabalho</label>
-            <p className="text-xs mb-2" style={{ color: '#C9BFA8' }}>Adicione fotos no painel após finalizar o cadastro. Perfis com fotos recebem 3x mais contatos!</p>
-          </div>
-        </div>
-      )}
-
-      {/* ETAPA 3 — Plano */}
-      {etapa === 3 && (
-        <div className="space-y-4">
-          <p className="text-sm mb-4" style={{ color: '#5F6F65' }}>Escolha seu plano para começar:</p>
-          {['basico', 'profissional', 'premium'].map((id) => {
-            const nomes = { basico: 'Básico — R$49/mês', profissional: 'Profissional — R$99/mês', premium: 'Premium — R$199/mês' }
-            const descs = {
-              basico: 'Perfil básico + até 10 fotos + chat',
-              profissional: 'Destaque nos resultados + selo verificado',
-              premium: 'Topo das buscas + suporte prioritário'
-            }
-            return (
-              <label key={id} className="flex items-center gap-3 p-4 rounded-xl cursor-pointer"
-                style={dados.plano === id ? { border: '2px solid #1FA855', background: '#F4FAF6' } : { border: '0.5px solid #EDE3CE' }}>
-                <input type="radio" name="plano" value={id} checked={dados.plano === id} onChange={() => atualizar('plano', id)} />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{nomes[id]}</p>
-                  <p className="text-xs" style={{ color: '#7C9485' }}>{descs[id]}</p>
-                </div>
-              </label>
-            )
-          })}
-          {erro && <p className="text-xs" style={{ color: '#A32D2D' }}>{erro}</p>}
-        </div>
-      )}
-
-      <div className="flex gap-3 mt-8">
-        {etapa > 1 && (
-          <button onClick={() => setEtapa(etapa - 1)}
-            className="flex-1 py-2.5 text-sm rounded-xl hover:opacity-80"
-            style={{ border: '0.5px solid #EDE3CE', color: '#1F2D24', background: '#fff' }}>
-            Voltar
-          </button>
         )}
-        <button
-          onClick={() => etapa < 3 ? setEtapa(etapa + 1) : finalizar()}
-          disabled={enviando}
-          className="flex-1 py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
-          style={{ background: '#1FA855' }}
-        >
-          {etapa === 3 ? (enviando ? 'Enviando...' : 'Finalizar cadastro') : 'Continuar'}
-        </button>
-      </div>
+
+        {/* ETAPA 3 — Plano */}
+        {etapa === 3 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 4 }}>Escolha seu plano para começar:</p>
+            {['basico', 'profissional', 'premium'].map((id) => {
+              const nomes = { basico: 'Básico — R$49/mês', profissional: 'Profissional — R$99/mês', premium: 'Premium — R$199/mês' }
+              const descs = {
+                basico: 'Perfil básico + até 10 fotos + chat',
+                profissional: 'Destaque nos resultados + selo verificado',
+                premium: 'Topo das buscas + suporte prioritário'
+              }
+              return (
+                <label key={id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, cursor: 'pointer',
+                  ...(dados.plano === id ? { border: `2px solid ${colors.primary}`, background: '#F0FDF4' } : { border: `1px solid ${colors.border}` }),
+                }}>
+                  <input type="radio" name="plano" value={id} checked={dados.plano === id} onChange={() => atualizar('plano', id)} />
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{nomes[id]}</p>
+                    <p style={{ fontSize: 12, color: colors.textSub, margin: 0 }}>{descs[id]}</p>
+                  </div>
+                </label>
+              )
+            })}
+            {erro && <p style={{ fontSize: 12, color: '#B91C1C' }}>{erro}</p>}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, marginTop: spacing.xl }}>
+          {etapa > 1 && (
+            <Button variant="secondary" fullWidth onClick={() => setEtapa(etapa - 1)}>Voltar</Button>
+          )}
+          <Button fullWidth disabled={enviando} onClick={() => etapa < 3 ? setEtapa(etapa + 1) : finalizar()}>
+            {etapa === 3 ? (enviando ? 'Enviando...' : 'Finalizar cadastro') : 'Continuar'}
+          </Button>
+        </div>
+      </Card>
     </div>
   )
 }

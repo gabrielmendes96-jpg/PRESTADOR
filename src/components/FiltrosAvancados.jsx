@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X, Star } from 'lucide-react'
 
 export default function FiltrosAvancados({ onAplicar, onFechar }) {
   const [filtros, setFiltros] = useState({
@@ -30,7 +31,7 @@ export default function FiltrosAvancados({ onAplicar, onFechar }) {
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold" style={{ color: '#1F2D24' }}>Filtros</h2>
           <button onClick={onFechar} style={{ color: '#7C9485' }}>
-            <i className="ti ti-x" style={{ fontSize: 20 }} aria-hidden="true"></i>
+            <X size={20} />
           </button>
         </div>
 
@@ -38,8 +39,8 @@ export default function FiltrosAvancados({ onAplicar, onFechar }) {
           <div>
             <div className="flex justify-between mb-2">
               <label className="text-sm" style={{ color: '#5F6F65' }}>Nota mínima</label>
-              <span className="text-sm font-medium" style={{ color: '#1FA855' }}>
-                {filtros.notaMinima === 0 ? 'Qualquer' : `${filtros.notaMinima}+ ⭐`}
+              <span className="text-sm font-medium flex items-center gap-1" style={{ color: '#1FA855' }}>
+                {filtros.notaMinima === 0 ? 'Qualquer' : <>{filtros.notaMinima}+ <Star size={13} fill="#1FA855" strokeWidth={0} /></>}
               </span>
             </div>
             <div className="flex gap-2">
@@ -75,14 +76,15 @@ export default function FiltrosAvancados({ onAplicar, onFechar }) {
                 { val: '', label: 'Todos' },
                 { val: 'basico', label: 'Básico' },
                 { val: 'profissional', label: 'Profissional' },
-                { val: 'premium', label: 'Premium ⭐' },
+                { val: 'premium', label: 'Premium' },
               ].map(p => (
                 <button key={p.val} onClick={() => setFiltros({ ...filtros, plano: p.val })}
-                  className="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
+                  className="flex-1 py-2 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
                   style={filtros.plano === p.val
                     ? { background: '#1FA855', color: '#fff' }
                     : { background: '#F0F2F0', color: '#7C9485' }}>
                   {p.label}
+                  {p.val === 'premium' && <Star size={11} fill="currentColor" strokeWidth={0} />}
                 </button>
               ))}
             </div>
