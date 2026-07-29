@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight as ChevronRightIcon, Check, Image } from 'lucide-react'
+import { colors } from '../lib/design'
 
 export default function GaleriaFotos({ fotos, disponivel }) {
   const [idx, setIdx] = useState(0)
@@ -22,13 +24,14 @@ export default function GaleriaFotos({ fotos, disponivel }) {
   }, [next, prev])
 
   if (!fotos || fotos.length === 0) return (
-    <div className="w-full h-80 rounded-2xl mb-4 flex items-center justify-center" style={{ background: '#F4FAF6' }}>
-      <p className="text-sm" style={{ color: '#C9BFA8' }}>Sem fotos cadastradas</p>
+    <div className="w-full h-80 rounded-2xl mb-4 flex flex-col items-center justify-center gap-2" style={{ background: colors.bg }}>
+      <Image size={32} color="#D1D5DB" />
+      <p className="text-sm" style={{ color: colors.textSub }}>Sem fotos cadastradas</p>
     </div>
   )
 
   return (
-    <div className="relative w-full h-80 rounded-2xl overflow-hidden mb-4 group" style={{ background: '#1F2D24' }}>
+    <div className="relative w-full h-80 rounded-2xl overflow-hidden mb-4 group" style={{ background: '#111827' }}>
       <img
         src={fotos[idx]}
         alt={`Foto do trabalho ${idx + 1}`}
@@ -56,7 +59,7 @@ export default function GaleriaFotos({ fotos, disponivel }) {
           style={{ background: 'rgba(0,0,0,0.45)', color: '#fff' }}
           aria-label="Foto anterior"
         >
-          <i className="ti ti-chevron-left" style={{ fontSize: '20px' }} aria-hidden="true"></i>
+          <ChevronLeft size={20} />
         </button>
       )}
 
@@ -68,7 +71,7 @@ export default function GaleriaFotos({ fotos, disponivel }) {
           style={{ background: 'rgba(0,0,0,0.45)', color: '#fff' }}
           aria-label="Próxima foto"
         >
-          <i className="ti ti-chevron-right" style={{ fontSize: '20px' }} aria-hidden="true"></i>
+          <ChevronRightIcon size={20} />
         </button>
       )}
 
@@ -85,10 +88,10 @@ export default function GaleriaFotos({ fotos, disponivel }) {
       {/* Badge disponível */}
       {disponivel && (
         <span
-          className="absolute top-3 right-3 text-xs font-medium px-2.5 py-1 rounded-full"
-          style={{ background: '#E3F6E9', color: '#0F6E3D' }}
+          className="absolute top-3 right-3 flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+          style={{ background: '#DCFCE7', color: '#15803D' }}
         >
-          ✓ Disponível
+          <Check size={12} strokeWidth={3} /> Disponível
         </span>
       )}
     </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Smartphone, CreditCard, CheckCircle2, Check } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
+import { supabase } from '../lib/supabase'
 import { colors } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -43,17 +44,23 @@ export default function Pagamento() {
 
   const pagar = async () => {
     if (!usuario) { navigate('/login'); return }
+    if (cpf.replace(/\D/g, '').length !== 11) {
+      setErro('Informe um CPF válido para emitir a cobrança.')
+      return
+    }
     setCarregando(true)
     setErro('')
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/criar-cobranca', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({
           tipo,
-          userId: usuario.id,
-          valor: item.valor,
           descricao: tipo === 'mensalidade'
             ? `Prestador App — Plano ${item.nome}`
             : `Prestador App — ${item.creditos} créditos`,

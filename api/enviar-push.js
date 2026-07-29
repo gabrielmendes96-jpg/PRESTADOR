@@ -1,15 +1,43 @@
 // api/enviar-push.js
-// Envia notificação push para um usuário
+// Envia notificação push para o outro participante de uma conversa
+
+import { verificarUsuario } from './_verificarUsuario.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { userId, titulo, corpo, url, tipo } = req.body
+  const usuarioAutenticado = await verificarUsuario(req)
+  if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
+
+  const { conversaId, titulo, corpo, url, tipo } = req.body
+  if (!conversaId) return res.status(400).json({ error: 'conversaId obrigatório' })
 
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   try {
+    // Confirma que quem está enviando participa da conversa, e descobre
+    // o destinatário a partir dela — nunca confiamos num userId vindo do cliente.
+    const { data: conversa } = await supabase
+      .from('conversas')
+      .select('cliente_user_id, prestadores(user_id)')
+      .eq('id', conversaId)
+      .single()
+
+    if (!conversa) return res.status(404).json({ error: 'Conversa não encontrada' })
+
+    const idCliente = conversa.cliente_user_id
+    const idPrestador = conversa.prestadores?.user_id
+    const souCliente = usuarioAutenticado.id === idCliente
+    const souPrestador = usuarioAutenticado.id === idPrestador
+
+    if (!souCliente && !souPrestador) {
+      return res.status(403).json({ error: 'Você não participa desta conversa' })
+    }
+
+    const userId = souCliente ? idPrestador : idCliente
+    if (!userId) return res.status(200).json({ ok: true, aviso: 'Destinatário indisponível' })
+
     // 1. Salvar notificação no banco
     await supabase.from('notificacoes').insert({
       user_id: userId, titulo, corpo, tipo: tipo || 'geral', url: url || '/'

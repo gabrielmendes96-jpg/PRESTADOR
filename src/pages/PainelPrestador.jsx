@@ -551,7 +551,7 @@ export default function PainelPrestador() {
               </div>
               <p style={{ fontSize: 14, color: colors.primaryHover, margin: 0 }}>
                 {prestador.plano_id === 'basico' && 'R$49/mês — Perfil básico na plataforma'}
-                {prestador.plano_id === 'profissional' && 'R$99/mês — Destaque nos resultados + selo verificado'}
+                {prestador.plano_id === 'profissional' && 'R$99/mês — Destaque nos resultados + selo de plano Profissional'}
                 {prestador.plano_id === 'premium' && 'R$199/mês — Topo das buscas + suporte prioritário'}
               </p>
             </div>

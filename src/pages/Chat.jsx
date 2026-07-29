@@ -101,24 +101,23 @@ export default function Chat() {
       nao_lidas_cliente: ehPrestador ? (conversa?.nao_lidas_cliente || 0) + 1 : 0,
     }).eq('id', conversaId)
 
-    // Enviar push para o destinatário
-    const destinatarioId = ehPrestador
-      ? conversa?.cliente_user_id
-      : conversa?.prestadores?.user_id
-
-    if (destinatarioId) {
+    // Enviar push para o destinatário (o servidor descobre quem é a partir da conversa)
+    supabase.auth.getSession().then(({ data: { session } }) => {
       fetch('/api/enviar-push', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({
-          userId: destinatarioId,
+          conversaId,
           titulo: 'Nova mensagem no Prestador',
           corpo: texto.trim().slice(0, 80),
           url: `/chat/${conversaId}`,
           tipo: 'mensagem'
         })
       }).catch(() => {})
-    }
+    })
 
     setTexto('')
     setEnviando(false)

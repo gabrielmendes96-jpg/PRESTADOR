@@ -2,8 +2,15 @@
 // Converte cidade/estado em coordenadas usando Nominatim (gratuito)
 // Roda via cron ou chamada manual do admin
 
+import { checkRateLimit, getClientIp } from './rate-limit.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const ip = getClientIp(req)
+  if (!checkRateLimit(ip, 3, 60000)) {
+    return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 minuto.' })
+  }
 
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)

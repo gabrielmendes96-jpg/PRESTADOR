@@ -211,7 +211,7 @@ export function CadastroPro() {
               const nomes = { basico: 'Básico — R$49/mês', profissional: 'Profissional — R$99/mês', premium: 'Premium — R$199/mês' }
               const descs = {
                 basico: 'Perfil básico + até 10 fotos + chat',
-                profissional: 'Destaque nos resultados + selo verificado',
+                profissional: 'Destaque nos resultados + selo de plano Profissional',
                 premium: 'Topo das buscas + suporte prioritário'
               }
               return (

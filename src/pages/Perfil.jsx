@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Wrench, MapPin, X, MessageCircle, FileText, Phone, Share2, Check, Crown } from 'lucide-react'
+import { Wrench, MapPin, X, MessageCircle, FileText, Phone, Share2 } from 'lucide-react'
 import { usePrestador } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow } from '../lib/design'
+import { planoInfo } from '../lib/planoInfo'
 import Avaliacoes from '../components/Avaliacoes'
 import GaleriaFotos from '../components/GaleriaFotos'
 import ReputacaoBadge from '../components/ReputacaoBadge'
@@ -14,10 +15,8 @@ import Button from '../components/ui/Button'
 import IconButton from '../components/ui/IconButton'
 import Badge from '../components/ui/Badge'
 
-const planoInfo = {
-  basico: null,
-  profissional: { label: 'Profissional', icon: Check },
-  premium: { label: 'Premium', icon: Crown },
+function iniciaisDe(nome = '') {
+  return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'P'
 }
 
 export default function Perfil() {
@@ -26,6 +25,19 @@ export default function Perfil() {
   const { usuario } = useAuth()
   const [iniciandoChat, setIniciandoChat] = useState(false)
   const { prestador, loading } = usePrestador(id)
+
+  // Registra uma visualização real (não dono, no máximo 1 por sessão/dia)
+  useEffect(() => {
+    if (!prestador) return
+    if (usuario?.id === prestador.user_id) return
+
+    const hoje = new Date().toISOString().slice(0, 10)
+    const chave = `visto_${prestador.id}_${hoje}`
+    if (sessionStorage.getItem(chave)) return
+    sessionStorage.setItem(chave, '1')
+
+    supabase.from('visualizacoes_perfil').insert({ prestador_id: prestador.id }).then(() => {})
+  }, [prestador, usuario])
 
   const iniciarConversa = async () => {
     if (!usuario) { navigate('/login'); return }
@@ -81,16 +93,33 @@ export default function Perfil() {
   const plano = planoInfo[prestador.plano]
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+    <div className="max-w-[640px] lg:max-w-5xl mx-auto">
+      <div className="lg:flex lg:gap-6 lg:items-start">
       {/* Card principal */}
-      <Card padding={16} style={{ marginBottom: 16 }}>
+      <Card padding={16} className="lg:w-[380px] lg:flex-shrink-0" style={{ marginBottom: 16 }}>
         <GaleriaFotos fotos={prestador.fotos || []} disponivel={prestador.disponivel} />
 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, margin: 0, lineHeight: 1.3 }}>
-            {prestador.nome}
-            {prestador.idade && <span style={{ fontSize: 14, fontWeight: 400, color: colors.textSub, marginLeft: 8 }}>{prestador.idade}</span>}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            {prestador.foto_perfil ? (
+              <img
+                src={prestador.foto_perfil}
+                alt={prestador.nome}
+                style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `2px solid ${colors.primary}` }}
+              />
+            ) : (
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: '#DCFCE7', color: colors.primaryHover, fontSize: 19, fontWeight: 800,
+              }}>
+                {iniciaisDe(prestador.nome)}
+              </div>
+            )}
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, margin: 0, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {prestador.nome}
+              {prestador.idade && <span style={{ fontSize: 14, fontWeight: 400, color: colors.textSub, marginLeft: 8 }}>{prestador.idade}</span>}
+            </h1>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <IconButton icon={<Share2 size={16} />} tone="ghost" size={34} onClick={compartilhar} aria-label="Compartilhar perfil" />
             <IconButton icon={<X size={16} />} tone="ghost" size={34} onClick={() => navigate('/busca')} aria-label="Voltar para a busca" />
@@ -170,27 +199,30 @@ export default function Perfil() {
         )}
       </Card>
 
-      {/* Avaliações detalhadas */}
-      <Card padding={20} style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: colors.textSub, marginBottom: 16 }}>Avaliação por critério</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {Object.entries(prestador.avaliacaoDetalhada).map(([key, val]) => {
-            const labels = { pontualidade: 'Pontualidade', qualidade: 'Qualidade', preco: 'Preço justo', limpeza: 'Limpeza' }
-            return (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 12, color: colors.textSub, width: 90, flexShrink: 0 }}>{labels[key]}</span>
-                <div style={{ flex: 1, height: 6, borderRadius: 999, background: '#F1F5F9' }}>
-                  <div style={{ height: 6, borderRadius: 999, width: `${(val / 5) * 100}%`, background: colors.secondary }} />
+      <div className="lg:flex-1" style={{ minWidth: 0 }}>
+        {/* Avaliações detalhadas */}
+        <Card padding={20} style={{ marginBottom: 16 }}>
+          <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: colors.textSub, marginBottom: 16 }}>Avaliação por critério</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {Object.entries(prestador.avaliacaoDetalhada).map(([key, val]) => {
+              const labels = { pontualidade: 'Pontualidade', qualidade: 'Qualidade', preco: 'Preço justo', limpeza: 'Limpeza' }
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: colors.textSub, width: 90, flexShrink: 0 }}>{labels[key]}</span>
+                  <div style={{ flex: 1, height: 6, borderRadius: 999, background: '#F1F5F9' }}>
+                    <div style={{ height: 6, borderRadius: 999, width: `${(val / 5) * 100}%`, background: colors.secondary }} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: colors.text, width: 20 }}>{val}</span>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: colors.text, width: 20 }}>{val}</span>
-              </div>
-            )
-          })}
-        </div>
-      </Card>
+              )
+            })}
+          </div>
+        </Card>
 
-      {/* Reviews */}
-      <Avaliacoes prestador={prestador} />
+        {/* Reviews */}
+        <Avaliacoes prestador={prestador} />
+      </div>
+      </div>
     </div>
   )
 }

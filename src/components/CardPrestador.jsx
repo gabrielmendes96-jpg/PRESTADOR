@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Star, Check, ChevronRight, Scale } from 'lucide-react'
 import { formatarDistancia } from '../lib/gps'
 import { colors } from '../lib/design'
+import { planoInfo } from '../lib/planoInfo'
 import { useComparacao, MAX_COMPARACAO } from '../lib/ComparacaoContext'
 import Card from './ui/Card'
 import Badge from './ui/Badge'
@@ -83,7 +84,7 @@ function Rating({ prestador: p }) {
 export default function CardPrestador({ prestador: p, layout = 'vertical', distancia, onClick }) {
   const navigate = useNavigate()
   const dist = distancia ? formatarDistancia(distancia) : null
-  const verificado = p.plano && p.plano !== 'basico'
+  const plano = planoInfo[p.plano]
   const handleClick = onClick || (() => navigate(`/profissional/${p.id}`))
 
   const meta = [p.categoria, p.cidade, dist].filter(Boolean).join(' · ')
@@ -101,7 +102,7 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
           <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Rating prestador={p} />
-            {verificado && <Badge tone="verified" icon={<Check size={10} strokeWidth={3} />}>Verificado</Badge>}
+            {plano && <Badge tone="verified" icon={<plano.icon size={10} strokeWidth={3} />}>{plano.label}</Badge>}
           </div>
         </div>
         <BotaoComparar id={p.id} size={34} />
@@ -122,8 +123,8 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
           <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize' }}>{meta}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Rating prestador={p} />
-            {verificado && (
-              <Badge tone="verified" icon={<Check size={10} strokeWidth={3} />}>Verificado</Badge>
+            {plano && (
+              <Badge tone="verified" icon={<plano.icon size={10} strokeWidth={3} />}>{plano.label}</Badge>
             )}
           </div>
         </div>

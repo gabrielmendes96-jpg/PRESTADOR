@@ -1,7 +1,11 @@
+import { verificarUsuario } from './_verificarUsuario.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-  const { userId } = req.body
-  if (!userId) return res.status(400).json({ error: 'userId obrigatório' })
+
+  const usuarioAutenticado = await verificarUsuario(req)
+  if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
+  const userId = usuarioAutenticado.id
 
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)

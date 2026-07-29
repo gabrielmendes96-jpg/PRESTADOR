@@ -1,7 +1,8 @@
-import { Scale, Star, Check, X, MessageCircle, Users, TrendingUp } from 'lucide-react'
+import { Scale, Star, X, MessageCircle, Users, TrendingUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { usePrestadoresPorIds } from '../lib/hooks'
 import { useComparacao } from '../lib/ComparacaoContext'
+import { planoInfo } from '../lib/planoInfo'
 import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -57,7 +58,7 @@ export default function Comparar() {
       ) : (
         <div style={{ display: 'flex', gap: spacing.card, overflowX: 'auto', paddingBottom: 8 }}>
           {prestadores.map(p => {
-            const verificado = p.plano && p.plano !== 'basico'
+            const plano = planoInfo[p.plano]
             const ehMaisAvaliado = maxAvaliacoes > 0 && (p.totalAvaliacoes || 0) === maxAvaliacoes
             const ehMelhorNota = maxNota > 0 && (p.avaliacao || 0) === maxNota
 
@@ -83,7 +84,7 @@ export default function Comparar() {
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
                   {p.disponivel && <Badge tone="available">Disponível</Badge>}
-                  {verificado && <Badge tone="verified" icon={<Check size={10} strokeWidth={3} />}>Verificado</Badge>}
+                  {plano && <Badge tone="verified" icon={<plano.icon size={10} strokeWidth={3} />}>{plano.label}</Badge>}
                   {ehMaisAvaliado && <Badge tone="plan" icon={<Users size={10} />}>Mais avaliado</Badge>}
                   {ehMelhorNota && !ehMaisAvaliado && <Badge tone="plan" icon={<TrendingUp size={10} />}>Melhor nota</Badge>}
                 </div>

@@ -2,6 +2,7 @@
 // Cria uma cobrança no Asaas (Pix ou cartão)
 
 import { checkRateLimit, getClientIp } from './rate-limit.js'
+import { verificarUsuario } from './_verificarUsuario.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -13,10 +14,24 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 minuto.' })
   }
 
-  const { tipo, userId, valor, descricao, extra, nomeCliente, emailCliente, cpfCliente, cartao } = req.body
+  const usuarioAutenticado = await verificarUsuario(req)
+  if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
+  const userId = usuarioAutenticado.id
 
-  if (!tipo || !userId || !valor) {
+  const { tipo, descricao, extra, nomeCliente, emailCliente, cpfCliente, cartao } = req.body
+
+  if (!tipo || !extra) {
     return res.status(400).json({ error: 'Dados incompletos' })
+  }
+
+  // Preço vem sempre do servidor, nunca do valor enviado pelo cliente —
+  // do contrário qualquer requisição poderia forjar um valor menor.
+  const PRECOS_PLANO = { basico: 49, profissional: 99, premium: 199 }
+  const PRECOS_CREDITOS = { 1: 9, 5: 35, 10: 59, 20: 99 }
+
+  const valor = tipo === 'mensalidade' ? PRECOS_PLANO[extra] : PRECOS_CREDITOS[extra]
+  if (!valor) {
+    return res.status(400).json({ error: 'Item inválido' })
   }
 
   const ASAAS_URL = process.env.ASAAS_SANDBOX === 'true'

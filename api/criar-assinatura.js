@@ -1,10 +1,21 @@
 // api/criar-assinatura.js
 // Cria assinatura recorrente mensal no Asaas
 
+import { verificarUsuario } from './_verificarUsuario.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { userId, planoId, valor, nomeCliente, emailCliente, cpfCliente } = req.body
+  const usuarioAutenticado = await verificarUsuario(req)
+  if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
+  const userId = usuarioAutenticado.id
+
+  const { planoId, nomeCliente, emailCliente, cpfCliente } = req.body
+
+  // Preço vem sempre do servidor, nunca do valor enviado pelo cliente.
+  const PRECOS_PLANO = { basico: 49, profissional: 99, premium: 199 }
+  const valor = PRECOS_PLANO[planoId]
+  if (!valor) return res.status(400).json({ error: 'Plano inválido' })
 
   const ASAAS_URL = process.env.ASAAS_SANDBOX === 'true'
     ? 'https://sandbox.asaas.com/api/v3'
@@ -69,10 +80,12 @@ export default async function handler(req, res) {
 
     const { data: prestador } = await supabase.from('prestadores').select('id').eq('user_id', userId).single()
     if (prestador) {
+      // Status fica "pendente" até o webhook confirmar o primeiro pagamento —
+      // criar a assinatura no Asaas não significa que ela foi paga.
       await supabase.from('assinaturas').upsert({
         prestador_id: prestador.id,
         plano_id: planoId,
-        status: 'ativo',
+        status: 'pendente',
         asaas_subscription_id: assinatura.id,
         proxima_cobranca: proximoMes.toISOString().split('T')[0],
         recorrente: true,
@@ -80,8 +93,7 @@ export default async function handler(req, res) {
       })
 
       await supabase.from('prestadores').update({
-        plano_id: planoId,
-        plano_status: 'ativo',
+        plano_status: 'pendente',
       }).eq('user_id', userId)
     }
 

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Bell, BellOff, MessageCircle, Send, Star, CreditCard, ClipboardList, Flame } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { colors } from '../lib/design'
 import { buscarNaoLidas, marcarLida, registrarPush } from '../lib/notificacoes'
 
 export default function CentralNotificacoes() {
@@ -64,9 +66,9 @@ export default function CentralNotificacoes() {
 
   const iconeTipo = (tipo) => {
     const icons = {
-      mensagem: 'ti-message', candidatura: 'ti-hand-finger',
-      avaliacao: 'ti-star', pagamento: 'ti-credit-card',
-      pedido: 'ti-clipboard-list', zona: 'ti-flame', default: 'ti-bell'
+      mensagem: MessageCircle, candidatura: Send,
+      avaliacao: Star, pagamento: CreditCard,
+      pedido: ClipboardList, zona: Flame, default: Bell,
     }
     return icons[tipo] || icons.default
   }
@@ -88,10 +90,10 @@ export default function CentralNotificacoes() {
       <button onClick={() => setAberto(!aberto)}
         className="relative hidden sm:flex items-center w-9 h-9 rounded-lg justify-center hover:opacity-80"
         style={{ color: 'rgba(255,255,255,0.9)' }}>
-        <i className="ti ti-bell" style={{ fontSize: 22 }} aria-hidden="true"></i>
+        <Bell size={20} />
         {notificacoes.length > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center font-medium"
-            style={{ background: '#FFC857', color: '#5C4400', fontSize: 10 }}>
+            style={{ background: colors.secondary, color: '#92610A', fontSize: 10 }}>
             {notificacoes.length > 9 ? '9+' : notificacoes.length}
           </span>
         )}
@@ -101,26 +103,28 @@ export default function CentralNotificacoes() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setAberto(false)} />
           <div className="absolute right-0 top-10 w-80 bg-white rounded-2xl z-50 overflow-hidden"
-            style={{ border: '0.5px solid #DDE3DD', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+            style={{ border: `0.5px solid ${colors.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
 
-            <div className="flex items-center justify-between p-4" style={{ borderBottom: '0.5px solid #DDE3DD' }}>
-              <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>
+            <div className="flex items-center justify-between p-4" style={{ borderBottom: `0.5px solid ${colors.border}` }}>
+              <p className="text-sm font-medium" style={{ color: colors.text }}>
                 Notificações {notificacoes.length > 0 && `(${notificacoes.length})`}
               </p>
               {notificacoes.length > 0 && (
-                <button onClick={marcarTodasLidas} className="text-xs hover:underline" style={{ color: '#1FA855' }}>
+                <button onClick={marcarTodasLidas} className="text-xs hover:underline" style={{ color: colors.primary }}>
                   Marcar todas como lidas
                 </button>
               )}
             </div>
 
             {!pushAtivo && (
-              <div className="p-3 m-3 rounded-xl" style={{ background: '#F0FAF4', border: '0.5px solid #1FA855' }}>
-                <p className="text-xs font-medium mb-1" style={{ color: '#0F6E3D' }}>🔔 Ative as notificações</p>
-                <p className="text-xs mb-2" style={{ color: '#3A7A5C' }}>Receba avisos de novas mensagens e pedidos mesmo com o app fechado.</p>
+              <div className="p-3 m-3 rounded-xl" style={{ background: '#F0FDF4', border: `0.5px solid ${colors.primary}` }}>
+                <p className="flex items-center gap-1.5 text-xs font-medium mb-1" style={{ color: colors.primaryHover }}>
+                  <Bell size={13} /> Ative as notificações
+                </p>
+                <p className="text-xs mb-2" style={{ color: colors.textSub }}>Receba avisos de novas mensagens e pedidos mesmo com o app fechado.</p>
                 <button onClick={ativarPush}
                   className="text-xs px-3 py-1.5 rounded-lg text-white font-medium"
-                  style={{ background: '#1FA855' }}>
+                  style={{ background: colors.primary }}>
                   Ativar notificações
                 </button>
               </div>
@@ -129,27 +133,30 @@ export default function CentralNotificacoes() {
             <div className="max-h-80 overflow-y-auto">
               {notificacoes.length === 0 ? (
                 <div className="text-center py-10">
-                  <i className="ti ti-bell-off" style={{ fontSize: 32, color: '#C9BFA8', display: 'block', marginBottom: 8 }} aria-hidden="true"></i>
-                  <p className="text-sm" style={{ color: '#C9BFA8' }}>Nenhuma notificação</p>
+                  <BellOff size={28} color="#D1D5DB" style={{ margin: '0 auto 8px' }} />
+                  <p className="text-sm" style={{ color: colors.textSub }}>Nenhuma notificação</p>
                 </div>
               ) : (
-                notificacoes.map(n => (
-                  <button key={n.id} onClick={() => clicarNotificacao(n)}
-                    className="w-full flex items-start gap-3 p-4 hover:opacity-80 text-left"
-                    style={{ borderBottom: '0.5px solid #F0F2F0' }}>
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: '#E3F6E9' }}>
-                      <i className={`ti ${iconeTipo(n.tipo)}`} style={{ fontSize: 16, color: '#0F6E3D' }} aria-hidden="true"></i>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium" style={{ color: '#1F2D24' }}>{n.titulo}</p>
-                      <p className="text-xs mt-0.5" style={{ color: '#7C9485' }}>{n.corpo}</p>
-                    </div>
-                    <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: '#C9BFA8' }}>
-                      {tempoRelativo(n.criado_em)}
-                    </span>
-                  </button>
-                ))
+                notificacoes.map(n => {
+                  const Icon = iconeTipo(n.tipo)
+                  return (
+                    <button key={n.id} onClick={() => clicarNotificacao(n)}
+                      className="w-full flex items-start gap-3 p-4 hover:opacity-80 text-left"
+                      style={{ borderBottom: `0.5px solid ${colors.bg}` }}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: '#DCFCE7' }}>
+                        <Icon size={16} color={colors.primaryHover} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium" style={{ color: colors.text }}>{n.titulo}</p>
+                        <p className="text-xs mt-0.5" style={{ color: colors.textSub }}>{n.corpo}</p>
+                      </div>
+                      <span className="text-xs flex-shrink-0 mt-0.5" style={{ color: '#9CA3AF' }}>
+                        {tempoRelativo(n.criado_em)}
+                      </span>
+                    </button>
+                  )
+                })
               )}
             </div>
           </div>

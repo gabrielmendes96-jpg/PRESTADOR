@@ -221,7 +221,7 @@ Regras:
               <p className="text-sm font-medium" style={{ color: '#92610A' }}>Dicas de fotos</p>
               <p className="text-xs" style={{ color: '#92610A' }}>Como tirar as melhores fotos dos seus serviços</p>
             </div>
-            <i className="ti ti-chevron-right ml-auto" style={{ color: '#F6C64D', fontSize: 18 }} aria-hidden="true"></i>
+            <ChevronRight size={18} color={colors.secondary} className="ml-auto" />
           </button>
         </div>
       )}

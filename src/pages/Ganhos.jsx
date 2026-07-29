@@ -28,6 +28,9 @@ export default function Ganhos() {
     if (!p) { setCarregando(false); return }
     setPrestador(p)
 
+    const inicioDoDia = new Date()
+    inicioDoDia.setHours(0, 0, 0, 0)
+
     const { count: totalConversas } = await supabase
       .from('conversas').select('*', { count: 'exact', head: true }).eq('prestador_id', p.id)
 
@@ -37,9 +40,16 @@ export default function Ganhos() {
     const { count: totalCandidaturas } = await supabase
       .from('candidaturas').select('*', { count: 'exact', head: true }).eq('prestador_id', p.id)
 
+    const { count: totalVisualizacoes } = await supabase
+      .from('visualizacoes_perfil').select('*', { count: 'exact', head: true }).eq('prestador_id', p.id)
+
+    const { count: visualizacoesHoje } = await supabase
+      .from('visualizacoes_perfil').select('*', { count: 'exact', head: true })
+      .eq('prestador_id', p.id).gte('criado_em', inicioDoDia.toISOString())
+
     setStats({
-      visualizacoes: Math.floor(Math.random() * 200) + 50,
-      vizualizacoesHoje: Math.floor(Math.random() * 20) + 3,
+      visualizacoes: totalVisualizacoes || 0,
+      vizualizacoesHoje: visualizacoesHoje || 0,
       conversas: totalConversas || 0,
       avaliacoes: totalAvaliacoes || 0,
       candidaturas: totalCandidaturas || 0,
@@ -73,13 +83,15 @@ export default function Ganhos() {
       </h1>
       <p className="text-sm mb-5" style={{ color: '#6B7280' }}>Veja como seu perfil está performando na plataforma</p>
 
-      {/* Senso de urgência */}
+      {/* Destaque de atividade recente */}
       <div className="p-4 rounded-2xl mb-5 flex items-center gap-3"
         style={{ background: '#FEF3C7', border: '1px solid #F6C64D' }}>
         <Flame size={24} color="#D97706" style={{ flexShrink: 0 }} />
         <div>
           <p className="text-sm font-medium" style={{ color: '#92610A' }}>
-            {stats.vizualizacoesHoje} pessoas viram seu perfil hoje!
+            {stats.vizualizacoesHoje > 0
+              ? `${stats.vizualizacoesHoje} pessoa${stats.vizualizacoesHoje !== 1 ? 's' : ''} viu${stats.vizualizacoesHoje !== 1 ? 'ram' : ''} seu perfil hoje!`
+              : 'Seu perfil ainda não teve visitas hoje.'}
           </p>
           <p className="text-xs" style={{ color: '#92610A' }}>
             Complete seu perfil para converter mais visitas em contatos.

@@ -95,6 +95,7 @@ export default function Home() {
 
       {/* Header com saudação */}
       <div style={{ background: '#fff', padding: '40px 20px 20px', borderBottom: `1px solid ${colors.bg}` }}>
+      <div className="lg:max-w-6xl lg:mx-auto">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
           <p style={{ fontSize: 14, color: colors.textSub, fontWeight: 500, margin: 0 }}>
             {saudacao}{nomeUsuario ? `, ${nomeUsuario}` : ''}
@@ -129,8 +130,9 @@ export default function Home() {
           )}
         </div>
       </div>
+      </div>
 
-      <div style={{ padding: `${spacing.xl}px 16px 0` }}>
+      <div className="lg:max-w-6xl lg:mx-auto" style={{ padding: `${spacing.xl}px 16px 0` }}>
 
         {/* Categorias */}
         <section style={{ marginBottom: spacing.section }}>
@@ -164,12 +166,12 @@ export default function Home() {
         {/* Prestadores próximos */}
         <section style={{ marginBottom: spacing.section }}>
           <SectionHeader title={userLoc ? 'Próximos de você' : 'Profissionais'} onVerTodas={() => navigate('/busca')} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
+          <div className="grid gap-4 md:grid-cols-2">
             {loading
-              ? [1, 2, 3].map(i => <CardSkeleton key={i} modo="lista" />)
+              ? [1, 2, 3, 4].map(i => <CardSkeleton key={i} modo="lista" />)
               : proximos.length === 0
               ? (
-                <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <div className="md:col-span-2" style={{ textAlign: 'center', padding: '48px 0' }}>
                   <UserSearch size={44} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
                   <p style={{ fontSize: 15, color: '#9CA3AF', fontWeight: 500 }}>Nenhum profissional encontrado.</p>
                 </div>

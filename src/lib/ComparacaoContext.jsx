@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { toggleSelecionado } from './comparacaoLogica'
 
 const ComparacaoContext = createContext(null)
 const STORAGE_KEY = 'prestador_comparacao'
@@ -23,11 +24,7 @@ export function ComparacaoProvider({ children }) {
   }, [selecionados])
 
   const toggleComparar = (id) => {
-    setSelecionados(prev => {
-      if (prev.includes(id)) return prev.filter(p => p !== id)
-      if (prev.length >= MAX_COMPARACAO) return prev
-      return [...prev, id]
-    })
+    setSelecionados(prev => toggleSelecionado(prev, id, MAX_COMPARACAO))
   }
 
   const removerComparacao = (id) => setSelecionados(prev => prev.filter(p => p !== id))

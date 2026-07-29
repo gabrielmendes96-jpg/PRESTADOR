@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { colors } from '../lib/design'
 
 export default function HashtagsInput({ prestadorId }) {
   const [tags, setTags] = useState([])
@@ -47,7 +49,7 @@ export default function HashtagsInput({ prestadorId }) {
     }
   }
 
-  if (carregando) return <p className="text-sm" style={{ color: '#C9BFA8' }}>Carregando...</p>
+  if (carregando) return <p className="text-sm" style={{ color: colors.textSub }}>Carregando...</p>
 
   return (
     <div>
@@ -57,19 +59,21 @@ export default function HashtagsInput({ prestadorId }) {
           <span
             key={t.id}
             className="flex items-center gap-1.5 text-sm px-3 py-1 rounded-full"
-            style={{ background: '#E3F6E9', color: '#0F6E3D', border: '0.5px solid #1FA855' }}
+            style={{ background: '#DCFCE7', color: colors.primaryHover, border: `0.5px solid ${colors.primary}` }}
           >
             #{t.tag}
             <button
               onClick={() => removerTag(t.id)}
-              className="text-xs hover:opacity-70 transition-opacity"
-              style={{ color: '#0F6E3D' }}
+              className="flex hover:opacity-70 transition-opacity"
+              style={{ color: colors.primaryHover }}
               aria-label={`Remover #${t.tag}`}
-            >✕</button>
+            >
+              <X size={12} />
+            </button>
           </span>
         ))}
         {tags.length === 0 && (
-          <p className="text-sm" style={{ color: '#C9BFA8' }}>Nenhuma hashtag ainda. Adicione serviços que você realiza!</p>
+          <p className="text-sm" style={{ color: colors.textSub }}>Nenhuma hashtag ainda. Adicione serviços que você realiza!</p>
         )}
       </div>
 
@@ -82,17 +86,17 @@ export default function HashtagsInput({ prestadorId }) {
           onKeyDown={handleKeyDown}
           placeholder="Ex: pintura externa, reboco, reforma banheiro..."
           className="flex-1 px-3 py-2.5 text-sm rounded-lg focus:outline-none"
-          style={{ border: '0.5px solid #EDE3CE', background: '#FAF6EE' }}
+          style={{ border: `0.5px solid ${colors.border}`, background: colors.bg }}
         />
         <button
           onClick={adicionarTag}
           className="px-4 py-2.5 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
-          style={{ background: '#1FA855', color: '#fff' }}
+          style={{ background: colors.primary, color: '#fff' }}
         >
           + Adicionar
         </button>
       </div>
-      <p className="text-xs mt-1.5" style={{ color: '#C9BFA8' }}>
+      <p className="text-xs mt-1.5" style={{ color: colors.textSub }}>
         Aperte Enter, vírgula ou espaço para adicionar. Ex: #pintura #reboco #reforma
       </p>
     </div>

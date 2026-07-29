@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { Upload, Image, Play, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { colors } from '../lib/design'
 
 export default function Portfolio({ prestadorId }) {
   const [midias, setMidias] = useState([])
@@ -64,7 +66,7 @@ export default function Portfolio({ prestadorId }) {
   }
 
   if (carregando) return (
-    <p className="text-sm" style={{ color: '#C9BFA8' }}>Carregando portfólio...</p>
+    <p className="text-sm" style={{ color: colors.textSub }}>Carregando portfólio...</p>
   )
 
   return (
@@ -84,47 +86,51 @@ export default function Portfolio({ prestadorId }) {
           onClick={() => document.getElementById('portfolio-upload').click()}
           disabled={enviando}
           className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
-          style={{ background: '#1FA855', color: '#fff' }}
+          style={{ background: colors.primary, color: '#fff' }}
         >
-          <i className="ti ti-upload" style={{ fontSize: '16px' }} aria-hidden="true"></i>
+          <Upload size={16} />
           {enviando ? 'Enviando...' : 'Adicionar fotos ou vídeos'}
         </button>
-        <p className="text-xs mt-1" style={{ color: '#C9BFA8' }}>
+        <p className="text-xs mt-1" style={{ color: colors.textSub }}>
           Você pode selecionar múltiplos arquivos de uma vez
         </p>
       </div>
 
       {/* Grade de mídias */}
       {midias.length === 0 ? (
-        <div className="text-center py-12 rounded-xl" style={{ border: '2px dashed #EDE3CE' }}>
-          <div className="text-4xl mb-2">📷</div>
-          <p className="text-sm" style={{ color: '#7C9485' }}>
+        <div className="text-center py-12 rounded-xl" style={{ border: `2px dashed ${colors.border}` }}>
+          <Image size={36} color="#D1D5DB" style={{ margin: '0 auto 8px' }} />
+          <p className="text-sm" style={{ color: colors.textSub }}>
             Nenhuma foto ainda. Adicione fotos dos seus trabalhos!
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {midias.map(m => (
-            <div key={m.id} className="relative group aspect-square rounded-xl overflow-hidden" style={{ border: '0.5px solid #EDE3CE' }}>
+            <div key={m.id} className="relative group aspect-square rounded-xl overflow-hidden" style={{ border: `0.5px solid ${colors.border}` }}>
               {m.tipo === 'video' ? (
                 <video src={m.url} className="w-full h-full object-cover" />
               ) : (
                 <img src={m.url} alt="portfólio" className="w-full h-full object-cover" />
               )}
               {m.tipo === 'video' && (
-                <span className="absolute top-1 left-1 text-xs text-white px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.6)' }}>▶</span>
+                <span className="absolute top-1 left-1 flex items-center justify-center w-5 h-5 rounded text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                  <Play size={11} fill="#fff" />
+                </span>
               )}
               <button
                 onClick={() => remover(m.id)}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: 'rgba(163,45,45,0.85)' }}
-              >✕</button>
+                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: 'rgba(185,28,28,0.85)' }}
+              >
+                <X size={13} />
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      <p className="text-xs mt-3" style={{ color: '#C9BFA8' }}>
+      <p className="text-xs mt-3" style={{ color: colors.textSub }}>
         {midias.length} item{midias.length !== 1 ? 's' : ''} no portfólio · Passe o mouse sobre a foto para remover
       </p>
     </div>

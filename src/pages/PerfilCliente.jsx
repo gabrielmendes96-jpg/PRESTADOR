@@ -583,10 +583,13 @@ export default function PerfilCliente() {
 
           <button onClick={async () => {
             if (window.confirm('Tem certeza? Todos os seus dados serão removidos permanentemente.')) {
+              const { data: { session } } = await supabase.auth.getSession()
               await fetch('/api/excluir-conta', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: usuario.id })
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${session?.access_token}`,
+                },
               })
               await sair()
             }

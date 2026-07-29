@@ -1,8 +1,16 @@
 // api/enviar-email.js
 // Envia emails transacionais via Resend (gratuito até 3000 emails/mês)
+// Rota de uso INTERNO apenas (chamada só pelo webhook do Asaas) — nunca é
+// chamada pelo frontend, por isso exige um segredo compartilhado em vez de
+// login de usuário. Sem essa checagem, qualquer um poderia usar o domínio
+// do app para mandar email arbitrário (spam/phishing) para qualquer destinatário.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  if (req.headers['x-internal-secret'] !== process.env.INTERNAL_API_SECRET) {
+    return res.status(401).json({ error: 'Não autorizado' })
+  }
 
   const { tipo, destinatario, dados } = req.body
   const RESEND_KEY = process.env.RESEND_API_KEY

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
+import { colors, radius } from '../lib/design'
 
 // Componente que mostra um banner "Instalar app" no celular
 // O banner aparece automaticamente quando o navegador detecta que
@@ -36,8 +38,8 @@ export default function InstallPWA() {
         bottom: '16px',
         left: '16px',
         right: '16px',
-        background: '#1FA855',
-        borderRadius: '16px',
+        background: colors.primary,
+        borderRadius: radius.card,
         padding: '14px 16px',
         display: 'flex',
         alignItems: 'center',
@@ -56,16 +58,16 @@ export default function InstallPWA() {
       </div>
       <button
         onClick={() => setMostrar(false)}
-        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '18px', padding: '4px' }}
+        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: '4px', display: 'flex' }}
         aria-label="Fechar"
       >
-        ✕
+        <X size={18} />
       </button>
       <button
         onClick={instalar}
         style={{
-          background: '#FFC857',
-          color: '#5C4400',
+          background: colors.secondary,
+          color: '#713F12',
           border: 'none',
           borderRadius: '10px',
           padding: '8px 16px',
