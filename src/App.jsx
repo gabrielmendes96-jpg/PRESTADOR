@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut } from 'lucide-react'
+import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, Scale } from 'lucide-react'
 import Home from './pages/Home'
 import Busca from './pages/Busca'
 import Perfil from './pages/Perfil'
@@ -36,13 +36,41 @@ import ComoFunciona from './pages/ComoFunciona'
 import Onboarding from './pages/Onboarding'
 import Comparar from './pages/Comparar'
 import BottomNav from './components/BottomNav'
-import BarraComparacao from './components/BarraComparacao'
 import CentralNotificacoes from './components/CentralNotificacoes'
 import Logo from './components/Logo'
 import InstallPWA from './components/InstallPWA'
 import { AuthProvider, useAuth } from './lib/AuthContext'
-import { ComparacaoProvider } from './lib/ComparacaoContext'
+import { ComparacaoProvider, useComparacao } from './lib/ComparacaoContext'
 import { supabase } from './lib/supabase'
+
+function BotaoComparacaoNav() {
+  const { selecionados } = useComparacao()
+  const navigate = useNavigate()
+
+  return (
+    <button
+      onClick={() => navigate('/comparar')}
+      className="btn-press"
+      aria-label="Comparar profissionais"
+      style={{
+        position: 'relative', width: 38, height: 38, borderRadius: 12,
+        background: '#F3F6F2', border: '1px solid #E4E7E4', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}
+    >
+      <Scale size={17} color="#6B7280" />
+      {selecionados.length > 0 && (
+        <span style={{
+          position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, padding: '0 3px',
+          borderRadius: '50%', background: '#16A34A', color: '#fff', fontSize: 10, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff',
+        }}>
+          {selecionados.length}
+        </span>
+      )}
+    </button>
+  )
+}
 
 function Navbar() {
   const { usuario, sair } = useAuth()
@@ -77,6 +105,7 @@ function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
+            <BotaoComparacaoNav />
             {usuario ? (
               <div className="relative">
                 <button onClick={() => setMenuAberto(!menuAberto)}
@@ -205,7 +234,6 @@ export default function App() {
             </Routes>
           </main>
           <InstallPWA />
-          <BarraComparacao />
           <BottomNav />
         </div>
       </ComparacaoProvider>

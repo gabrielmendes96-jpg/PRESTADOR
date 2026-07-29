@@ -5,6 +5,7 @@ import { useCategorias, useTopicos, usePrestadores } from '../lib/hooks'
 import CardPrestador from '../components/CardPrestador'
 import CardSkeleton from '../components/CardSkeleton'
 import FiltrosAvancados from '../components/FiltrosAvancados'
+import BarraComparacao from '../components/BarraComparacao'
 import SearchBar from '../components/ui/SearchBar'
 import Chip from '../components/ui/Chip'
 import Card from '../components/ui/Card'
@@ -207,6 +208,8 @@ export default function Busca() {
           Mais filtros
         </Chip>
       </div>
+
+      <BarraComparacao style={{ marginBottom: spacing.card }} />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.card }}>
         <select

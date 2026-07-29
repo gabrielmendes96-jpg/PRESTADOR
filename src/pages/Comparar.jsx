@@ -1,6 +1,5 @@
-import { useMemo } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Scale, Star, Check, X, MessageCircle, Users, TrendingUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { usePrestadoresPorIds } from '../lib/hooks'
 import { useComparacao } from '../lib/ComparacaoContext'
 import { colors, spacing } from '../lib/design'
@@ -16,19 +15,12 @@ function Iniciais(nome = '') {
 }
 
 export default function Comparar() {
-  const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { removerComparacao, limparComparacao } = useComparacao()
+  const { selecionados, removerComparacao, limparComparacao } = useComparacao()
 
-  const ids = useMemo(() => (params.get('ids') || '').split(',').filter(Boolean), [params])
-  const { prestadores, loading } = usePrestadoresPorIds(ids)
+  const { prestadores, loading } = usePrestadoresPorIds(selecionados)
 
-  const remover = (id) => {
-    removerComparacao(id)
-    const restantes = ids.filter(i => i !== id)
-    if (restantes.length === 0) navigate('/busca')
-    else navigate(`/comparar?ids=${restantes.join(',')}`, { replace: true })
-  }
+  const remover = (id) => removerComparacao(id)
 
   const maxAvaliacoes = Math.max(0, ...prestadores.map(p => p.totalAvaliacoes || 0))
   const maxNota = Math.max(0, ...prestadores.map(p => p.avaliacao || 0))

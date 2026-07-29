@@ -167,11 +167,11 @@ export default function PainelPrestador() {
       {/* Menu lateral */}
       <aside style={{ width: '224px', flexShrink: 0 }}>
         <div style={{
-          background: colors.card, borderRadius: radius.card, padding: 16,
-          border: `1px solid ${colors.border}`, boxShadow: shadow.card,
+          background: '#111827', borderRadius: radius.card, padding: 16,
+          boxShadow: shadow.card,
           position: 'sticky', top: 24,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${colors.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             {prestador.foto_perfil ? (
               <img src={prestador.foto_perfil} alt={prestador.nome}
                 style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `2px solid ${colors.primary}` }} />
@@ -181,8 +181,8 @@ export default function PainelPrestador() {
               </div>
             )}
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prestador.nome?.split(' ')[0]}</p>
-              <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>{prestador.plano_id}</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prestador.nome?.split(' ')[0]}</p>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'capitalize', margin: 0 }}>{prestador.plano_id}</p>
             </div>
           </div>
 
@@ -198,8 +198,8 @@ export default function PainelPrestador() {
                     width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                     padding: '10px 12px', borderRadius: 12, fontSize: 14,
                     textAlign: 'left', border: 'none', cursor: 'pointer',
-                    background: ativo ? '#DCFCE7' : 'transparent',
-                    color: ativo ? colors.primaryHover : colors.textSub,
+                    background: ativo ? colors.primary : 'transparent',
+                    color: ativo ? '#fff' : 'rgba(255,255,255,0.65)',
                     fontWeight: ativo ? 700 : 500,
                   }}
                 >
@@ -210,7 +210,7 @@ export default function PainelPrestador() {
             })}
           </nav>
 
-          <div style={{ borderTop: `1px solid ${colors.border}`, marginTop: 12, paddingTop: 12 }}>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 12, paddingTop: 12 }}>
             <button
               onClick={() => navigate(`/profissional/${prestador.id}`)}
               className="btn-press"
@@ -218,7 +218,7 @@ export default function PainelPrestador() {
                 width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 12px', borderRadius: 12, fontSize: 14,
                 textAlign: 'left', border: 'none', cursor: 'pointer',
-                background: 'transparent', color: colors.primary, fontWeight: 600,
+                background: 'transparent', color: '#4ADE80', fontWeight: 600,
               }}
             >
               <ExternalLink size={17} strokeWidth={2} />

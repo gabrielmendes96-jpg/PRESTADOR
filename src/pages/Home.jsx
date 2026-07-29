@@ -8,6 +8,7 @@ import { colors, radius, shadow, spacing, type as typeScale } from '../lib/desig
 import { getCategoriaIcone } from '../lib/categoriaIcones'
 import CardPrestador from '../components/CardPrestador'
 import CardSkeleton from '../components/CardSkeleton'
+import BarraComparacao from '../components/BarraComparacao'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import SearchBar from '../components/ui/SearchBar'
@@ -178,6 +179,7 @@ export default function Home() {
               ))
             }
           </div>
+          <BarraComparacao style={{ marginTop: spacing.card }} />
         </section>
 
         {/* Serviços em alta */}
