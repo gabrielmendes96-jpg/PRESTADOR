@@ -88,41 +88,11 @@ export default function NovoPedido() {
     if (data) navigate(`/pedidos/${data.id}`)
   }
 
-  const comprarCreditos = async () => {
+  const comprarCreditos = () => {
     if (!pacoteSelecionado) return alert('Selecione um pacote!')
-    setEnviando(true)
-
-    const pacote = pacotes.find(p => p.id === pacoteSelecionado)
-
-    // Verificar se já tem registro de créditos
-    const { data: existente } = await supabase
-      .from('creditos_cliente')
-      .select('id, creditos_disponiveis')
-      .eq('user_id', usuario.id)
-      .single()
-
-    if (existente) {
-      await supabase
-        .from('creditos_cliente')
-        .update({ creditos_disponiveis: existente.creditos_disponiveis + pacote.creditos })
-        .eq('user_id', usuario.id)
-    } else {
-      await supabase
-        .from('creditos_cliente')
-        .insert({ user_id: usuario.id, creditos_disponiveis: pacote.creditos })
-    }
-
-    await supabase.from('compras_creditos').insert({
-      user_id: usuario.id,
-      pacote_id: pacoteSelecionado,
-      creditos: pacote.creditos,
-      valor_pago: pacote.preco,
-      status: 'pago',
-    })
-
-    setCreditosDisponiveis(prev => prev + pacote.creditos)
-    setEnviando(false)
-    setEtapa(3)
+    // Os créditos só são liberados depois que o Asaas confirma o pagamento
+    // (ver webhook-asaas.js) — aqui só redireciona para a cobrança real.
+    navigate(`/pagamento?tipo=creditos&item=${pacoteSelecionado}`)
   }
 
   return (
