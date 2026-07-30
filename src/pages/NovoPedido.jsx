@@ -62,11 +62,15 @@ export default function NovoPedido() {
     if (creditosDisponiveis < 1) { setEtapa(2); return }
     setEnviando(true)
 
-    // Debitar 1 crédito
-    await supabase
-      .from('creditos_cliente')
-      .update({ creditos_disponiveis: creditosDisponiveis - 1 })
-      .eq('user_id', usuario.id)
+    // Debita 1 crédito através da função de banco (garante que nunca fica
+    // negativo e que ninguém consegue burlar o desconto pela API direta).
+    const { error: erroCredito } = await supabase.rpc('debitar_credito')
+    if (erroCredito) {
+      setEnviando(false)
+      buscarCreditos()
+      setEtapa(2)
+      return
+    }
 
     // Criar pedido
     const { data } = await supabase

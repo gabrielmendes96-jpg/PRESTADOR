@@ -72,12 +72,14 @@ export function CadastroPro() {
       for (const topicoId of dados.topicos) {
         await supabase.from('topico_categorias')
           .insert({ topico_id: topicoId, categoria_id: idNovo })
-          .on('conflict', 'do nothing')
       }
 
       categoriaId = idNovo
     }
 
+    // Todo perfil novo começa no plano básico (gratuito) — planos pagos só
+    // são ativados de verdade via webhook, depois de o Asaas confirmar o
+    // pagamento (ver Pagamento.jsx e webhook-asaas.js).
     const { error } = await supabase.from('prestadores').insert({
       user_id: userData?.user?.id || null,
       nome: dados.nome,
@@ -87,7 +89,7 @@ export function CadastroPro() {
       cidade: dados.cidade,
       estado: dados.estado,
       descricao: dados.descricao,
-      plano_id: dados.plano,
+      plano_id: 'basico',
       servicos: [],
       disponivel: true,
     })
@@ -99,7 +101,11 @@ export function CadastroPro() {
       return
     }
 
-    navigate('/onboarding')
+    if (dados.plano !== 'basico') {
+      navigate(`/pagamento?tipo=mensalidade&item=${dados.plano}`)
+    } else {
+      navigate('/onboarding')
+    }
   }
 
   return (

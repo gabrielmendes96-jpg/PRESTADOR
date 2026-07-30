@@ -28,8 +28,11 @@ export default async function handler(req, res) {
   // do contrário qualquer requisição poderia forjar um valor menor.
   const PRECOS_PLANO = { basico: 49, profissional: 99, premium: 199 }
   const PRECOS_CREDITOS = { 1: 9, 5: 35, 10: 59, 20: 99 }
+  const PRECOS_BOOST = { '7dias': 20, '15dias': 39, '30dias': 59 }
 
-  const valor = tipo === 'mensalidade' ? PRECOS_PLANO[extra] : PRECOS_CREDITOS[extra]
+  const TABELAS_PRECO = { mensalidade: PRECOS_PLANO, creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
+  const tabela = TABELAS_PRECO[tipo]
+  const valor = tabela?.[extra]
   if (!valor) {
     return res.status(400).json({ error: 'Item inválido' })
   }

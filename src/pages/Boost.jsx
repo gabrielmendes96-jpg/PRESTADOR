@@ -38,8 +38,6 @@ export default function Boost() {
   const [boostAtivo, setBoostAtivo] = useState(null)
   const [planoSelecionado, setPlanoSelecionado] = useState('15dias')
   const [carregando, setCarregando] = useState(true)
-  const [contratando, setContratando] = useState(false)
-  const [sucesso, setSucesso] = useState(false)
 
   useEffect(() => {
     if (!usuario) { navigate('/login'); return }
@@ -67,29 +65,11 @@ export default function Boost() {
     setCarregando(false)
   }
 
-  const contratar = async () => {
+  const contratar = () => {
     if (!prestador) return
-    setContratando(true)
-
-    const plano = planos.find(p => p.id === planoSelecionado)
-    const dias = parseInt(planoSelecionado)
-    const inicio = new Date()
-    const expira = new Date(inicio.getTime() + dias * 24 * 60 * 60 * 1000)
-
-    await supabase.from('boosts').insert({
-      prestador_id: prestador.id,
-      plano: planoSelecionado,
-      valor: plano.valor,
-      status: 'ativo',
-      inicio_em: inicio.toISOString(),
-      expira_em: expira.toISOString(),
-      aparece_home: true,
-      aparece_busca: true,
-    })
-
-    setContratando(false)
-    setSucesso(true)
-    carregarDados()
+    // O boost só é ativado depois que o Asaas confirma o pagamento
+    // (ver webhook-asaas.js) — aqui só redireciona para a cobrança real.
+    navigate(`/pagamento?tipo=boost&item=${planoSelecionado}`)
   }
 
   if (carregando) return (
@@ -127,14 +107,6 @@ export default function Boost() {
               </p>
             </div>
           </div>
-        </div>
-      )}
-
-      {sucesso && (
-        <div className="p-4 rounded-2xl mb-5 text-center" style={{ background: '#DCFCE7' }}>
-          <Check size={32} strokeWidth={2.5} color={colors.primaryHover} style={{ margin: '0 auto 8px' }} />
-          <p className="text-sm font-medium" style={{ color: '#14853D' }}>Boost ativado com sucesso!</p>
-          <p className="text-xs mt-1" style={{ color: '#14853D' }}>Seu perfil já está aparecendo em destaque.</p>
         </div>
       )}
 
@@ -203,12 +175,12 @@ export default function Boost() {
         ))}
       </div>
 
-      <Button fullWidth icon={<Rocket size={16} />} disabled={contratando} onClick={contratar}>
-        {contratando ? 'Ativando...' : `Impulsionar por R$${planos.find(p => p.id === planoSelecionado)?.valor}`}
+      <Button fullWidth icon={<Rocket size={16} />} onClick={contratar}>
+        {`Impulsionar por R$${planos.find(p => p.id === planoSelecionado)?.valor}`}
       </Button>
 
       <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 12, textAlign: 'center', marginTop: 12, color: '#9CA3AF' }}>
-        <Info size={13} /> Pagamento via Pix integrado em breve. Por ora o boost é ativado diretamente.
+        <Info size={13} /> Você será redirecionado para o pagamento via Pix ou cartão.
       </p>
     </div>
   )

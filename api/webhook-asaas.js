@@ -106,6 +106,33 @@ export default async function handler(req, res) {
         .limit(1)
     }
 
+    if (tipo === 'boost') {
+      const DIAS_BOOST = { '7dias': 7, '15dias': 15, '30dias': 30 }
+      const dias = DIAS_BOOST[extra]
+
+      const { data: prestador } = await supabase
+        .from('prestadores')
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+
+      if (prestador && dias) {
+        const inicio = new Date()
+        const expira = new Date(inicio.getTime() + dias * 24 * 60 * 60 * 1000)
+
+        await supabase.from('boosts').insert({
+          prestador_id: prestador.id,
+          plano: extra,
+          valor: pagamento.value,
+          status: 'ativo',
+          inicio_em: inicio.toISOString(),
+          expira_em: expira.toISOString(),
+          aparece_home: true,
+          aparece_busca: true,
+        })
+      }
+    }
+
     return res.status(200).json({ ok: true })
   } catch (error) {
     console.error('Erro no webhook:', error)

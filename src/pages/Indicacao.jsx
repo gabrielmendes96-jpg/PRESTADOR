@@ -100,48 +100,11 @@ export default function Indicacao() {
   }
 
   const processarConvite = async (ref) => {
-    // Verificar se o código existe e não é do próprio usuário
-    const { data: cod } = await supabase
-      .from('codigos_indicacao')
-      .select('*')
-      .eq('codigo', ref)
-      .single()
-
-    if (!cod || cod.user_id === usuario.id) return
-
-    // Verificar se já foi indicado antes
-    const { data: jaIndicado } = await supabase
-      .from('indicacoes')
-      .select('id')
-      .eq('indicado_user_id', usuario.id)
-      .single()
-
-    if (jaIndicado) return
-
-    // Registrar indicação
-    await supabase.from('indicacoes').insert({
-      codigo_id: cod.id,
-      indicador_user_id: cod.user_id,
-      indicado_user_id: usuario.id,
-      tipo: cod.tipo,
-      status: 'pendente',
-    })
-
-    // Dar 3 créditos grátis para o novo usuário (cliente)
-    const { data: credExistente } = await supabase
-      .from('creditos_cliente')
-      .select('id, creditos_disponiveis')
-      .eq('user_id', usuario.id)
-      .single()
-
-    if (credExistente) {
-      await supabase.from('creditos_cliente')
-        .update({ creditos_disponiveis: credExistente.creditos_disponiveis + 3 })
-        .eq('user_id', usuario.id)
-    } else {
-      await supabase.from('creditos_cliente')
-        .insert({ user_id: usuario.id, creditos_disponiveis: 3 })
-    }
+    // A validação (código existe, não é o próprio usuário, ainda não foi
+    // indicado antes) e a concessão dos 3 créditos acontecem dentro da
+    // função de banco resgatar_indicacao — assim ninguém consegue se dar
+    // créditos direto pela API, só através dessa regra de negócio.
+    await supabase.rpc('resgatar_indicacao', { p_codigo: ref })
   }
 
   const copiarLink = () => {

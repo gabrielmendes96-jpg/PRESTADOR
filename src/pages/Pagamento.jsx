@@ -7,27 +7,33 @@ import { colors } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
-const planos = {
-  basico: { nome: 'Básico', valor: 49, creditos: null },
-  profissional: { nome: 'Profissional', valor: 99, creditos: null },
-  premium: { nome: 'Premium', valor: 199, creditos: null },
-}
-
-const pacotesCreditos = {
-  avulso: { nome: 'Avulso', valor: 9, creditos: 1 },
-  basico: { nome: 'Básico', valor: 35, creditos: 5 },
-  popular: { nome: 'Popular', valor: 59, creditos: 10 },
-  pro: { nome: 'Pro', valor: 99, creditos: 20 },
+const ITENS = {
+  mensalidade: {
+    basico: { nome: 'Básico', valor: 49 },
+    profissional: { nome: 'Profissional', valor: 99 },
+    premium: { nome: 'Premium', valor: 199 },
+  },
+  creditos: {
+    avulso: { nome: 'Avulso', valor: 9, creditos: 1 },
+    basico: { nome: 'Básico', valor: 35, creditos: 5 },
+    popular: { nome: 'Popular', valor: 59, creditos: 10 },
+    pro: { nome: 'Pro', valor: 99, creditos: 20 },
+  },
+  boost: {
+    '7dias': { nome: 'Boost 7 dias', valor: 20 },
+    '15dias': { nome: 'Boost 15 dias', valor: 39 },
+    '30dias': { nome: 'Boost 30 dias', valor: 59 },
+  },
 }
 
 export default function Pagamento() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const tipo = params.get('tipo') // 'mensalidade' ou 'creditos'
-  const itemId = params.get('item') // plano ou pacote
+  const tipo = params.get('tipo') // 'mensalidade' | 'creditos' | 'boost'
+  const itemId = params.get('item')
 
-  const item = tipo === 'mensalidade' ? planos[itemId] : pacotesCreditos[itemId]
+  const item = ITENS[tipo]?.[itemId]
 
   const [metodoPagamento, setMetodoPagamento] = useState('pix')
   const [carregando, setCarregando] = useState(false)
@@ -61,10 +67,10 @@ export default function Pagamento() {
         },
         body: JSON.stringify({
           tipo,
-          descricao: tipo === 'mensalidade'
-            ? `Prestador App — Plano ${item.nome}`
-            : `Prestador App — ${item.creditos} créditos`,
-          extra: tipo === 'mensalidade' ? itemId : String(item.creditos),
+          descricao: tipo === 'creditos'
+            ? `Prestador App — ${item.creditos} créditos`
+            : `Prestador App — ${item.nome}`,
+          extra: tipo === 'creditos' ? String(item.creditos) : itemId,
           nomeCliente: usuario.user_metadata?.nome || 'Cliente',
           emailCliente: usuario.email,
           cpfCliente: cpf.replace(/\D/g, ''),
@@ -113,13 +119,12 @@ export default function Pagamento() {
       </div>
       <h2 className="text-xl font-semibold mb-2" style={{ color: '#1F2937' }}>Pagamento confirmado!</h2>
       <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
-        {tipo === 'mensalidade'
-          ? `Seu plano ${item.nome} foi ativado com sucesso!`
-          : `${item.creditos} créditos foram adicionados à sua conta!`
-        }
+        {tipo === 'mensalidade' && `Seu plano ${item.nome} foi ativado com sucesso!`}
+        {tipo === 'creditos' && `${item.creditos} créditos foram adicionados à sua conta!`}
+        {tipo === 'boost' && `Seu ${item.nome.toLowerCase()} foi ativado com sucesso!`}
       </p>
-      <Button fullWidth onClick={() => navigate(tipo === 'mensalidade' ? '/painel' : '/pedidos')}>
-        {tipo === 'mensalidade' ? 'Ir para o painel' : 'Usar créditos'}
+      <Button fullWidth onClick={() => navigate(tipo === 'mensalidade' ? '/painel' : tipo === 'boost' ? '/boost' : '/pedidos')}>
+        {tipo === 'mensalidade' ? 'Ir para o painel' : tipo === 'boost' ? 'Ver meu boost' : 'Usar créditos'}
       </Button>
     </div>
   )
@@ -128,7 +133,9 @@ export default function Pagamento() {
     <div className="max-w-md mx-auto">
       <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2937' }}>Pagamento</h1>
       <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
-        {tipo === 'mensalidade' ? `Plano ${item.nome}` : `${item.creditos} crédito${item.creditos !== 1 ? 's' : ''}`}
+        {tipo === 'mensalidade' && `Plano ${item.nome}`}
+        {tipo === 'creditos' && `${item.creditos} crédito${item.creditos !== 1 ? 's' : ''}`}
+        {tipo === 'boost' && item.nome}
         {' · '}
         <strong style={{ color: '#16A34A' }}>R${item.valor}</strong>
       </p>
@@ -137,7 +144,9 @@ export default function Pagamento() {
       <div className="bg-white rounded-2xl p-4 mb-5" style={{ border: '0.5px solid #E4E7E4' }}>
         <div className="flex justify-between items-center">
           <p className="text-sm" style={{ color: '#6B7280' }}>
-            {tipo === 'mensalidade' ? `Plano ${item.nome} (mensal)` : `Pacote ${item.nome}`}
+            {tipo === 'mensalidade' && `Plano ${item.nome} (mensal)`}
+            {tipo === 'creditos' && `Pacote ${item.nome}`}
+            {tipo === 'boost' && item.nome}
           </p>
           <p className="text-sm font-semibold" style={{ color: '#1F2937' }}>R${item.valor},00</p>
         </div>
@@ -287,7 +296,7 @@ export default function Pagamento() {
           </button>
 
           <p className="text-xs" style={{ color: '#6B7280' }}>
-            Após o pagamento, seus {tipo === 'mensalidade' ? 'plano será ativado' : 'créditos serão adicionados'} automaticamente.
+            Após o pagamento, {tipo === 'mensalidade' ? 'seu plano será ativado' : tipo === 'boost' ? 'seu boost será ativado' : 'seus créditos serão adicionados'} automaticamente.
           </p>
 
           <p className="text-xs mt-2" style={{ color: '#9CA3AF' }}>
