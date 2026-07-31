@@ -104,7 +104,8 @@ export default function Indicacao() {
     // indicado antes) e a concessão dos 3 créditos acontecem dentro da
     // função de banco resgatar_indicacao — assim ninguém consegue se dar
     // créditos direto pela API, só através dessa regra de negócio.
-    await supabase.rpc('resgatar_indicacao', { p_codigo: ref })
+    const { error } = await supabase.rpc('resgatar_indicacao', { p_codigo: ref })
+    if (error) console.error('Erro ao resgatar indicação:', error.message)
   }
 
   const copiarLink = () => {
