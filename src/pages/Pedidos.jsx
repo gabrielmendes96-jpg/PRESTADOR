@@ -17,6 +17,14 @@ export default function Pedidos() {
   const [filtroCidade, setFiltroCidade] = useState('')
   const { categorias } = useCategorias()
 
+  // Prestador logado já abre a lista filtrada na própria categoria —
+  // continua dando pra trocar pra "Todas as categorias" manualmente.
+  useEffect(() => {
+    if (!usuario) return
+    supabase.from('prestadores').select('categoria_id').eq('user_id', usuario.id).single()
+      .then(({ data }) => { if (data?.categoria_id) setFiltroCategoria(data.categoria_id) })
+  }, [usuario])
+
   useEffect(() => {
     carregarPedidos()
   }, [filtroCategoria, filtroCidade])

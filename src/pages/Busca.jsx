@@ -44,6 +44,11 @@ export default function Busca() {
     return top ? top.categorias : null
   }, [filtro.topico, topicos])
 
+  const categoriasExibidas = useMemo(() => {
+    if (!categoriasDoTopico) return categorias
+    return categorias.filter(c => categoriasDoTopico.includes(c.id))
+  }, [categorias, categoriasDoTopico])
+
   const { prestadores: resultadosBrutos, loading } = usePrestadores({
     busca: filtro.busca,
     categoria: filtro.categoria,
@@ -106,12 +111,28 @@ export default function Busca() {
             />
           </div>
 
-          {/* Categorias */}
+          {/* Tópicos (grupos amplos) */}
+          <div className="lg:flex-wrap lg:overflow-visible" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 10, scrollbarWidth: 'none' }}>
+            <Chip active={!filtro.topico} onClick={() => setFiltro({ ...filtro, topico: '', categoria: '' })}>
+              Todos os grupos
+            </Chip>
+            {topicos.map(top => (
+              <Chip
+                key={top.id}
+                active={filtro.topico === top.id}
+                onClick={() => setFiltro({ ...filtro, topico: filtro.topico === top.id ? '' : top.id, categoria: '' })}
+              >
+                {top.nome}
+              </Chip>
+            ))}
+          </div>
+
+          {/* Categorias (dentro do tópico escolhido, ou todas) */}
           <div className="lg:flex-wrap lg:overflow-visible" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12, scrollbarWidth: 'none' }}>
             <Chip active={!filtro.categoria} onClick={() => setFiltro({ ...filtro, categoria: '' })}>
               Todos
             </Chip>
-            {categorias.map(cat => {
+            {categoriasExibidas.map(cat => {
               const { icon: Icon } = getCategoriaIcone(cat)
               return (
                 <Chip

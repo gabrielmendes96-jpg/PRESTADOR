@@ -87,21 +87,29 @@ export function usePrestadores(filtros = {}) {
         query = query.eq('plano_id', filtros.plano)
       }
       if (filtros.busca) {
-        // busca por nome, cidade ou hashtag
-        // Primeiro busca prestadores por hashtag
+        // Busca por nome, cidade, hashtag OU nome da profissão/categoria —
+        // assim "instalador de acessórios" encontra quem está nessa
+        // categoria, mesmo sem ter cadastrado essa hashtag.
         const buscaLower = filtros.busca.toLowerCase()
+
         const { data: porTag } = await supabase
           .from('servicos_prestador')
           .select('prestador_id')
           .ilike('tag', `%${buscaLower}%`)
 
-        const idsPorTag = (porTag || []).map(t => t.prestador_id)
+        const { data: porCategoria } = await supabase
+          .from('categorias')
+          .select('id')
+          .ilike('nome', `%${filtros.busca}%`)
 
-        if (idsPorTag.length > 0) {
-          query = query.or(`nome.ilike.%${filtros.busca}%,cidade.ilike.%${filtros.busca}%,id.in.(${idsPorTag.join(',')})`)
-        } else {
-          query = query.or(`nome.ilike.%${filtros.busca}%,cidade.ilike.%${filtros.busca}%`)
-        }
+        const idsPorTag = (porTag || []).map(t => t.prestador_id)
+        const idsPorCategoria = (porCategoria || []).map(c => c.id)
+
+        const condicoes = [`nome.ilike.%${filtros.busca}%`, `cidade.ilike.%${filtros.busca}%`]
+        if (idsPorTag.length > 0) condicoes.push(`id.in.(${idsPorTag.join(',')})`)
+        if (idsPorCategoria.length > 0) condicoes.push(`categoria_id.in.(${idsPorCategoria.join(',')})`)
+
+        query = query.or(condicoes.join(','))
       }
 
       const { data, error } = await query

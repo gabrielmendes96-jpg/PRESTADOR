@@ -78,6 +78,9 @@ export default function PainelPrestador() {
   const [sucesso, setSucesso] = useState(false)
   const [avaliacoes, setAvaliacoes] = useState([])
   const [mensagens, setMensagens] = useState([])
+  const [pedidosCategoria, setPedidosCategoria] = useState([])
+  const [totalPedidosCategoria, setTotalPedidosCategoria] = useState(0)
+  const [pedidosHoje, setPedidosHoje] = useState(0)
   const { categorias } = useCategorias()
 
   // Redireciona se não estiver logado
@@ -112,6 +115,38 @@ export default function PainelPrestador() {
           .eq('prestador_id', data.id)
           .order('criado_em', { ascending: false })
         setMensagens(msgs || [])
+
+        // Pedidos abertos da mesma categoria do prestador — feed sempre
+        // atualizado do que tem disponível pra ele hoje.
+        if (data.categoria_id) {
+          const inicioDoDia = new Date()
+          inicioDoDia.setHours(0, 0, 0, 0)
+
+          const filtroBase = () => supabase
+            .from('pedidos_servico')
+            .select('*', { count: 'exact', head: true })
+            .eq('categoria_id', data.categoria_id)
+            .eq('status', 'aberto')
+            .eq('pago', true)
+            .gt('expira_em', new Date().toISOString())
+
+          const { data: lista } = await supabase
+            .from('pedidos_servico')
+            .select('id, titulo, cidade, estado, orcamento_min, orcamento_max, criado_em')
+            .eq('categoria_id', data.categoria_id)
+            .eq('status', 'aberto')
+            .eq('pago', true)
+            .gt('expira_em', new Date().toISOString())
+            .order('criado_em', { ascending: false })
+            .limit(5)
+          setPedidosCategoria(lista || [])
+
+          const { count: total } = await filtroBase()
+          setTotalPedidosCategoria(total || 0)
+
+          const { count: hoje } = await filtroBase().gte('criado_em', inicioDoDia.toISOString())
+          setPedidosHoje(hoje || 0)
+        }
       }
     }
     carregar()
@@ -438,23 +473,52 @@ export default function PainelPrestador() {
         {/* ABA: PEDIDOS */}
         {aba === 'pedidos' && (
           <Card padding={24}>
-            <TabHeader icon={ClipboardList} title="Pedidos disponíveis" />
+            <TabHeader icon={ClipboardList} title="Pedidos disponíveis" desc={`Pedidos abertos na sua categoria — ${pedidosHoje} novo${pedidosHoje !== 1 ? 's' : ''} hoje`} />
             {prestador.plano_id !== 'premium' ? (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <Crown size={36} color={colors.secondary} style={{ margin: '0 auto 12px' }} />
-                <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Recurso exclusivo Premium</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>
+                  {totalPedidosCategoria > 0
+                    ? `${totalPedidosCategoria} pedido${totalPedidosCategoria !== 1 ? 's' : ''} esperando por prestadores da sua categoria`
+                    : 'Recurso exclusivo Premium'}
+                </p>
                 <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 16 }}>
                   Faça upgrade para o plano Premium e acesse pedidos de clientes que precisam do seu serviço agora.
                 </p>
                 <Button onClick={() => navigate('/planos')}>Ver planos</Button>
               </div>
+            ) : pedidosCategoria.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <ClipboardList size={36} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
+                <p style={{ fontSize: 14, color: colors.textSub }}>Nenhum pedido aberto na sua categoria no momento.</p>
+              </div>
             ) : (
               <div>
-                <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 16 }}>
-                  Como prestador Premium, você pode se candidatar a todos os pedidos abertos da sua categoria.
-                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                  {pedidosCategoria.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => navigate(`/pedidos/${p.id}`)}
+                      className="btn-press"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        padding: 14, borderRadius: 14, background: colors.bg, border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%',
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.titulo}</p>
+                        <p style={{ fontSize: 12, color: colors.textSub, margin: 0 }}>{p.cidade}, {p.estado}</p>
+                      </div>
+                      {(p.orcamento_min || p.orcamento_max) && (
+                        <p style={{ fontSize: 13, fontWeight: 700, color: colors.primary, margin: 0, flexShrink: 0 }}>
+                          {p.orcamento_max ? `até R$${p.orcamento_max}` : `a partir de R$${p.orcamento_min}`}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
                 <Button icon={<ClipboardList size={16} />} onClick={() => navigate('/pedidos')}>
-                  Ver pedidos disponíveis
+                  Ver todos os pedidos ({totalPedidosCategoria})
                 </Button>
               </div>
             )}
