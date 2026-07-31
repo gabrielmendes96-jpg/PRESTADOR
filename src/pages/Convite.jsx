@@ -14,9 +14,10 @@ export default function Convite() {
   const ref = searchParams.get('ref')
 
   useEffect(() => {
-    // Se já está logado, processa o convite e vai para o início
+    // Se já está logado, manda para /indicacao — é lá que o código de
+    // convite é validado e os créditos são concedidos.
     if (usuario && ref) {
-      navigate(`/?ref=${ref}`)
+      navigate(`/indicacao?ref=${ref}`)
     }
   }, [usuario, ref])
 
