@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCategorias } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { TOPICOS } from '../lib/dados'
+import { ESTADOS, buscarMunicipios } from '../lib/localidades'
 import { colors, spacing } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Chip from '../components/ui/Chip'
+import SearchableSelect from '../components/ui/SearchableSelect'
 
 const topicosDisponiveis = TOPICOS
 
@@ -26,10 +28,23 @@ export function CadastroPro() {
   })
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
+  const [cidades, setCidades] = useState([])
+  const [carregandoCidades, setCarregandoCidades] = useState(false)
   const navigate = useNavigate()
   const { categorias } = useCategorias()
 
   const atualizar = (campo, valor) => setDados({ ...dados, [campo]: valor })
+
+  const mudarEstado = (uf) => setDados(prev => ({ ...prev, estado: uf, cidade: '' }))
+
+  useEffect(() => {
+    if (!dados.estado) { setCidades([]); return }
+    setCarregandoCidades(true)
+    buscarMunicipios(dados.estado).then(lista => {
+      setCidades(lista)
+      setCarregandoCidades(false)
+    })
+  }, [dados.estado])
 
   const toggleTopico = (id) => {
     const topicos = dados.topicos.includes(id)
@@ -143,11 +158,16 @@ export function CadastroPro() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={labelStyle}>Profissão</label>
-              <select value={dados.categoria} onChange={e => atualizar('categoria', e.target.value)} style={inputStyle}>
-                <option value="">Selecione sua profissão</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                <option value="__outro__">Outra profissão (digitar)</option>
-              </select>
+              <SearchableSelect
+                options={[
+                  ...categorias.map(c => ({ value: c.id, label: c.nome })),
+                  { value: '__outro__', label: 'Outra profissão (digitar)' },
+                ]}
+                value={dados.categoria}
+                onChange={v => atualizar('categoria', v)}
+                placeholder="Digite para buscar sua profissão..."
+                emptyMessage="Nenhuma profissão encontrada"
+              />
             </div>
 
             {/* Campo para profissão personalizada */}
@@ -186,13 +206,24 @@ export function CadastroPro() {
             )}
 
             <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ width: 110 }}>
+                <label style={labelStyle}>Estado</label>
+                <select value={dados.estado} onChange={e => mudarEstado(e.target.value)} style={inputStyle}>
+                  <option value="">UF</option>
+                  {ESTADOS.map(e => <option key={e.sigla} value={e.sigla}>{e.sigla}</option>)}
+                </select>
+              </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Cidade</label>
-                <input type="text" value={dados.cidade} onChange={e => atualizar('cidade', e.target.value)} style={inputStyle} placeholder="Sua cidade" />
-              </div>
-              <div style={{ width: 90 }}>
-                <label style={labelStyle}>Estado</label>
-                <input type="text" value={dados.estado} onChange={e => atualizar('estado', e.target.value)} style={inputStyle} placeholder="SP" maxLength={2} />
+                <SearchableSelect
+                  options={cidades.map(nome => ({ value: nome, label: nome }))}
+                  value={dados.cidade}
+                  onChange={v => atualizar('cidade', v)}
+                  placeholder={dados.estado ? 'Digite para buscar a cidade...' : 'Escolha o estado primeiro'}
+                  emptyMessage="Nenhuma cidade encontrada"
+                  disabled={!dados.estado}
+                  loading={carregandoCidades}
+                />
               </div>
             </div>
 

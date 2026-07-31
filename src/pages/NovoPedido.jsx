@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Info, CheckCircle2 } from 'lucide-react'
+import { Camera, Video, X, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useCategorias } from '../lib/hooks'
+import { ESTADOS, buscarMunicipios } from '../lib/localidades'
 import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import SearchableSelect from '../components/ui/SearchableSelect'
 
 const pacotes = [
   { id: 'avulso', nome: 'Avulso', preco: 9, creditos: 1, destaque: false, desc: '1 pedido' },
@@ -27,7 +29,7 @@ export default function NovoPedido() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const { categorias } = useCategorias()
-  const [etapa, setEtapa] = useState(1) // 1: form, 2: créditos, 3: confirmação
+  const [etapa, setEtapa] = useState(1) // 1: form, 2: créditos
   const [creditosDisponiveis, setCreditosDisponiveis] = useState(0)
   const [pacoteSelecionado, setPacoteSelecionado] = useState(null)
   const [enviando, setEnviando] = useState(false)
@@ -41,11 +43,26 @@ export default function NovoPedido() {
     orcamento_max: '',
     prazo: '',
   })
+  const [cidades, setCidades] = useState([])
+  const [carregandoCidades, setCarregandoCidades] = useState(false)
+  const [midias, setMidias] = useState([]) // [{ file, url, tipo }]
+  const inputMidiaRef = useRef(null)
 
   useEffect(() => {
     if (!usuario) { navigate('/login'); return }
     buscarCreditos()
   }, [usuario])
+
+  // Busca os municípios do estado escolhido (API do IBGE) toda vez que o
+  // estado muda, e reseta a cidade — evita cidade/estado incoerentes.
+  useEffect(() => {
+    if (!dados.estado) { setCidades([]); return }
+    setCarregandoCidades(true)
+    buscarMunicipios(dados.estado).then(lista => {
+      setCidades(lista)
+      setCarregandoCidades(false)
+    })
+  }, [dados.estado])
 
   const buscarCreditos = async () => {
     const { data } = await supabase
@@ -57,6 +74,21 @@ export default function NovoPedido() {
   }
 
   const atualizar = (campo, valor) => setDados({ ...dados, [campo]: valor })
+
+  const mudarEstado = (uf) => setDados(prev => ({ ...prev, estado: uf, cidade: '' }))
+
+  const handleArquivosMidia = (e) => {
+    const arquivos = Array.from(e.target.files)
+    const novas = arquivos.map(f => ({
+      file: f,
+      url: URL.createObjectURL(f),
+      tipo: f.type.startsWith('video') ? 'video' : 'foto',
+    }))
+    setMidias(prev => [...prev, ...novas])
+    e.target.value = ''
+  }
+
+  const removerMidia = (idx) => setMidias(prev => prev.filter((_, i) => i !== idx))
 
   const publicarPedido = async () => {
     if (creditosDisponiveis < 1) { setEtapa(2); return }
@@ -88,6 +120,19 @@ export default function NovoPedido() {
       .select()
       .single()
 
+    // Sobe as fotos/vídeos anexados (precisa do id do pedido pra montar o caminho)
+    if (data && midias.length > 0) {
+      for (const m of midias) {
+        const ext = m.file.name.split('.').pop()
+        const caminho = `pedidos/${data.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: erroUpload } = await supabase.storage.from('midias').upload(caminho, m.file)
+        if (!erroUpload) {
+          const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
+          await supabase.from('midias_pedido').insert({ pedido_id: data.id, url: urlData.publicUrl, tipo: m.tipo })
+        }
+      }
+    }
+
     setEnviando(false)
     if (data) navigate(`/pedidos/${data.id}`)
   }
@@ -103,7 +148,7 @@ export default function NovoPedido() {
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       {/* Progress */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {[1, 2, 3].map(e => (
+        {[1, 2].map(e => (
           <div key={e} style={{ height: 6, flex: 1, borderRadius: 999, transition: 'background 0.25s ease', background: e <= etapa ? colors.primary : colors.border }} />
         ))}
       </div>
@@ -130,21 +175,33 @@ export default function NovoPedido() {
             </div>
             <div>
               <label style={labelStyle}>Categoria *</label>
-              <select value={dados.categoria_id} onChange={e => atualizar('categoria_id', e.target.value)} style={inputStyle}>
-                <option value="">Selecione a categoria</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
+              <SearchableSelect
+                options={categorias.map(c => ({ value: c.id, label: c.nome }))}
+                value={dados.categoria_id}
+                onChange={v => atualizar('categoria_id', v)}
+                placeholder="Digite para buscar a categoria..."
+                emptyMessage="Nenhuma categoria encontrada"
+              />
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ width: 140 }}>
+                <label style={labelStyle}>Estado *</label>
+                <select value={dados.estado} onChange={e => mudarEstado(e.target.value)} style={inputStyle}>
+                  <option value="">UF</option>
+                  {ESTADOS.map(e => <option key={e.sigla} value={e.sigla}>{e.sigla}</option>)}
+                </select>
+              </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Cidade *</label>
-                <input type="text" value={dados.cidade} onChange={e => atualizar('cidade', e.target.value)}
-                  style={inputStyle} placeholder="Sua cidade" />
-              </div>
-              <div style={{ width: 80 }}>
-                <label style={labelStyle}>Estado</label>
-                <input type="text" value={dados.estado} onChange={e => atualizar('estado', e.target.value)}
-                  style={inputStyle} placeholder="SP" maxLength={2} />
+                <SearchableSelect
+                  options={cidades.map(nome => ({ value: nome, label: nome }))}
+                  value={dados.cidade}
+                  onChange={v => atualizar('cidade', v)}
+                  placeholder={dados.estado ? 'Digite para buscar a cidade...' : 'Escolha o estado primeiro'}
+                  emptyMessage="Nenhuma cidade encontrada"
+                  disabled={!dados.estado}
+                  loading={carregandoCidades}
+                />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
@@ -163,6 +220,37 @@ export default function NovoPedido() {
               <label style={labelStyle}>Prazo desejado</label>
               <input type="text" value={dados.prazo} onChange={e => atualizar('prazo', e.target.value)}
                 style={inputStyle} placeholder="Ex: Esta semana, Em 15 dias, Sem pressa..." />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Fotos ou vídeos (opcional)</label>
+              <p style={{ fontSize: 12, color: colors.textSub, marginTop: -2, marginBottom: 10 }}>
+                Mostre a peça quebrada, o cômodo ou o que precisa de serviço — ajuda o profissional a entender melhor.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {midias.map((m, i) => (
+                  <div key={i} style={{ position: 'relative', width: 72, height: 72, borderRadius: 12, overflow: 'hidden', border: `1px solid ${colors.border}` }}>
+                    {m.tipo === 'video' ? (
+                      <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <img src={m.url} alt="Anexo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removerMidia(i)}
+                      aria-label="Remover anexo"
+                      style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <label style={{ width: 72, height: 72, borderRadius: 12, border: `1.5px dashed ${colors.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer', color: colors.textSub }}>
+                  <Upload size={16} />
+                  <span style={{ fontSize: 10 }}>Adicionar</span>
+                  <input ref={inputMidiaRef} type="file" accept="image/*,video/*" multiple onChange={handleArquivosMidia} style={{ display: 'none' }} />
+                </label>
+              </div>
             </div>
           </div>
 
@@ -209,34 +297,12 @@ export default function NovoPedido() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 10, padding: 14, borderRadius: 14, marginBottom: 20, background: '#FFFBEB' }}>
-            <Info size={16} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
-            <p style={{ fontSize: 12, color: '#92610A', margin: 0, lineHeight: 1.5 }}>
-              <strong>Atenção:</strong> o pagamento real será integrado com Asaas (Pix/cartão) em breve.
-              Por enquanto, os créditos são adicionados diretamente para teste.
-            </p>
-          </div>
-
           <div style={{ display: 'flex', gap: 10 }}>
             <Button variant="secondary" fullWidth onClick={() => setEtapa(1)}>Voltar</Button>
             <Button fullWidth disabled={!pacoteSelecionado || enviando} onClick={comprarCreditos}>
-              {enviando ? 'Processando...' : 'Confirmar compra'}
+              {enviando ? 'Processando...' : 'Continuar para pagamento'}
             </Button>
           </div>
-        </Card>
-      )}
-
-      {/* ETAPA 3 — Créditos comprados, publicar */}
-      {etapa === 3 && (
-        <Card padding={24} style={{ textAlign: 'center' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <CheckCircle2 size={32} color={colors.primary} strokeWidth={1.8} />
-          </div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: colors.text, marginBottom: 8 }}>Créditos adicionados!</h2>
-          <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 24 }}>
-            Você agora tem <strong style={{ color: colors.primary }}>{creditosDisponiveis} crédito{creditosDisponiveis !== 1 ? 's' : ''}</strong>. Publique seu pedido agora!
-          </p>
-          <Button fullWidth onClick={() => { setEtapa(1); publicarPedido() }}>Publicar pedido agora</Button>
         </Card>
       )}
     </div>

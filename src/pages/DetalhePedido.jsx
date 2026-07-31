@@ -22,6 +22,7 @@ export default function DetalhePedido() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const [pedido, setPedido] = useState(null)
+  const [midias, setMidias] = useState([])
   const [candidaturas, setCandidaturas] = useState([])
   const [meuPrestador, setMeuPrestador] = useState(null)
   const [jaCandidatei, setJaCandidatei] = useState(false)
@@ -43,6 +44,12 @@ export default function DetalhePedido() {
       .eq('id', id)
       .single()
     setPedido(p)
+
+    const { data: mids } = await supabase
+      .from('midias_pedido')
+      .select('*')
+      .eq('pedido_id', id)
+    setMidias(mids || [])
 
     const { data: cands } = await supabase
       .from('candidaturas')
@@ -139,6 +146,21 @@ export default function DetalhePedido() {
 
         {pedido.descricao && (
           <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 16, lineHeight: 1.6 }}>{pedido.descricao}</p>
+        )}
+
+        {midias.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {midias.map(m => (
+              <a key={m.id} href={m.url} target="_blank" rel="noreferrer"
+                style={{ width: 84, height: 84, borderRadius: 12, overflow: 'hidden', border: `1px solid ${colors.border}`, display: 'block' }}>
+                {m.tipo === 'video' ? (
+                  <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <img src={m.url} alt="Anexo do pedido" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+              </a>
+            ))}
+          </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
