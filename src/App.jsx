@@ -21,6 +21,7 @@ import Convite from './pages/Convite'
 import EsqueciSenha from './pages/EsqueciSenha'
 import NovaSenha from './pages/NovaSenha'
 import Pagamento from './pages/Pagamento'
+import PagamentoRetorno from './pages/PagamentoRetorno'
 import ZonasQuentes from './pages/ZonasQuentes'
 import AssistentePerfil from './pages/AssistentePerfil'
 import Boost from './pages/Boost'
@@ -217,6 +218,7 @@ export default function App() {
               <Route path="/esqueci-senha" element={<EsqueciSenha />} />
               <Route path="/nova-senha" element={<NovaSenha />} />
               <Route path="/pagamento" element={<Pagamento />} />
+              <Route path="/pagamento/retorno" element={<PagamentoRetorno />} />
               <Route path="/zonas" element={<ZonasQuentes />} />
               <Route path="/assistente" element={<AssistentePerfil />} />
               <Route path="/boost" element={<Boost />} />

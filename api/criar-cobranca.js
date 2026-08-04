@@ -1,5 +1,7 @@
 // api/criar-cobranca.js
-// Cria uma cobrança no Asaas (Pix ou cartão)
+// Cria um Checkout hospedado no Asaas (Pix ou cartão) — o número do
+// cartão nunca toca este servidor, quem coleta é a própria página da
+// Asaas. Ver supabase.../docs.asaas.com/reference/create-new-checkout.
 
 import { checkRateLimit, getClientIp } from './rate-limit.js'
 import { verificarUsuario } from './_verificarUsuario.js'
@@ -18,7 +20,7 @@ export default async function handler(req, res) {
   if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
   const userId = usuarioAutenticado.id
 
-  const { tipo, descricao, extra, nomeCliente, emailCliente, cpfCliente, cartao } = req.body
+  const { tipo, descricao, extra, nomeCliente, emailCliente, cpfCliente } = req.body
 
   if (!tipo || !extra) {
     return res.status(400).json({ error: 'Dados incompletos' })
@@ -45,105 +47,49 @@ export default async function handler(req, res) {
     ? process.env.ASAAS_KEY_SANDBOX
     : process.env.ASAAS_KEY_PROD
 
+  const origem = req.headers.origin || (req.headers.host ? `https://${req.headers.host}` : '')
+
   try {
-    // 1. Criar ou buscar cliente no Asaas
-    let customerId = null
-
-    try {
-      const buscaCliente = await fetch(`${ASAAS_URL}/customers?email=${emailCliente}`, {
-        headers: { access_token: ASAAS_KEY }
-      })
-      const clientesExistentes = await buscaCliente.json()
-
-      if (clientesExistentes.data && clientesExistentes.data.length > 0) {
-        customerId = clientesExistentes.data[0].id
-      } else {
-        const criarCliente = await fetch(`${ASAAS_URL}/customers`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', access_token: ASAAS_KEY },
-          body: JSON.stringify({
-            name: nomeCliente || 'Cliente Prestador',
-            email: emailCliente,
-            cpfCnpj: cpfCliente || '00000000191', // CPF válido para sandbox
-            externalReference: userId,
-          })
-        })
-        const novoCliente = await criarCliente.json()
-        if (novoCliente.errors) {
-          console.error('Erro ao criar cliente:', novoCliente.errors)
-          return res.status(400).json({ error: 'Erro ao criar cliente no Asaas: ' + novoCliente.errors[0]?.description })
-        }
-        customerId = novoCliente.id
-      }
-    } catch (e) {
-      console.error('Erro na busca/criação do cliente:', e)
-      return res.status(500).json({ error: 'Erro ao conectar com Asaas' })
-    }
-
-    // 2. Criar cobrança
-    const dadosCobranca = {
-      customer: customerId,
-      billingType: cartao ? 'CREDIT_CARD' : 'PIX',
-      value: valor,
-      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      description: descricao,
+    const dadosCheckout = {
+      billingTypes: ['CREDIT_CARD', 'PIX'],
+      chargeTypes: ['DETACHED'],
+      minutesToExpire: 1440,
       externalReference: `${tipo}:${userId}:${extra}`,
-    }
-
-    // Adicionar dados do cartão se for pagamento com cartão
-    if (cartao) {
-      dadosCobranca.creditCard = {
-        holderName: cartao.nomeCartao,
-        number: cartao.numero,
-        expiryMonth: cartao.mesExpiracao,
-        expiryYear: cartao.anoExpiracao,
-        ccv: cartao.cvv,
-      }
-      dadosCobranca.creditCardHolderInfo = {
-        name: cartao.nomeCartao,
+      callback: {
+        successUrl: `${origem}/pagamento/retorno?status=sucesso&tipo=${tipo}`,
+        cancelUrl: `${origem}/pagamento/retorno?status=cancelado&tipo=${tipo}`,
+        expiredUrl: `${origem}/pagamento/retorno?status=expirado&tipo=${tipo}`,
+      },
+      items: [
+        { name: descricao || 'Prestador App', quantity: 1, value: valor },
+      ],
+      customerData: {
+        name: nomeCliente || 'Cliente Prestador',
         email: emailCliente,
-        cpfCnpj: cpfCliente || '00000000000',
-        postalCode: cartao.cep || '00000000',
-        addressNumber: cartao.numero_endereco || '0',
-      }
+        cpfCnpj: cpfCliente,
+      },
     }
 
-    const resCobranca = await fetch(`${ASAAS_URL}/payments`, {
+    const resCheckout = await fetch(`${ASAAS_URL}/checkouts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', access_token: ASAAS_KEY },
-      body: JSON.stringify(dadosCobranca)
+      body: JSON.stringify(dadosCheckout)
     })
 
-    const cobranca = await resCobranca.json()
+    const checkout = await resCheckout.json()
 
-    if (cobranca.errors) {
-      return res.status(400).json({ error: cobranca.errors[0]?.description || 'Erro ao criar cobrança' })
-    }
-
-    // 3. Se Pix, buscar QR Code
-    let pixQrCode = null
-    if (!cartao && cobranca.id) {
-      const resPix = await fetch(`${ASAAS_URL}/payments/${cobranca.id}/pixQrCode`, {
-        headers: { access_token: ASAAS_KEY }
-      })
-      const pixData = await resPix.json()
-      pixQrCode = {
-        payload: pixData.payload,
-        encodedImage: pixData.encodedImage,
-        expirationDate: pixData.expirationDate,
-      }
+    if (checkout.errors) {
+      console.error('Erro ao criar checkout:', checkout.errors)
+      return res.status(400).json({ error: checkout.errors[0]?.description || 'Erro ao criar cobrança' })
     }
 
     return res.status(200).json({
-      cobrancaId: cobranca.id,
-      status: cobranca.status,
-      valor: cobranca.value,
-      pixQrCode,
-      linkPagamento: cobranca.invoiceUrl,
+      link: checkout.link,
+      checkoutId: checkout.id,
     })
 
   } catch (error) {
-    console.error('Erro ao criar cobrança:', error)
+    console.error('Erro ao criar checkout:', error)
     return res.status(500).json({ error: 'Erro interno ao processar pagamento' })
   }
 }
