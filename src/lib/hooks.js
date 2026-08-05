@@ -378,8 +378,10 @@ export function useMensagensNaoLidas(usuario) {
     }
     buscar()
 
+    // Nome único por montagem — Navbar e BottomNav usam este hook ao mesmo
+    // tempo, e o Supabase quebra se dois channels tiverem o mesmo nome.
     const channel = supabase
-      .channel(`nao_lidas_${usuario.id}`)
+      .channel(`nao_lidas_${usuario.id}_${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversas' }, buscar)
       .subscribe()
 
