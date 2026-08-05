@@ -17,6 +17,7 @@ export default function Chat() {
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -78,11 +79,12 @@ export default function Chat() {
   const enviar = async () => {
     if (!texto.trim() || enviando) return
     setEnviando(true)
+    setErro('')
 
     const ehPrestador = conversa?.prestadores?.user_id === usuario?.id
     const remetente = ehPrestador ? 'prestador' : 'cliente'
 
-    const { data: msg } = await supabase
+    const { data: msg, error } = await supabase
       .from('mensagens')
       .insert({
         conversa_id: conversaId,
@@ -93,6 +95,12 @@ export default function Chat() {
       })
       .select()
       .single()
+
+    if (error) {
+      setErro('Não foi possível enviar sua mensagem. Tente novamente.')
+      setEnviando(false)
+      return
+    }
 
     // Atualizar última mensagem e contador de não lidas
     await supabase.from('conversas').update({
@@ -205,6 +213,12 @@ export default function Chat() {
           </div>
         )}
       </Card>
+
+      {erro && (
+        <p style={{ fontSize: 12, marginBottom: 8, padding: '8px 12px', borderRadius: 10, color: '#B91C1C', background: '#FEF2F2' }}>
+          {erro}
+        </p>
+      )}
 
       {/* Input */}
       <Card padding={10} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
