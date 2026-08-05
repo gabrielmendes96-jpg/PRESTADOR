@@ -173,23 +173,34 @@ export default function Chat() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {mensagens.map((msg, i) => (
-              <div key={msg.id || i} style={{ display: 'flex', justifyContent: ehMinha(msg) ? 'flex-end' : 'flex-start' }}>
-                <div
-                  style={{
-                    maxWidth: '75%', padding: '10px 14px', borderRadius: 18, fontSize: 14,
-                    ...(ehMinha(msg)
-                      ? { background: colors.primary, color: '#fff', borderBottomRightRadius: 4 }
-                      : { background: colors.bg, color: colors.text, borderBottomLeftRadius: 4, border: `1px solid ${colors.border}` })
-                  }}
-                >
-                  <p style={{ margin: 0 }}>{msg.texto}</p>
-                  <p style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>
-                    {new Date(msg.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+            {mensagens.map((msg, i) => {
+              const minha = ehMinha(msg)
+              const anterior = mensagens[i - 1]
+              const mostrarNome = !anterior || ehMinha(anterior) !== minha
+
+              return (
+                <div key={msg.id || i} style={{ display: 'flex', flexDirection: 'column', alignItems: minha ? 'flex-end' : 'flex-start' }}>
+                  {mostrarNome && (
+                    <p style={{ fontSize: 11, fontWeight: 700, margin: '0 4px 3px', color: colors.textSub }}>
+                      {minha ? 'Você' : nomeContato}
+                    </p>
+                  )}
+                  <div
+                    style={{
+                      maxWidth: '75%', padding: '10px 14px', borderRadius: 18, fontSize: 14,
+                      ...(minha
+                        ? { background: colors.primary, color: '#fff', borderBottomRightRadius: 4 }
+                        : { background: colors.bg, color: colors.text, borderBottomLeftRadius: 4, border: `1px solid ${colors.border}` })
+                    }}
+                  >
+                    <p style={{ margin: 0 }}>{msg.texto}</p>
+                    <p style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>
+                      {new Date(msg.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             <div ref={bottomRef} />
           </div>
         )}
