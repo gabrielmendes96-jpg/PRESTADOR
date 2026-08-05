@@ -51,7 +51,7 @@ export default function Chat() {
 
     const { data: conv } = await supabase
       .from('conversas')
-      .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil)')
+      .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil, user_id)')
       .eq('id', conversaId)
       .single()
 
