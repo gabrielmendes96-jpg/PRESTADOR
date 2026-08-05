@@ -61,6 +61,7 @@ export default function Perfil() {
         prestador_id: id,
         cliente_user_id: usuario.id,
         cliente_nome: usuario.user_metadata?.nome || usuario.email?.split('@')[0] || 'Cliente',
+        cliente_foto_url: usuario.user_metadata?.foto_url || null,
       })
       .select()
       .single()

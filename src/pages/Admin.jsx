@@ -7,6 +7,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors } from '../lib/design'
+import Avatar from '../components/ui/Avatar'
 
 const ADMIN_EMAIL = 'gabrielmendes96@gmail.com'
 
@@ -193,10 +194,7 @@ export default function Admin() {
             {prestadores.map(p => (
               <div key={p.id} className="bg-white rounded-2xl p-4 flex items-center gap-3"
                 style={{ border: '0.5px solid #E4E7E4' }}>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white flex-shrink-0"
-                  style={{ background: '#16A34A' }}>
-                  {p.nome?.[0]?.toUpperCase()}
-                </div>
+                <Avatar nome={p.nome} foto={p.foto_perfil} size={40} style={{ fontSize: 14 }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{p.nome}</p>
                   <p className="text-xs capitalize" style={{ color: '#6B7280' }}>

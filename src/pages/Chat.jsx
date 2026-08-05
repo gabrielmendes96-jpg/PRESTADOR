@@ -6,6 +6,7 @@ import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow } from '../lib/design'
 import Card from '../components/ui/Card'
 import IconButton from '../components/ui/IconButton'
+import Avatar from '../components/ui/Avatar'
 
 export default function Chat() {
   const { conversaId } = useParams()
@@ -50,7 +51,7 @@ export default function Chat() {
 
     const { data: conv } = await supabase
       .from('conversas')
-      .select('*, prestadores(id, nome, categoria_id, cidade, estado)')
+      .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil)')
       .eq('id', conversaId)
       .single()
 
@@ -139,18 +140,20 @@ export default function Chat() {
     <div style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando conversa...</div>
   )
 
-  const nomeContato = conversa?.prestadores?.user_id === usuario?.id
+  const ehPrestadorLogado = conversa?.prestadores?.user_id === usuario?.id
+  const nomeContato = ehPrestadorLogado
     ? conversa?.cliente_nome || 'Cliente'
     : conversa?.prestadores?.nome || 'Prestador'
+  const fotoContato = ehPrestadorLogado
+    ? conversa?.cliente_foto_url
+    : conversa?.prestadores?.foto_perfil
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       {/* Header */}
       <Card padding={16} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <IconButton icon={<ArrowLeft size={18} />} tone="ghost" size={36} onClick={() => navigate(-1)} aria-label="Voltar" />
-        <div style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, background: '#DCFCE7', color: colors.primaryHover, flexShrink: 0 }}>
-          {nomeContato[0]?.toUpperCase()}
-        </div>
+        <Avatar nome={nomeContato} foto={fotoContato} size={40} style={{ fontSize: 14 }} />
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{nomeContato}</p>
           <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>

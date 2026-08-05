@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, spacing, type as typeScale } from '../lib/design'
 import Card from '../components/ui/Card'
+import Avatar from '../components/ui/Avatar'
 
 export default function Conversas() {
   const { usuario } = useAuth()
@@ -55,7 +56,7 @@ export default function Conversas() {
     } else {
       query = supabase
         .from('conversas')
-        .select('*, prestadores(id, nome, categoria_id, cidade, estado)')
+        .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil)')
         .eq('cliente_user_id', usuario.id)
         .order('ultima_mensagem_em', { ascending: false })
     }
@@ -90,15 +91,16 @@ export default function Conversas() {
             const nome = prestadorId
               ? conv.cliente_nome || 'Cliente'
               : conv.prestadores?.nome || 'Prestador'
+            const foto = prestadorId
+              ? conv.cliente_foto_url
+              : conv.prestadores?.foto_perfil
             const sub = prestadorId
               ? ''
               : `${conv.prestadores?.categoria_id} · ${conv.prestadores?.cidade}`
 
             return (
               <Card key={conv.id} interactive padding={16} onClick={() => navigate(`/chat/${conv.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, background: '#DCFCE7', color: colors.primaryHover, flexShrink: 0 }}>
-                  {nome[0]?.toUpperCase()}
-                </div>
+                <Avatar nome={nome} foto={foto} size={48} style={{ fontSize: 16 }} />
                 <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</p>

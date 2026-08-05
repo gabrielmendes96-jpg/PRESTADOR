@@ -7,6 +7,7 @@ import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import Avatar from '../components/ui/Avatar'
 
 function InfoTile({ label, value, valueColor }) {
   return (
@@ -53,7 +54,7 @@ export default function DetalhePedido() {
 
     const { data: cands } = await supabase
       .from('candidaturas')
-      .select('*, prestadores(id, nome, categoria_id, cidade, estado, avaliacao_media)')
+      .select('*, prestadores(id, nome, categoria_id, cidade, estado, avaliacao_media, foto_perfil)')
       .eq('pedido_id', id)
       .order('criado_em', { ascending: false })
     setCandidaturas(cands || [])
@@ -246,9 +247,7 @@ export default function DetalhePedido() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: '#DCFCE7', color: colors.primaryHover }}>
-                        {c.prestadores?.nome?.[0]?.toUpperCase()}
-                      </div>
+                      <Avatar nome={c.prestadores?.nome} foto={c.prestadores?.foto_perfil} size={32} style={{ fontSize: 12 }} />
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{c.prestadores?.nome}</p>
                         <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>{c.prestadores?.cidade}, {c.prestadores?.estado}</p>
