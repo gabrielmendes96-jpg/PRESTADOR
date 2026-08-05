@@ -354,3 +354,37 @@ export function usePlanos() {
 
   return { planos, loading }
 }
+
+// ------------------------------------------------------------
+// useMensagensNaoLidas — total de mensagens não lidas do usuário
+// logado (soma nao_lidas_prestador ou nao_lidas_cliente conforme o
+// papel), com atualização em tempo real quando conversas muda.
+// ------------------------------------------------------------
+export function useMensagensNaoLidas(usuario) {
+  const [naoLidas, setNaoLidas] = useState(0)
+
+  useEffect(() => {
+    if (!usuario) { setNaoLidas(0); return }
+
+    const buscar = async () => {
+      const { data: prest } = await supabase.from('prestadores').select('id').eq('user_id', usuario.id).single()
+      if (prest) {
+        const { data } = await supabase.from('conversas').select('nao_lidas_prestador').eq('prestador_id', prest.id)
+        setNaoLidas((data || []).reduce((a, c) => a + (c.nao_lidas_prestador || 0), 0))
+      } else {
+        const { data } = await supabase.from('conversas').select('nao_lidas_cliente').eq('cliente_user_id', usuario.id)
+        setNaoLidas((data || []).reduce((a, c) => a + (c.nao_lidas_cliente || 0), 0))
+      }
+    }
+    buscar()
+
+    const channel = supabase
+      .channel(`nao_lidas_${usuario.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversas' }, buscar)
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
+  }, [usuario])
+
+  return naoLidas
+}

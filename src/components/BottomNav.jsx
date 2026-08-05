@@ -1,29 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import { Home, Search, ClipboardList, MessageCircle, User } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { useMensagensNaoLidas } from '../lib/hooks'
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { usuario } = useAuth()
-  const [naoLidas, setNaoLidas] = useState(0)
-
-  useEffect(() => {
-    if (!usuario) return
-    const buscar = async () => {
-      const { data: prest } = await supabase.from('prestadores').select('id').eq('user_id', usuario.id).single()
-      if (prest) {
-        const { data } = await supabase.from('conversas').select('nao_lidas_prestador').eq('prestador_id', prest.id)
-        setNaoLidas((data||[]).reduce((a,c)=>a+(c.nao_lidas_prestador||0),0))
-      } else {
-        const { data } = await supabase.from('conversas').select('nao_lidas_cliente').eq('cliente_user_id', usuario.id)
-        setNaoLidas((data||[]).reduce((a,c)=>a+(c.nao_lidas_cliente||0),0))
-      }
-    }
-    buscar()
-  }, [usuario])
+  const naoLidas = useMensagensNaoLidas(usuario)
 
   const itens = [
     { path: '/', icon: Home, label: 'Início' },

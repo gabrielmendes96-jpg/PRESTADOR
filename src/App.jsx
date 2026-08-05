@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, Scale } from 'lucide-react'
+import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, GitCompare } from 'lucide-react'
 import Home from './pages/Home'
 import Busca from './pages/Busca'
 import Perfil from './pages/Perfil'
@@ -42,33 +42,28 @@ import Logo from './components/Logo'
 import InstallPWA from './components/InstallPWA'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { ComparacaoProvider, useComparacao } from './lib/ComparacaoContext'
+import { useMensagensNaoLidas } from './lib/hooks'
 import { supabase } from './lib/supabase'
 
 function BotaoComparacaoNav() {
   const { selecionados } = useComparacao()
   const navigate = useNavigate()
 
+  if (selecionados.length === 0) return null
+
   return (
     <button
       onClick={() => navigate('/comparar')}
-      className="btn-press"
-      aria-label="Comparar profissionais"
+      className="btn-press flex items-center gap-1.5"
+      aria-label="Comparar profissionais selecionados"
       style={{
-        position: 'relative', width: 38, height: 38, borderRadius: 12,
-        background: '#F3F6F2', border: '1px solid #E4E7E4', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 999,
+        padding: '8px 14px', cursor: 'pointer', color: '#15803D', fontSize: 13, fontWeight: 700,
+        flexShrink: 0,
       }}
     >
-      <Scale size={17} color="#6B7280" />
-      {selecionados.length > 0 && (
-        <span style={{
-          position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, padding: '0 3px',
-          borderRadius: '50%', background: '#16A34A', color: '#fff', fontSize: 10, fontWeight: 700,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff',
-        }}>
-          {selecionados.length}
-        </span>
-      )}
+      <GitCompare size={15} />
+      Comparar ({selecionados.length})
     </button>
   )
 }
@@ -76,6 +71,7 @@ function BotaoComparacaoNav() {
 function Navbar() {
   const { usuario, sair } = useAuth()
   const [menuAberto, setMenuAberto] = useState(false)
+  const naoLidas = useMensagensNaoLidas(usuario)
 
   return (
     <>
@@ -115,12 +111,20 @@ function Navbar() {
                     background: '#F3F6F2', borderRadius: 14, padding: '8px 14px',
                     border: '1px solid #E4E7E4', cursor: 'pointer',
                   }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', background: '#16A34A',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 800, color: '#fff',
-                  }}>
-                    {(usuario.user_metadata?.nome || usuario.email || 'U')[0].toUpperCase()}
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%', background: '#16A34A',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 800, color: '#fff',
+                    }}>
+                      {(usuario.user_metadata?.nome || usuario.email || 'U')[0].toUpperCase()}
+                    </div>
+                    {naoLidas > 0 && (
+                      <span style={{
+                        position: 'absolute', top: -2, right: -2, width: 10, height: 10,
+                        borderRadius: '50%', background: '#EF4444', border: '2px solid #fff',
+                      }} />
+                    )}
                   </div>
                   <span className="hidden sm:block" style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>
                     Meu perfil
