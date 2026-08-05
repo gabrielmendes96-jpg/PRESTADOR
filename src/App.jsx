@@ -155,7 +155,16 @@ function Navbar() {
                           onMouseOver={e => e.currentTarget.style.background = '#F3F6F2'}
                           onMouseOut={e => e.currentTarget.style.background = 'none'}>
                           <item.icon size={16} color="#6B7280" />
-                          <span style={{ fontSize: 14, fontWeight: 500 }}>{item.label}</span>
+                          <span style={{ fontSize: 14, fontWeight: 500, flex: 1 }}>{item.label}</span>
+                          {item.path === '/mensagens' && naoLidas > 0 && (
+                            <span style={{
+                              minWidth: 18, height: 18, padding: '0 5px', borderRadius: '50%',
+                              background: '#EF4444', color: '#fff', fontSize: 11, fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {naoLidas > 9 ? '9+' : naoLidas}
+                            </span>
+                          )}
                         </Link>
                       ))}
                       <div style={{ borderTop: '1px solid #F3F6F2', marginTop: 4, paddingTop: 4 }}>
