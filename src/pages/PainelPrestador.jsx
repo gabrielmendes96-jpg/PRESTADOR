@@ -166,6 +166,7 @@ export default function PainelPrestador() {
         categoria_id: prestador.categoria_id,
         raio_atendimento: prestador.raio_atendimento,
         disponivel: prestador.disponivel,
+        mostrar_whatsapp: prestador.mostrar_whatsapp !== false,
         redes_sociais: prestador.redes_sociais || {},
         geocodificado: false, // força re-geocodificação
       })
@@ -368,6 +369,22 @@ export default function PainelPrestador() {
                 <span style={{ fontSize: 14, color: colors.text }}>Disponível para novos clientes</span>
               </label>
             </div>
+
+            {prestador.plano_id === 'premium' && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={prestador.mostrar_whatsapp !== false}
+                    onChange={e => setPrestador({ ...prestador, mostrar_whatsapp: e.target.checked })}
+                  />
+                  <span style={{ fontSize: 14, color: colors.text }}>Mostrar botão de WhatsApp no meu perfil público</span>
+                </label>
+                <p style={{ fontSize: 12, color: colors.textSub, margin: '4px 0 0 24px' }}>
+                  Recurso exclusivo do plano Premium. Desative se preferir receber contatos só pelo chat do app.
+                </p>
+              </div>
+            )}
 
             {/* Redes sociais */}
             <div style={{ marginBottom: 20, padding: 16, borderRadius: 16, background: colors.bg }}>

@@ -186,8 +186,9 @@ export default function Perfil() {
           </Button>
         </div>
 
-        {/* WhatsApp direto */}
-        {prestador.whatsapp && (
+        {/* WhatsApp direto — perk exclusivo do plano Premium, e mesmo
+            assim só se o prestador não tiver desativado no painel */}
+        {prestador.whatsapp && prestador.plano === 'premium' && prestador.mostrar_whatsapp !== false && (
           <Button
             variant="secondary"
             fullWidth
