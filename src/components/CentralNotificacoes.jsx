@@ -18,12 +18,14 @@ export default function CentralNotificacoes() {
     carregarNotificacoes()
     verificarPush()
 
-    // Realtime — nova notificação
+    // Realtime — nova notificação. Mensagem já tem indicador próprio
+    // (pontinho no avatar + badge no menu), então não duplica aqui.
     const channel = supabase.channel('notificacoes_user')
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'notificacoes',
         filter: `user_id=eq.${usuario.id}`
       }, (payload) => {
+        if (payload.new.tipo === 'mensagem') return
         setNotificacoes(prev => [payload.new, ...prev])
         // Mostrar notificação nativa se app aberto
         if (Notification.permission === 'granted') {
@@ -40,7 +42,7 @@ export default function CentralNotificacoes() {
 
   const carregarNotificacoes = async () => {
     const data = await buscarNaoLidas(usuario.id)
-    setNotificacoes(data)
+    setNotificacoes(data.filter(n => n.tipo !== 'mensagem'))
   }
 
   const verificarPush = () => {
