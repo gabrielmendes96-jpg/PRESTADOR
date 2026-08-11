@@ -24,6 +24,7 @@ export default function Perfil() {
   const navigate = useNavigate()
   const { usuario } = useAuth()
   const [iniciandoChat, setIniciandoChat] = useState(false)
+  const [erroChat, setErroChat] = useState(false)
   const { prestador, loading } = usePrestador(id)
 
   // Registra uma visualização real (não dono, no máximo 1 por sessão/dia)
@@ -42,6 +43,7 @@ export default function Perfil() {
   const iniciarConversa = async () => {
     if (!usuario) { navigate('/login'); return }
     setIniciandoChat(true)
+    setErroChat(false)
 
     const { data: existente } = await supabase
       .from('conversas')
@@ -55,7 +57,7 @@ export default function Perfil() {
       return
     }
 
-    const { data: nova } = await supabase
+    const { data: nova, error } = await supabase
       .from('conversas')
       .insert({
         prestador_id: id,
@@ -67,7 +69,13 @@ export default function Perfil() {
       .single()
 
     setIniciandoChat(false)
-    if (nova) navigate(`/chat/${nova.id}`)
+
+    if (error || !nova) {
+      setErroChat(true)
+      return
+    }
+
+    navigate(`/chat/${nova.id}`)
   }
 
   const compartilhar = () => {
@@ -174,6 +182,12 @@ export default function Perfil() {
               </span>
             ))}
           </div>
+        )}
+
+        {erroChat && (
+          <p style={{ fontSize: 12, marginBottom: 10, padding: '8px 12px', borderRadius: 10, color: '#B91C1C', background: '#FEF2F2' }}>
+            Não foi possível abrir a conversa. Tente novamente.
+          </p>
         )}
 
         {/* CTAs principais */}

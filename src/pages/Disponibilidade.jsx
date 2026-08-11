@@ -18,6 +18,7 @@ export default function Disponibilidade() {
   const [mesAtual, setMesAtual] = useState(new Date())
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(false)
+  const [erro, setErro] = useState(false)
 
   useEffect(() => {
     if (!usuario) { navigate('/login'); return }
@@ -40,12 +41,20 @@ export default function Disponibilidade() {
   const salvar = async () => {
     if (!prestador) return
     setSalvando(true)
-    await supabase.from('prestadores').update({
+    setErro(false)
+    const { error } = await supabase.from('prestadores').update({
       dias_disponiveis: diasDisponiveis,
       horarios_disponiveis: horariosDisponiveis,
       disponivel: Object.values(diasDisponiveis).some(v => v),
     }).eq('id', prestador.id)
     setSalvando(false)
+
+    if (error) {
+      setErro(true)
+      setTimeout(() => setErro(false), 4000)
+      return
+    }
+
     setSalvo(true)
     setTimeout(() => setSalvo(false), 3000)
   }
@@ -72,6 +81,12 @@ export default function Disponibilidade() {
         <div className="mb-4 p-3 rounded-xl text-center" style={{ background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <CheckCircle2 size={16} strokeWidth={2.5} color={colors.primaryHover} />
           <p className="text-sm font-medium" style={{ color: '#14853D', margin: 0 }}>Disponibilidade salva!</p>
+        </div>
+      )}
+
+      {erro && (
+        <div className="mb-4 p-3 rounded-xl text-center" style={{ background: '#FEF2F2' }}>
+          <p className="text-sm font-medium" style={{ color: '#B91C1C', margin: 0 }}>Não foi possível salvar. Tente novamente.</p>
         </div>
       )}
 

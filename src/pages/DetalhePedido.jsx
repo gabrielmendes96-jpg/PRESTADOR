@@ -113,13 +113,20 @@ export default function DetalhePedido() {
     await supabase.from('pedidos_servico').update({ status: 'em_andamento' }).eq('id', id)
 
     // Iniciar conversa com o prestador escolhido
-    const { data: conv } = await supabase.from('conversas').insert({
+    const { data: conv, error: erroConversa } = await supabase.from('conversas').insert({
       prestador_id: prestadorId,
       cliente_user_id: usuario.id,
       cliente_nome: pedido.cliente_nome,
     }).select().single()
 
-    if (conv) navigate(`/chat/${conv.id}`)
+    if (erroConversa || !conv) {
+      // A candidatura já foi aceita normalmente — só a conversa não abriu.
+      setErro('Candidatura aceita, mas não foi possível abrir o chat. Acesse pela lista de Mensagens.')
+      carregarTudo()
+      return
+    }
+
+    navigate(`/chat/${conv.id}`)
   }
 
   if (carregando) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando...</p>

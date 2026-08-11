@@ -46,6 +46,7 @@ export default function NovoPedido() {
   const [cidades, setCidades] = useState([])
   const [carregandoCidades, setCarregandoCidades] = useState(false)
   const [midias, setMidias] = useState([]) // [{ file, url, tipo }]
+  const [erro, setErro] = useState('')
   const inputMidiaRef = useRef(null)
 
   useEffect(() => {
@@ -93,19 +94,13 @@ export default function NovoPedido() {
   const publicarPedido = async () => {
     if (creditosDisponiveis < 1) { setEtapa(2); return }
     setEnviando(true)
+    setErro('')
 
-    // Debita 1 crédito através da função de banco (garante que nunca fica
-    // negativo e que ninguém consegue burlar o desconto pela API direta).
-    const { error: erroCredito } = await supabase.rpc('debitar_credito')
-    if (erroCredito) {
-      setEnviando(false)
-      buscarCreditos()
-      setEtapa(2)
-      return
-    }
-
-    // Criar pedido
-    const { data } = await supabase
+    // Cria o pedido ANTES de debitar o crédito — ainda como não pago.
+    // Se cobrássemos primeiro e a criação falhasse depois, o cliente
+    // perderia o crédito sem ficar com pedido nenhum. Assim, nada é
+    // cobrado até termos certeza de que o pedido existe de verdade.
+    const { data, error: erroPedido } = await supabase
       .from('pedidos_servico')
       .insert({
         cliente_user_id: usuario.id,
@@ -114,14 +109,34 @@ export default function NovoPedido() {
         orcamento_min: dados.orcamento_min ? parseFloat(dados.orcamento_min) : null,
         orcamento_max: dados.orcamento_max ? parseFloat(dados.orcamento_max) : null,
         valor_pago: 9.00,
-        pago: true,
+        pago: false,
         status: 'aberto',
       })
       .select()
       .single()
 
+    if (erroPedido || !data) {
+      setEnviando(false)
+      setErro('Não foi possível publicar seu pedido. Tente novamente.')
+      return
+    }
+
+    // Debita 1 crédito através da função de banco (garante que nunca fica
+    // negativo e que ninguém consegue burlar o desconto pela API direta).
+    const { error: erroCredito } = await supabase.rpc('debitar_credito')
+    if (erroCredito) {
+      // Sem crédito de verdade — desfaz o pedido que acabou de ser criado.
+      await supabase.from('pedidos_servico').update({ status: 'cancelado' }).eq('id', data.id)
+      setEnviando(false)
+      buscarCreditos()
+      setEtapa(2)
+      return
+    }
+
+    await supabase.from('pedidos_servico').update({ pago: true }).eq('id', data.id)
+
     // Sobe as fotos/vídeos anexados (precisa do id do pedido pra montar o caminho)
-    if (data && midias.length > 0) {
+    if (midias.length > 0) {
       for (const m of midias) {
         const ext = m.file.name.split('.').pop()
         const caminho = `pedidos/${data.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
@@ -134,7 +149,7 @@ export default function NovoPedido() {
     }
 
     setEnviando(false)
-    if (data) navigate(`/pedidos/${data.id}`)
+    navigate(`/pedidos/${data.id}`)
   }
 
   const comprarCreditos = () => {
@@ -253,6 +268,12 @@ export default function NovoPedido() {
               </div>
             </div>
           </div>
+
+          {erro && (
+            <p style={{ fontSize: 13, marginTop: spacing.xl, padding: '10px 14px', borderRadius: 12, color: '#B91C1C', background: '#FEF2F2' }}>
+              {erro}
+            </p>
+          )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: spacing.xl }}>
             <Button variant="secondary" fullWidth onClick={() => navigate('/pedidos')}>Cancelar</Button>

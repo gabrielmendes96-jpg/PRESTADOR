@@ -76,6 +76,7 @@ export default function PainelPrestador() {
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [sucesso, setSucesso] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState(false)
   const [avaliacoes, setAvaliacoes] = useState([])
   const [mensagens, setMensagens] = useState([])
   const [pedidosCategoria, setPedidosCategoria] = useState([])
@@ -155,7 +156,8 @@ export default function PainelPrestador() {
   const salvarPerfil = async () => {
     if (!prestador) return
     setSalvando(true)
-    await supabase
+    setErroSalvar(false)
+    const { error } = await supabase
       .from('prestadores')
       .update({
         nome: prestador.nome,
@@ -172,10 +174,17 @@ export default function PainelPrestador() {
       })
       .eq('user_id', usuario.id)
 
+    setSalvando(false)
+
+    if (error) {
+      setErroSalvar(true)
+      setTimeout(() => setErroSalvar(false), 4000)
+      return
+    }
+
     // Geocodificar em background
     fetch('/api/geocodificar', { method: 'POST' }).catch(() => {})
 
-    setSalvando(false)
     setSucesso(true)
     setTimeout(() => setSucesso(false), 3000)
   }
@@ -399,6 +408,12 @@ export default function PainelPrestador() {
             {sucesso && (
               <div className="fade-in" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '10px 14px', borderRadius: 12, fontSize: 14, background: '#DCFCE7', color: colors.primaryHover }}>
                 <CheckCircle2 size={16} strokeWidth={2.5} /> Perfil atualizado com sucesso!
+              </div>
+            )}
+
+            {erroSalvar && (
+              <div className="fade-in" style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 12, fontSize: 14, background: '#FEF2F2', color: '#B91C1C' }}>
+                Não foi possível salvar as alterações. Tente novamente.
               </div>
             )}
 
