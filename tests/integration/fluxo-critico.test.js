@@ -107,11 +107,26 @@ describe('Fluxo crítico', () => {
     state.candidaturaId = candidatura.id
   }, 15000)
 
+  it('3c. Candidatura — cliente (dono do pedido) consegue aceitar', async () => {
+    const { error } = await state.clienteSessao.cliente
+      .from('candidaturas')
+      .update({ status: 'aceito' })
+      .eq('id', state.candidaturaId)
+    expect(error).toBeNull()
+
+    const { data: candidatura } = await admin
+      .from('candidaturas')
+      .select('status')
+      .eq('id', state.candidaturaId)
+      .single()
+    expect(candidatura.status).toBe('aceito')
+  }, 15000)
+
   // Opcional — só roda se ASAAS_WEBHOOK_TOKEN estiver preenchido no .env.test.
   // Re-testa o mesmo upgrade de plano, mas passando pelo webhook de verdade
   // em vez de atualizar o banco direto (cobertura extra, não bloqueia o resto).
   it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(
-    '3c. (opcional) Webhook real de mensalidade também promove pra Premium',
+    '3d. (opcional) Webhook real de mensalidade também promove pra Premium',
     async () => {
       await admin.from('prestadores').update({ plano_id: 'basico' }).eq('id', state.prestadorId)
 

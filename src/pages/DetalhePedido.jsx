@@ -31,6 +31,7 @@ export default function DetalhePedido() {
   const [enviando, setEnviando] = useState(false)
   const [form, setForm] = useState({ mensagem: '', valor_proposto: '', prazo_proposto: '' })
   const [showForm, setShowForm] = useState(false)
+  const [erro, setErro] = useState('')
 
   useEffect(() => {
     carregarTudo()
@@ -99,7 +100,14 @@ export default function DetalhePedido() {
   }
 
   const aceitarCandidatura = async (candidaturaId, prestadorId) => {
-    await supabase.from('candidaturas').update({ status: 'aceito' }).eq('id', candidaturaId)
+    setErro('')
+
+    const { error } = await supabase.from('candidaturas').update({ status: 'aceito' }).eq('id', candidaturaId)
+    if (error) {
+      setErro('Não foi possível aceitar essa candidatura. Tente novamente.')
+      return
+    }
+
     await supabase.from('candidaturas').update({ status: 'recusado' })
       .eq('pedido_id', id).neq('id', candidaturaId)
     await supabase.from('pedidos_servico').update({ status: 'em_andamento' }).eq('id', id)
@@ -235,6 +243,12 @@ export default function DetalhePedido() {
           <h2 style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginBottom: 16 }}>
             {candidaturas.length} candidatura{candidaturas.length !== 1 ? 's' : ''} recebida{candidaturas.length !== 1 ? 's' : ''}
           </h2>
+
+          {erro && (
+            <p style={{ fontSize: 13, marginBottom: 16, padding: '10px 14px', borderRadius: 12, color: '#B91C1C', background: '#FEF2F2' }}>
+              {erro}
+            </p>
+          )}
 
           {candidaturas.length === 0 ? (
             <p style={{ fontSize: 14, textAlign: 'center', padding: '32px 0', color: colors.textSub }}>Nenhuma candidatura ainda. Aguarde os prestadores se candidatarem!</p>
