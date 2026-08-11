@@ -103,6 +103,7 @@ function Navbar() {
 
           <div className="flex items-center gap-3">
             <BotaoComparacaoNav />
+            <CentralNotificacoes />
             {usuario ? (
               <div className="relative">
                 <button onClick={() => setMenuAberto(!menuAberto)}

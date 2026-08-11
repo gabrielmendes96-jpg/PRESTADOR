@@ -88,8 +88,8 @@ export default function CentralNotificacoes() {
   return (
     <div className="relative">
       <button onClick={() => setAberto(!aberto)}
-        className="relative hidden sm:flex items-center w-9 h-9 rounded-lg justify-center hover:opacity-80"
-        style={{ color: 'rgba(255,255,255,0.9)' }}>
+        className="relative flex items-center w-9 h-9 rounded-lg justify-center hover:opacity-80"
+        style={{ color: '#6B7280' }}>
         <Bell size={20} />
         {notificacoes.length > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center font-medium"
