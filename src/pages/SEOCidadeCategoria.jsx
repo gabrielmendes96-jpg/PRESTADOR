@@ -5,27 +5,11 @@ import { supabase } from '../lib/supabase'
 import ReputacaoBadge from '../components/ReputacaoBadge'
 import { colors } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
+import { SEO_CATEGORIAS, SITE_URL } from '../lib/seoConfig'
+import { useSEO } from '../lib/useSEO'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-
-// Mapeamento de slugs para nomes legíveis
-const categoriasMap = {
-  'eletricista': { nome: 'Eletricista', desc: 'Instalação elétrica, manutenção, quadro de luz' },
-  'pedreiro': { nome: 'Pedreiro', desc: 'Alvenaria, construção, reformas em geral' },
-  'encanador': { nome: 'Encanador', desc: 'Conserto de vazamentos, instalação hidráulica' },
-  'pintor': { nome: 'Pintor', desc: 'Pintura residencial e comercial' },
-  'marceneiro': { nome: 'Marceneiro', desc: 'Móveis planejados, marcenaria em geral' },
-  'mecanico': { nome: 'Mecânico', desc: 'Manutenção e reparo de veículos' },
-  'jardineiro': { nome: 'Jardineiro', desc: 'Jardinagem, paisagismo, poda' },
-  'diarista': { nome: 'Diarista', desc: 'Limpeza residencial e comercial' },
-  'serralheiro': { nome: 'Serralheiro', desc: 'Grades, portões, serralheria em geral' },
-  'vidraceiro': { nome: 'Vidraceiro', desc: 'Vidros, janelas, box de banheiro' },
-  'arquiteto': { nome: 'Arquiteto', desc: 'Projetos arquitetônicos e interiores' },
-  'azulejista': { nome: 'Azulejista', desc: 'Assentamento de pisos e azulejos' },
-  'dedetizador': { nome: 'Dedetizador', desc: 'Controle de pragas e insetos' },
-  'informatica': { nome: 'Técnico em Informática', desc: 'Manutenção de computadores e redes' },
-}
 
 const perguntasFrequentes = (categoria, cidade) => [
   {
@@ -49,35 +33,47 @@ export default function SEOCidadeCategoria() {
   const [carregando, setCarregando] = useState(true)
 
   const cidadeFormatada = cidade?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  const catConfig = categoriasMap[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
+  const catConfig = SEO_CATEGORIAS[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
   const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
+  const faqs = perguntasFrequentes(catConfig.nome.toLowerCase(), cidadeFormatada)
 
   useEffect(() => {
     carregarPrestadores()
   }, [cidade, categoria])
 
-  // SEO dinâmico — atualiza o título e meta da página
-  useEffect(() => {
-    if (cidadeFormatada && catConfig.nome) {
-      document.title = `${catConfig.nome} em ${cidadeFormatada} | Prestador — Profissionais Avaliados`
-
-      // Meta description
-      let meta = document.querySelector('meta[name="description"]')
-      if (!meta) {
-        meta = document.createElement('meta')
-        meta.name = 'description'
-        document.head.appendChild(meta)
-      }
-      meta.content = `Encontre ${catConfig.nome.toLowerCase()} em ${cidadeFormatada} com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`
-    }
-  }, [cidadeFormatada, catConfig])
+  useSEO({
+    title: `${catConfig.nome} em ${cidadeFormatada} | Prestador — Profissionais Avaliados`,
+    description: `Encontre ${catConfig.nome.toLowerCase()} em ${cidadeFormatada} com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`,
+    path: `/s/${categoria}/${cidade}`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Início', item: SITE_URL },
+            { '@type': 'ListItem', position: 2, name: catConfig.nome, item: `${SITE_URL}/s/${categoria}` },
+            { '@type': 'ListItem', position: 3, name: cidadeFormatada, item: `${SITE_URL}/s/${categoria}/${cidade}` },
+          ],
+        },
+        {
+          '@type': 'FAQPage',
+          mainEntity: faqs.map(faq => ({
+            '@type': 'Question',
+            name: faq.q,
+            acceptedAnswer: { '@type': 'Answer', text: faq.a },
+          })),
+        },
+      ],
+    },
+  })
 
   const carregarPrestadores = async () => {
     setCarregando(true)
     const cidadeNormal = cidade?.replace(/-/g, ' ')
 
     const { data } = await supabase
-      .from('prestadores')
+      .from('prestadores_completo')
       .select('*')
       .ilike('cidade', `%${cidadeNormal}%`)
       .ilike('categoria_id', `%${categoria}%`)
@@ -87,8 +83,6 @@ export default function SEOCidadeCategoria() {
     setPrestadores(data || [])
     setCarregando(false)
   }
-
-  const faqs = perguntasFrequentes(catConfig.nome.toLowerCase(), cidadeFormatada)
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -214,7 +208,7 @@ export default function SEOCidadeCategoria() {
           OUTRAS CATEGORIAS EM {cidadeFormatada?.toUpperCase()}
         </h2>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(categoriasMap)
+          {Object.entries(SEO_CATEGORIAS)
             .filter(([slug]) => slug !== categoria)
             .slice(0, 8)
             .map(([slug, cat]) => {

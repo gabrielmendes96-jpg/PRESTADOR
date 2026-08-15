@@ -5,23 +5,10 @@ import { supabase } from '../lib/supabase'
 import ReputacaoBadge from '../components/ReputacaoBadge'
 import { colors } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
+import { SEO_CATEGORIAS, SEO_CIDADES, SITE_URL } from '../lib/seoConfig'
+import { useSEO } from '../lib/useSEO'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
-
-const categoriasMap = {
-  'eletricista': { nome: 'Eletricista', desc: 'Instalação elétrica, manutenção, quadro de luz, tomadas e interruptores' },
-  'pedreiro': { nome: 'Pedreiro', desc: 'Alvenaria, construção civil, reformas e reparos em geral' },
-  'encanador': { nome: 'Encanador', desc: 'Conserto de vazamentos, instalação hidráulica, desentupimento' },
-  'pintor': { nome: 'Pintor', desc: 'Pintura residencial e comercial, textura, massa corrida' },
-  'marceneiro': { nome: 'Marceneiro', desc: 'Móveis planejados, armários, marcenaria em geral' },
-  'mecanico': { nome: 'Mecânico', desc: 'Manutenção preventiva e corretiva de veículos' },
-  'jardineiro': { nome: 'Jardineiro', desc: 'Jardinagem, paisagismo, poda de árvores e grama' },
-  'diarista': { nome: 'Diarista', desc: 'Limpeza residencial, faxina, organização doméstica' },
-  'serralheiro': { nome: 'Serralheiro', desc: 'Grades, portões, serralheria, estruturas metálicas' },
-  'vidraceiro': { nome: 'Vidraceiro', desc: 'Vidros temperados, espelhos, box de banheiro, janelas' },
-}
-
-const cidadesSP = ['Araraquara', 'São Carlos', 'Ribeirão Preto', 'Campinas', 'São Paulo', 'Bauru', 'Franca', 'Limeira']
 
 export default function SEOCategoria() {
   const { categoria } = useParams()
@@ -29,22 +16,31 @@ export default function SEOCategoria() {
   const [prestadores, setPrestadores] = useState([])
   const [carregando, setCarregando] = useState(true)
 
-  const catConfig = categoriasMap[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
+  const catConfig = SEO_CATEGORIAS[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
   const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
 
   useEffect(() => {
     carregarPrestadores()
-    document.title = `${catConfig.nome} | Prestador — Encontre Profissionais Avaliados`
-
-    let meta = document.querySelector('meta[name="description"]')
-    if (!meta) { meta = document.createElement('meta'); meta.name = 'description'; document.head.appendChild(meta) }
-    meta.content = `Encontre ${catConfig.nome.toLowerCase()}s com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`
   }, [categoria])
+
+  useSEO({
+    title: `${catConfig.nome} | Prestador — Encontre Profissionais Avaliados`,
+    description: `Encontre ${catConfig.nome.toLowerCase()}s com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`,
+    path: `/s/${categoria}`,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Início', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: catConfig.nome, item: `${SITE_URL}/s/${categoria}` },
+      ],
+    },
+  })
 
   const carregarPrestadores = async () => {
     setCarregando(true)
     const { data } = await supabase
-      .from('prestadores')
+      .from('prestadores_completo')
       .select('*')
       .ilike('categoria_id', `%${categoria}%`)
       .eq('plano_status', 'ativo')
@@ -86,7 +82,7 @@ export default function SEOCategoria() {
           {catConfig.nome} por cidade
         </h2>
         <div className="grid grid-cols-2 gap-2">
-          {cidadesSP.map(c => (
+          {SEO_CIDADES.map(c => (
             <Link key={c}
               to={`/s/${categoria}/${c.toLowerCase().replace(/ /g, '-')}`}
               className="flex items-center gap-2 p-3 rounded-xl hover:opacity-80 transition-opacity"
