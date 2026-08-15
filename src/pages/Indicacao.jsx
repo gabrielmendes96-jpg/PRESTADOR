@@ -47,6 +47,9 @@ export default function Indicacao() {
   const [indicacoes, setIndicacoes] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [copiado, setCopiado] = useState(false)
+  const [mesesGratis, setMesesGratis] = useState(0)
+  const [usando, setUsando] = useState(false)
+  const [erroUsar, setErroUsar] = useState('')
 
   useEffect(() => {
     if (!usuario) { navigate('/login'); return }
@@ -96,7 +99,28 @@ export default function Indicacao() {
       .order('criado_em', { ascending: false })
 
     setIndicacoes(inds || [])
+
+    const { data: prestador } = await supabase
+      .from('prestadores')
+      .select('meses_gratis_disponiveis')
+      .eq('user_id', usuario.id)
+      .single()
+
+    setMesesGratis(prestador?.meses_gratis_disponiveis || 0)
     setCarregando(false)
+  }
+
+  const usarMesGratis = async () => {
+    setUsando(true)
+    setErroUsar('')
+    const { error } = await supabase.rpc('usar_mes_gratis')
+    if (error) {
+      setErroUsar('Não foi possível usar seu mês grátis agora. Tente novamente.')
+      setUsando(false)
+      return
+    }
+    await carregarDados()
+    setUsando(false)
   }
 
   const processarConvite = async (ref) => {
@@ -163,7 +187,7 @@ export default function Indicacao() {
         <div className="space-y-3">
           {[
             { n: '1', txt: 'Compartilhe seu link com outros prestadores' },
-            { n: '2', txt: 'Eles se cadastram e ficam ativos por 30 dias pagando' },
+            { n: '2', txt: 'Eles se cadastram e pagam a primeira mensalidade' },
             { n: '3', txt: 'Você acumula indicados e desbloqueia meses grátis por meta' },
           ].map(item => (
             <div key={item.n} className="flex items-center gap-3">
@@ -175,6 +199,26 @@ export default function Indicacao() {
           ))}
         </div>
       </div>
+
+      {/* Saldo de meses grátis — o benefício de verdade, resgatável */}
+      {mesesGratis > 0 && (
+        <div className="rounded-2xl p-6 mb-4" style={{ background: '#DCFCE7', border: `0.5px solid ${colors.primary}` }}>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#14853D' }}>
+                Você tem {mesesGratis} {mesesGratis === 1 ? 'mês grátis disponível' : 'meses grátis disponíveis'}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: '#14853D' }}>
+                Use quando quiser pra ativar sua assinatura sem pagar.
+              </p>
+              {erroUsar && <p className="text-xs mt-1" style={{ color: '#B91C1C' }}>{erroUsar}</p>}
+            </div>
+            <Button onClick={usarMesGratis} disabled={usando} style={{ flexShrink: 0 }}>
+              {usando ? 'Usando...' : 'Usar 1 mês grátis'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Progresso por nível */}
       <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>

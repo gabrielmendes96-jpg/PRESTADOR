@@ -275,4 +275,56 @@ describe('Fluxo crítico', () => {
       .single()
     expect(creditos.creditos_disponiveis).toBe(5)
   }, 15000)
+
+  // Opcional — só roda se ASAAS_WEBHOOK_TOKEN estiver preenchido no .env.test.
+  it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(
+    '7. (opcional) Indicação — ativa quando o indicado paga a mensalidade',
+    async () => {
+      const indicador = await criarUsuarioTeste('indicador')
+      const indicado = await criarUsuarioTeste('indicado')
+
+      const { data: prestadorIndicador } = await indicador.cliente.from('prestadores').insert({
+        user_id: indicador.userId, nome: 'Indicador Teste', categoria_id: state.categoriaId,
+        cidade: 'São Paulo', estado: 'SP', plano_id: 'basico', servicos: [], disponivel: true,
+      }).select().single()
+
+      await indicado.cliente.from('prestadores').insert({
+        user_id: indicado.userId, nome: 'Indicado Teste', categoria_id: state.categoriaId,
+        cidade: 'São Paulo', estado: 'SP', plano_id: 'basico', servicos: [], disponivel: true,
+      })
+
+      const { data: cod } = await indicador.cliente.from('codigos_indicacao').insert({
+        user_id: indicador.userId, codigo: `teste${Date.now()}`, tipo: 'prestador',
+      }).select().single()
+
+      const { error: erroResgate } = await indicado.cliente.rpc('resgatar_indicacao', { p_codigo: cod.codigo })
+      expect(erroResgate).toBeNull()
+
+      const { statusCode } = await invocarFuncao(webhookAsaas, {
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN },
+        body: {
+          event: 'PAYMENT_CONFIRMED',
+          payment: { externalReference: `mensalidade:${indicado.userId}:basico`, value: 49, billingType: 'PIX' },
+        },
+      })
+      expect(statusCode).toBe(200)
+
+      const { data: indicacao } = await admin
+        .from('indicacoes')
+        .select('status')
+        .eq('indicador_user_id', indicador.userId)
+        .eq('indicado_user_id', indicado.userId)
+        .single()
+      expect(indicacao.status).toBe('ativo')
+
+      // limpeza específica deste bloco (contas próprias, não fazem parte do state principal)
+      await admin.from('indicacoes').delete().eq('indicador_user_id', indicador.userId)
+      await admin.from('codigos_indicacao').delete().eq('user_id', indicador.userId)
+      await admin.from('prestadores').delete().eq('user_id', indicador.userId)
+      await admin.from('prestadores').delete().eq('user_id', indicado.userId)
+      await admin.auth.admin.deleteUser(indicador.userId)
+      await admin.auth.admin.deleteUser(indicado.userId)
+    },
+    20000
+  )
 })

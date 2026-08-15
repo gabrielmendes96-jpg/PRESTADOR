@@ -73,6 +73,47 @@ export default async function handler(req, res) {
           })
         })
       }
+
+      // Se esse pagamento é da primeira mensalidade de alguém que entrou
+      // por indicação, ativa a indicação e credita meses grátis pro
+      // indicador se ele acabou de bater uma meta (5/10/20/50/100).
+      const { data: indicacaoPendente } = await supabase
+        .from('indicacoes')
+        .select('id, indicador_user_id')
+        .eq('indicado_user_id', userId)
+        .eq('status', 'pendente')
+        .maybeSingle()
+
+      if (indicacaoPendente) {
+        await supabase.from('indicacoes').update({ status: 'ativo' }).eq('id', indicacaoPendente.id)
+
+        const { count: totalAtivas } = await supabase
+          .from('indicacoes')
+          .select('id', { count: 'exact', head: true })
+          .eq('indicador_user_id', indicacaoPendente.indicador_user_id)
+          .eq('status', 'ativo')
+
+        const NIVEIS_INDICACAO = [
+          { meta: 5, meses: 1 }, { meta: 10, meses: 2 }, { meta: 20, meses: 4 },
+          { meta: 50, meses: 12 }, { meta: 100, meses: 999 },
+        ]
+        const nivelCruzado = NIVEIS_INDICACAO.find(n => n.meta === totalAtivas)
+
+        if (nivelCruzado) {
+          const { data: indicadorPrestador } = await supabase
+            .from('prestadores')
+            .select('id, meses_gratis_disponiveis')
+            .eq('user_id', indicacaoPendente.indicador_user_id)
+            .single()
+
+          if (indicadorPrestador) {
+            await supabase
+              .from('prestadores')
+              .update({ meses_gratis_disponiveis: (indicadorPrestador.meses_gratis_disponiveis || 0) + nivelCruzado.meses })
+              .eq('id', indicadorPrestador.id)
+          }
+        }
+      }
     }
 
     if (tipo === 'creditos') {
