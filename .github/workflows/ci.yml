@@ -1,0 +1,28 @@
+name: CI
+
+# Roda a cada push e pull request pra master: build + testes rápidos
+# (lógica pura, sem rede). Os testes de integração (tests/integration)
+# ficam de fora de propósito -- eles escrevem no banco de produção
+# real, então continuam manuais (npm run test:integration) até termos
+# um projeto Supabase só de teste.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
