@@ -35,11 +35,41 @@ export default function Pagamento() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
   const [cpf, setCpf] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [cep, setCep] = useState('')
+  const [endereco, setEndereco] = useState('')
+  const [numero, setNumero] = useState('')
+  const [bairro, setBairro] = useState('')
+  const [complemento, setComplemento] = useState('')
+  const [buscandoCep, setBuscandoCep] = useState(false)
+
+  const buscarCep = async (valor) => {
+    const cepLimpo = valor.replace(/\D/g, '')
+    setCep(cepLimpo)
+    if (cepLimpo.length !== 8) return
+
+    setBuscandoCep(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const dados = await res.json()
+      if (!dados.erro) {
+        setEndereco(dados.logradouro || '')
+        setBairro(dados.bairro || '')
+      }
+    } catch {
+      // Falha na busca não impede o cliente de preencher manualmente
+    }
+    setBuscandoCep(false)
+  }
 
   const pagar = async () => {
     if (!usuario) { navigate('/login'); return }
     if (cpf.replace(/\D/g, '').length !== 11) {
       setErro('Informe um CPF válido para emitir a cobrança.')
+      return
+    }
+    if (!telefone.trim() || !cep.trim() || !endereco.trim() || !numero.trim() || !bairro.trim()) {
+      setErro('Preencha telefone e endereço completo — a Asaas exige esses dados para gerar a cobrança.')
       return
     }
     setCarregando(true)
@@ -62,6 +92,12 @@ export default function Pagamento() {
           nomeCliente: usuario.user_metadata?.nome || 'Cliente',
           emailCliente: usuario.email,
           cpfCliente: cpf.replace(/\D/g, ''),
+          telefoneCliente: telefone.replace(/\D/g, ''),
+          cepCliente: cep,
+          enderecoCliente: endereco,
+          numeroCliente: numero,
+          bairroCliente: bairro,
+          complementoCliente: complemento,
         })
       })
 
@@ -129,7 +165,77 @@ export default function Pagamento() {
           placeholder="00000000000"
           className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
         />
-        <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>Necessário para emissão da cobrança</p>
+      </div>
+
+      {/* Telefone */}
+      <div className="mb-4">
+        <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>Telefone</label>
+        <input
+          type="text"
+          value={telefone}
+          onChange={e => setTelefone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+          placeholder="11999999999"
+          className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+        />
+      </div>
+
+      {/* Endereço — exigido pela Asaas para emitir a cobrança */}
+      <div className="mb-4">
+        <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>CEP</label>
+        <input
+          type="text"
+          value={cep}
+          onChange={e => buscarCep(e.target.value)}
+          placeholder="00000000"
+          className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+        />
+        {buscandoCep && <p className="text-xs mt-1" style={{ color: '#9CA3AF' }}>Buscando endereço...</p>}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="col-span-2">
+          <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>Endereço</label>
+          <input
+            type="text"
+            value={endereco}
+            onChange={e => setEndereco(e.target.value)}
+            placeholder="Rua, avenida..."
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>Número</label>
+          <input
+            type="text"
+            value={numero}
+            onChange={e => setNumero(e.target.value)}
+            placeholder="123"
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div>
+          <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>Bairro</label>
+          <input
+            type="text"
+            value={bairro}
+            onChange={e => setBairro(e.target.value)}
+            placeholder="Bairro"
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>Complemento</label>
+          <input
+            type="text"
+            value={complemento}
+            onChange={e => setComplemento(e.target.value)}
+            placeholder="Opcional"
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none"
+          />
+        </div>
       </div>
 
       <div className="flex items-start gap-2 mb-5 p-3 rounded-xl" style={{ background: '#F3F6F2' }}>

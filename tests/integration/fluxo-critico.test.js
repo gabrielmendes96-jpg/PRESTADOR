@@ -239,7 +239,12 @@ describe('Fluxo crítico', () => {
     expect(invalido.statusCode).toBe(400)
 
     const valido = await invocarFuncao(criarCobranca, {
-      headers: { authorization: `Bearer ${state.clienteSessao.session.access_token}` },
+      // origin precisa de um host de verdade — é o que vira successUrl/
+      // cancelUrl/expiredUrl no checkout, e a Asaas recusa URL relativa.
+      headers: {
+        authorization: `Bearer ${state.clienteSessao.session.access_token}`,
+        origin: 'https://prestador-lyart.vercel.app',
+      },
       body: {
         tipo: 'creditos',
         extra: '5',
@@ -247,6 +252,11 @@ describe('Fluxo crítico', () => {
         nomeCliente: 'Cliente de Teste',
         emailCliente: state.clienteSessao.email,
         cpfCliente: '12345678909',
+        telefoneCliente: '11999998888',
+        cepCliente: '01310100',
+        enderecoCliente: 'Avenida Paulista',
+        numeroCliente: '1000',
+        bairroCliente: 'Bela Vista',
       },
     })
     expect(valido.statusCode).toBe(200)

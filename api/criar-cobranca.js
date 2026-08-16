@@ -6,6 +6,17 @@
 import { checkRateLimit, getClientIp } from './rate-limit.js'
 import { verificarUsuario } from './_verificarUsuario.js'
 
+// O campo "phone" da Asaas espera 10 dígitos (DDD + 8 números), mas
+// todo celular brasileiro tem 11 (DDD + 9 + 8 números) — sem isso a
+// Asaas recusa a cobrança com "campo phoneNumber é inválido".
+function formatarTelefoneAsaas(telefone) {
+  const digitos = (telefone || '').replace(/\D/g, '')
+  if (digitos.length === 11 && digitos[2] === '9') {
+    return digitos.slice(0, 2) + digitos.slice(3)
+  }
+  return digitos
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -20,7 +31,10 @@ export default async function handler(req, res) {
   if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
   const userId = usuarioAutenticado.id
 
-  const { tipo, descricao, extra, nomeCliente, emailCliente, cpfCliente } = req.body
+  const {
+    tipo, descricao, extra, nomeCliente, emailCliente, cpfCliente,
+    telefoneCliente, cepCliente, enderecoCliente, numeroCliente, bairroCliente, complementoCliente,
+  } = req.body
 
   if (!tipo || !extra) {
     return res.status(400).json({ error: 'Dados incompletos' })
@@ -67,6 +81,12 @@ export default async function handler(req, res) {
         name: nomeCliente || 'Cliente Prestador',
         email: emailCliente,
         cpfCnpj: cpfCliente,
+        phone: formatarTelefoneAsaas(telefoneCliente),
+        postalCode: cepCliente,
+        address: enderecoCliente,
+        addressNumber: numeroCliente,
+        province: bairroCliente,
+        complement: complementoCliente || undefined,
       },
     }
 
