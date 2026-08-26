@@ -261,7 +261,7 @@ export default function Busca() {
           </div>
 
           {loading ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {[1, 2, 3, 4].map(i => <CardSkeleton key={i} modo="lista" />)}
             </div>
           ) : resultados.length === 0 ? (
@@ -271,7 +271,7 @@ export default function Busca() {
               <p style={{ fontSize: 14, color: colors.textSub }}>Tente outros termos ou remova os filtros</p>
             </div>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {resultados.map(p => (
                 <CardPrestador key={p.id} prestador={p} layout="horizontal" distancia={p.distanciaReal} />
               ))}

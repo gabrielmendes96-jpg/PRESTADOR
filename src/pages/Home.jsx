@@ -166,7 +166,7 @@ export default function Home() {
         {/* Prestadores próximos */}
         <section style={{ marginBottom: spacing.section }}>
           <SectionHeader title={userLoc ? 'Próximos de você' : 'Profissionais'} onVerTodas={() => navigate('/busca')} />
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {loading
               ? [1, 2, 3, 4].map(i => <CardSkeleton key={i} modo="lista" />)
               : proximos.length === 0
