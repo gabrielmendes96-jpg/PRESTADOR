@@ -85,7 +85,10 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (indicacaoPendente) {
-        await supabase.from('indicacoes').update({ status: 'ativo' }).eq('id', indicacaoPendente.id)
+        await supabase
+          .from('indicacoes')
+          .update({ status: 'ativo', ativado_em: new Date().toISOString() })
+          .eq('id', indicacaoPendente.id)
 
         const { count: totalAtivas } = await supabase
           .from('indicacoes')
@@ -111,6 +114,10 @@ export default async function handler(req, res) {
               .from('prestadores')
               .update({ meses_gratis_disponiveis: (indicadorPrestador.meses_gratis_disponiveis || 0) + nivelCruzado.meses })
               .eq('id', indicadorPrestador.id)
+
+            // Marca justamente a indicação que completou a meta — serve
+            // de registro de qual indicação "pagou" a recompensa.
+            await supabase.from('indicacoes').update({ recompensa_aplicada: true }).eq('id', indicacaoPendente.id)
           }
         }
       }
