@@ -131,7 +131,9 @@ describe('Fluxo crítico', () => {
       await admin.from('prestadores').update({ plano_id: 'basico' }).eq('id', state.prestadorId)
 
       const { statusCode } = await invocarFuncao(webhookAsaas, {
-        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN },
+        // host precisa de um valor de verdade — mensalidade dispara um
+        // email de confirmação que monta a URL a partir dele.
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN, host: 'prestador-lyart.vercel.app' },
         body: {
           event: 'PAYMENT_CONFIRMED',
           payment: {
@@ -311,7 +313,9 @@ describe('Fluxo crítico', () => {
       expect(erroResgate).toBeNull()
 
       const { statusCode } = await invocarFuncao(webhookAsaas, {
-        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN },
+        // host precisa de um valor de verdade — mensalidade dispara um
+        // email de confirmação que monta a URL a partir dele.
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN, host: 'prestador-lyart.vercel.app' },
         body: {
           event: 'PAYMENT_CONFIRMED',
           payment: { externalReference: `mensalidade:${indicado.userId}:basico`, value: 49, billingType: 'PIX' },
