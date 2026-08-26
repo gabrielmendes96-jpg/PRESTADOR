@@ -232,6 +232,27 @@ describe('Fluxo crítico', () => {
     expect(completo.avaliacao_media).toBeGreaterThan(0)
   }, 15000)
 
+  it('5b. Perfil do cliente — editar e salvar duas vezes preserva a última edição', async () => {
+    const { error: erroPrimeiro } = await state.clienteSessao.cliente
+      .from('perfis_cliente')
+      .upsert({ user_id: state.clienteUserId, bio: 'Primeira versão', cidade: 'São Paulo' }, { onConflict: 'user_id' })
+    expect(erroPrimeiro).toBeNull()
+
+    const { error: erroSegundo } = await state.clienteSessao.cliente
+      .from('perfis_cliente')
+      .upsert({ user_id: state.clienteUserId, bio: 'Segunda versão (editada)', cidade: 'Araraquara' }, { onConflict: 'user_id' })
+    expect(erroSegundo).toBeNull()
+
+    const { data: perfil } = await state.clienteSessao.cliente
+      .from('perfis_cliente')
+      .select('bio, cidade')
+      .eq('user_id', state.clienteUserId)
+      .single()
+
+    expect(perfil.bio).toBe('Segunda versão (editada)')
+    expect(perfil.cidade).toBe('Araraquara')
+  }, 15000)
+
   // Opcional — só roda se ASAAS_KEY_SANDBOX estiver preenchido no .env.test.
   it.skipIf(!process.env.ASAAS_KEY_SANDBOX)('6a. (opcional) Pagamento — preço vem sempre do servidor (item inválido é recusado)', async () => {
     const invalido = await invocarFuncao(criarCobranca, {

@@ -84,6 +84,7 @@ export async function limpar(state) {
   if (state.clienteUserId) {
     await admin.from('creditos_cliente').delete().eq('user_id', state.clienteUserId)
     await admin.from('compras_creditos').delete().eq('user_id', state.clienteUserId)
+    await admin.from('perfis_cliente').delete().eq('user_id', state.clienteUserId)
     await admin.auth.admin.deleteUser(state.clienteUserId).catch(() => {})
   }
   if (state.prestadorUserId) {

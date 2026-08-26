@@ -38,6 +38,7 @@ export default function PerfilCliente() {
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const [fotoUrl, setFotoUrl] = useState('')
   const [salvoMsg, setSalvoMsg] = useState('')
+  const [erroSalvarMsg, setErroSalvarMsg] = useState('')
 
   // Dados do perfil
   const [nome, setNome] = useState('')
@@ -119,8 +120,9 @@ export default function PerfilCliente() {
 
   const salvarPerfil = async () => {
     setSalvando(true)
+    setErroSalvarMsg('')
     await supabase.auth.updateUser({ data: { ...usuario.user_metadata, nome } })
-    await supabase.from('perfis_cliente').upsert({
+    const { error } = await supabase.from('perfis_cliente').upsert({
       user_id: usuario.id,
       bio, cidade, estado, telefone,
       preferencias_servico: preferencias,
@@ -129,8 +131,15 @@ export default function PerfilCliente() {
       perfil_publico: perfilPublico,
       redes_sociais: redesSociais,
       atualizado_em: new Date().toISOString(),
-    })
+    }, { onConflict: 'user_id' })
     setSalvando(false)
+
+    if (error) {
+      setErroSalvarMsg('Não foi possível salvar as alterações. Tente novamente.')
+      setTimeout(() => setErroSalvarMsg(''), 4000)
+      return
+    }
+
     setSalvoMsg('Perfil salvo com sucesso!')
     setTimeout(() => setSalvoMsg(''), 3000)
   }
@@ -257,6 +266,12 @@ export default function PerfilCliente() {
         <div className="mb-4 p-3 rounded-xl text-center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#DCFCE7' }}>
           <Check size={15} strokeWidth={3} color="#14853D" />
           <p className="text-sm font-medium" style={{ color: '#14853D', margin: 0 }}>{salvoMsg}</p>
+        </div>
+      )}
+
+      {erroSalvarMsg && (
+        <div className="mb-4 p-3 rounded-xl text-center" style={{ background: '#FEF2F2' }}>
+          <p className="text-sm font-medium" style={{ color: '#B91C1C', margin: 0 }}>{erroSalvarMsg}</p>
         </div>
       )}
 
