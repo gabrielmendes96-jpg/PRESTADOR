@@ -6,7 +6,7 @@ import { useAuth } from '../lib/AuthContext'
 import { colors } from '../lib/design'
 
 export default function Ganhos() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [prestador, setPrestador] = useState(null)
   const [stats, setStats] = useState({
@@ -19,9 +19,10 @@ export default function Ganhos() {
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarDados()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   const carregarDados = async () => {
     const { data: p } = await supabase.from('prestadores').select('*').eq('user_id', usuario.id).single()

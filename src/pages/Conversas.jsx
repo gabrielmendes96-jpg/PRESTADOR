@@ -8,16 +8,17 @@ import Card from '../components/ui/Card'
 import Avatar from '../components/ui/Avatar'
 
 export default function Conversas() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [conversas, setConversas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [prestadorId, setPrestadorId] = useState(null)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarConversas()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   // Realtime — atualiza lista quando chega nova mensagem
   useEffect(() => {

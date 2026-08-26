@@ -10,7 +10,7 @@ const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
 export default function Disponibilidade() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [prestador, setPrestador] = useState(null)
   const [diasDisponiveis, setDiasDisponiveis] = useState({})
@@ -21,9 +21,10 @@ export default function Disponibilidade() {
   const [erro, setErro] = useState(false)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarDados()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   const carregarDados = async () => {
     const { data: p } = await supabase.from('prestadores').select('*').eq('user_id', usuario.id).single()

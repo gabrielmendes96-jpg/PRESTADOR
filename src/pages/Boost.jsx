@@ -32,7 +32,7 @@ const planos = [
 ]
 
 export default function Boost() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [prestador, setPrestador] = useState(null)
   const [boostAtivo, setBoostAtivo] = useState(null)
@@ -40,9 +40,10 @@ export default function Boost() {
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarDados()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   const carregarDados = async () => {
     const { data: p } = await supabase

@@ -26,7 +26,7 @@ const inputStyle = {
 const labelStyle = { display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }
 
 export default function NovoPedido() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const { categorias } = useCategorias()
   const [etapa, setEtapa] = useState(1) // 1: form, 2: créditos
@@ -50,9 +50,10 @@ export default function NovoPedido() {
   const inputMidiaRef = useRef(null)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     buscarCreditos()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   // Busca os municípios do estado escolhido (API do IBGE) toda vez que o
   // estado muda, e reseta a cidade — evita cidade/estado incoerentes.

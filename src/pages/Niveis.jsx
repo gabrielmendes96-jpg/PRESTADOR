@@ -47,16 +47,17 @@ function getNivelAtual(avaliacoes, nota, mesesAtivo) {
 }
 
 export default function Niveis() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [prestador, setPrestador] = useState(null)
   const [stats, setStats] = useState({ avaliacoes: 0, nota: 0, mesesAtivo: 0 })
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarDados()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   const carregarDados = async () => {
     const { data: p } = await supabase.from('prestadores').select('*').eq('user_id', usuario.id).single()

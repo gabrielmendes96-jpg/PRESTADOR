@@ -12,7 +12,7 @@ import Avatar from '../components/ui/Avatar'
 const ADMIN_EMAIL = 'gabrielmendes96@gmail.com'
 
 export default function Admin() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [aba, setAba] = useState('dashboard')
   const [stats, setStats] = useState({})
@@ -21,17 +21,13 @@ export default function Admin() {
   const [pedidos, setPedidos] = useState([])
   const [avaliacoes, setAvaliacoes] = useState([])
   const [carregando, setCarregando] = useState(true)
-  const [authCarregando, setAuthCarregando] = useState(true)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAuthCarregando(false)
-      if (!usuario) { navigate('/login'); return }
-      if (usuario.email !== ADMIN_EMAIL) { navigate('/'); return }
-      carregarDados()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [usuario])
+    if (authCarregando) return
+    if (!usuario) { navigate('/login'); return }
+    if (usuario.email !== ADMIN_EMAIL) { navigate('/'); return }
+    carregarDados()
+  }, [usuario, authCarregando])
 
   if (authCarregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Verificando acesso...</p>
 

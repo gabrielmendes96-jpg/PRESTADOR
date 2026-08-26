@@ -326,15 +326,16 @@ Regras:
 }
 
 export default function AssistentePerfil() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [prestador, setPrestador] = useState(null)
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarPrestador()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   const carregarPrestador = async () => {
     const { data: p } = await supabase

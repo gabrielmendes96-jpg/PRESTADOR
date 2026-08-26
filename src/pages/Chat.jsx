@@ -10,7 +10,7 @@ import Avatar from '../components/ui/Avatar'
 
 export default function Chat() {
   const { conversaId } = useParams()
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [mensagens, setMensagens] = useState([])
   const [conversa, setConversa] = useState(null)
@@ -21,9 +21,10 @@ export default function Chat() {
   const bottomRef = useRef(null)
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarConversa()
-  }, [conversaId, usuario])
+  }, [conversaId, usuario, authCarregando])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

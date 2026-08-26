@@ -70,7 +70,7 @@ function TabHeader({ icon: Icon, title, desc }) {
 }
 
 export default function PainelPrestador() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [aba, setAba] = useState('perfil')
   const [prestador, setPrestador] = useState(null)
@@ -85,10 +85,11 @@ export default function PainelPrestador() {
   const [pedidosHoje, setPedidosHoje] = useState(0)
   const { categorias } = useCategorias()
 
-  // Redireciona se não estiver logado
+  // Redireciona se não estiver logado (aguarda a sessão terminar de carregar)
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) navigate('/login')
-  }, [usuario, navigate])
+  }, [usuario, authCarregando, navigate])
 
   // Carrega dados do prestador
   useEffect(() => {
@@ -208,14 +209,13 @@ export default function PainelPrestador() {
   )
 
   return (
-    <div style={{ display: 'flex', gap: spacing.card, minHeight: '80vh', alignItems: 'flex-start' }}>
+    <div className="flex flex-col lg:flex-row" style={{ gap: spacing.card, minHeight: '80vh', alignItems: 'flex-start' }}>
 
       {/* Menu lateral */}
-      <aside style={{ width: '224px', flexShrink: 0 }}>
-        <div style={{
+      <aside className="w-full lg:w-[224px]" style={{ flexShrink: 0 }}>
+        <div className="lg:sticky lg:top-6" style={{
           background: '#111827', borderRadius: radius.card, padding: 16,
           boxShadow: shadow.card,
-          position: 'sticky', top: 24,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             {prestador.foto_perfil ? (
@@ -232,16 +232,16 @@ export default function PainelPrestador() {
             </div>
           </div>
 
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <nav className="flex flex-row overflow-x-auto lg:flex-col" style={{ gap: 2 }}>
             {menuItens.map(item => {
               const ativo = aba === item.id
               return (
                 <button
                   key={item.id}
                   onClick={() => setAba(item.id)}
-                  className="btn-press"
+                  className="btn-press flex-shrink-0 w-auto lg:w-full whitespace-nowrap"
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    display: 'flex', alignItems: 'center', gap: 10,
                     padding: '10px 12px', borderRadius: 12, fontSize: 14,
                     textAlign: 'left', border: 'none', cursor: 'pointer',
                     background: ativo ? colors.primary : 'transparent',

@@ -29,10 +29,9 @@ const servicosDisponiveis = [
 ]
 
 export default function PerfilCliente() {
-  const { usuario, sair } = useAuth()
+  const { usuario, sair, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [aba, setAba] = useState('perfil')
-  const [authCarregando, setAuthCarregando] = useState(true)
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [uploadingFoto, setUploadingFoto] = useState(false)
@@ -60,15 +59,12 @@ export default function PerfilCliente() {
   const [pedidos, setPedidos] = useState([])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setAuthCarregando(false)
-      if (!usuario) { navigate('/login'); return }
-      setNome(usuario.user_metadata?.nome || '')
-      setFotoUrl(usuario.user_metadata?.foto_url || '')
-      carregarDados()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [usuario])
+    if (authCarregando) return
+    if (!usuario) { navigate('/login'); return }
+    setNome(usuario.user_metadata?.nome || '')
+    setFotoUrl(usuario.user_metadata?.foto_url || '')
+    carregarDados()
+  }, [usuario, authCarregando])
 
   const carregarDados = async () => {
     const [

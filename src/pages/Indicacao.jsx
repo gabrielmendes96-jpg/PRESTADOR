@@ -41,7 +41,7 @@ function BarraNivel({ atual, meta, label, meses, cor, ativo }) {
 }
 
 export default function Indicacao() {
-  const { usuario } = useAuth()
+  const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { codigo } = useCodigoIndicacao(usuario)
@@ -53,9 +53,10 @@ export default function Indicacao() {
   const [erroUsar, setErroUsar] = useState('')
 
   useEffect(() => {
+    if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
     carregarDados()
-  }, [usuario])
+  }, [usuario, authCarregando])
 
   // Processar código de convite na URL (?ref=CODIGO)
   useEffect(() => {
