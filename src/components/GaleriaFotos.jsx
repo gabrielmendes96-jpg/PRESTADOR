@@ -30,13 +30,26 @@ export default function GaleriaFotos({ fotos, disponivel }) {
     </div>
   )
 
+  const atual = fotos[idx]
+  const url = typeof atual === 'string' ? atual : atual.url
+  const ehVideo = typeof atual === 'object' && atual.tipo === 'video'
+
   return (
     <div className="relative w-full h-80 rounded-2xl overflow-hidden mb-4 group" style={{ background: '#111827' }}>
-      <img
-        src={fotos[idx]}
-        alt={`Foto do trabalho ${idx + 1}`}
-        className="w-full h-full object-cover transition-opacity duration-300"
-      />
+      {ehVideo ? (
+        <video
+          key={url}
+          src={url}
+          controls
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <img
+          src={url}
+          alt={`Foto do trabalho ${idx + 1}`}
+          className="w-full h-full object-cover transition-opacity duration-300"
+        />
+      )}
 
       {/* Progress dots */}
       <div className="absolute top-2.5 left-2.5 right-2.5 flex gap-1">

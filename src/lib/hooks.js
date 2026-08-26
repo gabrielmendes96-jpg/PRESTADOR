@@ -206,7 +206,7 @@ export function usePrestador(id) {
 
       setPrestador({
         ...p,
-        fotos: (fotos || []).map(f => f.url),
+        fotos: (fotos || []).map(f => ({ url: f.url, tipo: f.tipo })),
         avaliacao: p.avaliacao_media,
         totalAvaliacoes: p.total_avaliacoes,
         totalServicos: p.total_servicos,

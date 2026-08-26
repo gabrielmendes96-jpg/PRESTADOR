@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { Star, Trophy, DollarSign, Clock, Sparkles, MessageCircle, Calendar, Check, X, Info } from 'lucide-react'
+import { Star, Trophy, DollarSign, Clock, Sparkles, MessageCircle, Calendar, Check, X, Info, Play } from 'lucide-react'
 import { colors } from '../lib/design'
 
 const criterios = [
@@ -300,13 +300,24 @@ export default function Avaliacoes({ prestador }) {
             {r.midias && r.midias.length > 0 && (
               <div className="flex gap-2 flex-wrap mt-2">
                 {r.midias.map((m, mi) => (
-                  <div key={mi} className="w-16 h-16 rounded-lg overflow-hidden" style={{ border: `0.5px solid ${colors.border}` }}>
+                  <button
+                    key={mi}
+                    onClick={() => window.open(m.url, '_blank')}
+                    className="relative w-16 h-16 rounded-lg overflow-hidden cursor-pointer"
+                    style={{ border: `0.5px solid ${colors.border}`, padding: 0 }}
+                    aria-label={m.tipo === 'video' ? 'Abrir vídeo em tamanho real' : 'Abrir foto em tamanho real'}
+                  >
                     {m.tipo === 'video' ? (
                       <video src={m.url} className="w-full h-full object-cover" />
                     ) : (
                       <img src={m.url} alt="foto do serviço" className="w-full h-full object-cover" />
                     )}
-                  </div>
+                    {m.tipo === 'video' && (
+                      <span className="absolute top-1 left-1 flex items-center justify-center w-5 h-5 rounded text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                        <Play size={11} fill="#fff" />
+                      </span>
+                    )}
+                  </button>
                 ))}
               </div>
             )}
