@@ -115,7 +115,7 @@ export default function SEOCidadeCategoria() {
           Compare profissionais, veja fotos dos serviços e contrate com segurança.
         </p>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button fullWidth onClick={() => navigate(`/busca?categoria=${categoria}&cidade=${cidadeFormatada}`)}>
             Ver todos os profissionais
           </Button>
