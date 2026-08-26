@@ -109,12 +109,19 @@ export default function Portfolio({ prestadorId }) {
           {midias.map(m => (
             <div key={m.id} className="relative group aspect-square rounded-xl overflow-hidden" style={{ border: `0.5px solid ${colors.border}` }}>
               {m.tipo === 'video' ? (
-                <video src={m.url} className="w-full h-full object-cover" />
+                <button
+                  onClick={() => window.open(m.url, '_blank')}
+                  className="w-full h-full block"
+                  style={{ padding: 0, border: 'none', cursor: 'pointer' }}
+                  aria-label="Abrir vídeo em tamanho real"
+                >
+                  <video src={m.url} className="w-full h-full object-cover" />
+                </button>
               ) : (
                 <img src={m.url} alt="portfólio" className="w-full h-full object-cover" />
               )}
               {m.tipo === 'video' && (
-                <span className="absolute top-1 left-1 flex items-center justify-center w-5 h-5 rounded text-white" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                <span className="absolute top-1 left-1 flex items-center justify-center w-5 h-5 rounded text-white pointer-events-none" style={{ background: 'rgba(0,0,0,0.6)' }}>
                   <Play size={11} fill="#fff" />
                 </span>
               )}
