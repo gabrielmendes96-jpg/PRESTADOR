@@ -13,6 +13,7 @@ import Portfolio from '../components/Portfolio'
 import HashtagsInput from '../components/HashtagsInput'
 import FotoPerfilUpload from '../components/FotoPerfilUpload'
 import RedesSociaisForm from '../components/RedesSociaisForm'
+import BannerIndicacao from '../components/BannerIndicacao'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -278,6 +279,8 @@ export default function PainelPrestador() {
 
         {/* ABA: PERFIL */}
         {aba === 'perfil' && (
+          <>
+          <BannerIndicacao />
           <Card padding={24}>
             <TabHeader icon={User} title="Editar perfil" />
 
@@ -421,6 +424,7 @@ export default function PainelPrestador() {
               {salvando ? 'Salvando...' : 'Salvar alterações'}
             </Button>
           </Card>
+          </>
         )}
 
         {/* ABA: PORTFÓLIO */}

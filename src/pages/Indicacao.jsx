@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Phone, Check, PartyPopper, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { useCodigoIndicacao } from '../lib/hooks'
 import { colors } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -43,7 +44,7 @@ export default function Indicacao() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [codigo, setCodigo] = useState(null)
+  const { codigo } = useCodigoIndicacao(usuario)
   const [indicacoes, setIndicacoes] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [copiado, setCopiado] = useState(false)
@@ -64,33 +65,6 @@ export default function Indicacao() {
 
   const carregarDados = async () => {
     setCarregando(true)
-
-    let { data: cod } = await supabase
-      .from('codigos_indicacao')
-      .select('*')
-      .eq('user_id', usuario.id)
-      .single()
-
-    if (!cod) {
-      // Criar código único para o usuário
-      const novoCodigo = (usuario.user_metadata?.nome || usuario.email?.split('@')[0] || 'user')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '')
-        .slice(0, 8) + Math.random().toString(36).slice(2, 5).toUpperCase()
-
-      const { data } = await supabase
-        .from('codigos_indicacao')
-        .insert({
-          user_id: usuario.id,
-          codigo: novoCodigo,
-          tipo: 'prestador',
-        })
-        .select()
-        .single()
-      cod = data
-    }
-
-    setCodigo(cod)
 
     const { data: inds } = await supabase
       .from('indicacoes')

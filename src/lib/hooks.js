@@ -390,3 +390,46 @@ export function useMensagensNaoLidas(usuario) {
 
   return naoLidas
 }
+
+// ------------------------------------------------------------
+// useCodigoIndicacao — código de indicação do usuário logado,
+// criando um novo se ainda não existir. Compartilhado entre a página
+// de indicação e o banner de divulgação no painel do prestador.
+// ------------------------------------------------------------
+export function useCodigoIndicacao(usuario) {
+  const [codigo, setCodigo] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!usuario) { setLoading(false); return }
+
+    async function carregar() {
+      setLoading(true)
+      let { data: cod } = await supabase
+        .from('codigos_indicacao')
+        .select('*')
+        .eq('user_id', usuario.id)
+        .single()
+
+      if (!cod) {
+        const novoCodigo = (usuario.user_metadata?.nome || usuario.email?.split('@')[0] || 'user')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '')
+          .slice(0, 8) + Math.random().toString(36).slice(2, 5).toUpperCase()
+
+        const { data } = await supabase
+          .from('codigos_indicacao')
+          .insert({ user_id: usuario.id, codigo: novoCodigo, tipo: 'prestador' })
+          .select()
+          .single()
+        cod = data
+      }
+
+      setCodigo(cod)
+      setLoading(false)
+    }
+    carregar()
+  }, [usuario])
+
+  return { codigo, loading }
+}
