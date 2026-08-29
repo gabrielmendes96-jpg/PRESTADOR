@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Wallet, Clock, Crown, Check, Send } from 'lucide-react'
+import { Wallet, Clock, Crown, Check, Send, Calendar } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, spacing } from '../lib/design'
@@ -32,6 +32,8 @@ export default function DetalhePedido() {
   const [form, setForm] = useState({ mensagem: '', valor_proposto: '', prazo_proposto: '' })
   const [showForm, setShowForm] = useState(false)
   const [erro, setErro] = useState('')
+  const [dataAgendada, setDataAgendada] = useState('')
+  const [salvandoData, setSalvandoData] = useState(false)
 
   useEffect(() => {
     carregarTudo()
@@ -46,6 +48,7 @@ export default function DetalhePedido() {
       .eq('id', id)
       .single()
     setPedido(p)
+    if (p?.data_agendada) setDataAgendada(new Date(p.data_agendada).toISOString().slice(0, 16))
 
     const { data: mids } = await supabase
       .from('midias_pedido')
@@ -129,10 +132,19 @@ export default function DetalhePedido() {
     navigate(`/chat/${conv.id}`)
   }
 
+  const salvarDataAgendada = async () => {
+    setSalvandoData(true)
+    await supabase.from('pedidos_servico')
+      .update({ data_agendada: dataAgendada ? new Date(dataAgendada).toISOString() : null })
+      .eq('id', id)
+    setSalvandoData(false)
+  }
+
   if (carregando) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando...</p>
   if (!pedido) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Pedido não encontrado.</p>
 
   const ehDono = usuario?.id === pedido.cliente_user_id
+  const souPrestadorAceito = !!meuPrestador && candidaturas.some(c => c.status === 'aceito' && c.prestador_id === meuPrestador.id)
   const orcamentoTexto = pedido.orcamento_min && pedido.orcamento_max
     ? `R$${pedido.orcamento_min} – R$${pedido.orcamento_max}`
     : pedido.orcamento_max ? `até R$${pedido.orcamento_max}` : pedido.orcamento_min ? `a partir de R$${pedido.orcamento_min}` : null
@@ -190,6 +202,19 @@ export default function DetalhePedido() {
           Postado por {pedido.cliente_nome} · {new Date(pedido.criado_em).toLocaleDateString('pt-BR')}
         </p>
       </Card>
+
+      {/* Data agendada — combinada entre cliente e prestador depois que a candidatura é aceita */}
+      {pedido.status === 'em_andamento' && (ehDono || souPrestadorAceito) && (
+        <Card padding={16} style={{ marginBottom: spacing.card, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Calendar size={18} color={colors.primary} style={{ flexShrink: 0 }} />
+          <label style={{ fontSize: 13, color: colors.textSub, flexShrink: 0 }}>Data agendada</label>
+          <input type="datetime-local" value={dataAgendada} onChange={e => setDataAgendada(e.target.value)}
+            style={{ ...inputStyle, width: 'auto', flex: '1 1 200px' }} />
+          <Button size="sm" disabled={salvandoData} onClick={salvarDataAgendada}>
+            {salvandoData ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </Card>
+      )}
 
       {/* Ação de candidatura (para prestadores Premium) */}
       {meuPrestador && !ehDono && pedido.status === 'aberto' && (

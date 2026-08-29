@@ -18,6 +18,7 @@ export default function Chat() {
   const [enviando, setEnviando] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [destaquesCliente, setDestaquesCliente] = useState([])
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -72,6 +73,13 @@ export default function Chat() {
     const ehPrestador = usuario?.id === conv?.prestadores?.user_id
     if (ehPrestador) {
       await supabase.from('conversas').update({ nao_lidas_prestador: 0 }).eq('id', conversaId)
+
+      const { data: destaques } = await supabase
+        .from('destaques_cliente')
+        .select('*')
+        .eq('user_id', conv.cliente_user_id)
+        .order('ordem', { ascending: true })
+      setDestaquesCliente(destaques || [])
     } else {
       await supabase.from('conversas').update({ nao_lidas_cliente: 0 }).eq('id', conversaId)
     }
@@ -170,6 +178,34 @@ export default function Chat() {
           </p>
         </div>
       </Card>
+
+      {/* Destaques do cliente — dá contexto pro prestador antes de orçar */}
+      {ehPrestadorLogado && destaquesCliente.length > 0 && (
+        <Card padding={12} style={{ marginBottom: 12 }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: colors.textSub, margin: '0 0 8px 4px' }}>
+            Destaques de {nomeContato}
+          </p>
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
+            {destaquesCliente.map(d => (
+              <button
+                key={d.id}
+                onClick={() => window.open(d.url, '_blank')}
+                style={{
+                  flexShrink: 0, width: 56, height: 56, borderRadius: '50%', overflow: 'hidden',
+                  border: `1.5px solid ${colors.border}`, padding: 0, cursor: 'pointer',
+                }}
+                aria-label={d.titulo}
+              >
+                {d.tipo === 'video' ? (
+                  <video src={d.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <img src={d.url} alt={d.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Mensagens */}
       <Card padding={16} style={{ marginBottom: 12, minHeight: 400, maxHeight: 500, overflowY: 'auto' }}>

@@ -4,7 +4,7 @@ import {
   User, SlidersHorizontal, Star, PenLine, History, ClipboardList, Settings,
   Camera, Loader2, Save, Wrench, Gift, Info, FileText, Shield, Crown, ChevronRight, LogOut,
   Zap, Droplet, Paintbrush, Building2, Trees, Bug, Home as HomeIcon, Monitor,
-  MessageCircle, Ticket, Check,
+  MessageCircle, Ticket, Check, Plus,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
@@ -12,6 +12,8 @@ import { colors } from '../lib/design'
 import ReputacaoBadge from '../components/ReputacaoBadge'
 import RedesSociaisForm from '../components/RedesSociaisForm'
 import RedesSociais from '../components/RedesSociais'
+import Destaques from '../components/Destaques'
+import Chip from '../components/ui/Chip'
 
 const servicosDisponiveis = [
   { id: 'eletrica', icon: Zap, nome: 'Elétrica' },
@@ -57,6 +59,8 @@ export default function PerfilCliente() {
   const [avaliacoesFeitasData, setAvaliacoesFeitasData] = useState([])
   const [historico, setHistorico] = useState([])
   const [pedidos, setPedidos] = useState([])
+  const [pastas, setPastas] = useState([])
+  const [pastaFiltro, setPastaFiltro] = useState('todos')
 
   useEffect(() => {
     if (authCarregando) return
@@ -76,6 +80,7 @@ export default function PerfilCliente() {
       { data: hist },
       { data: peds },
       { data: perfilData },
+      { data: pastasData },
     ] = await Promise.all([
       supabase.from('pedidos_servico').select('*', { count: 'exact', head: true }).eq('cliente_user_id', usuario.id),
       supabase.from('conversas').select('*', { count: 'exact', head: true }).eq('cliente_user_id', usuario.id),
@@ -85,6 +90,7 @@ export default function PerfilCliente() {
       supabase.from('historico_servicos').select('*, prestadores(nome, categoria_id)').eq('cliente_user_id', usuario.id).order('data_servico', { ascending: false }),
       supabase.from('pedidos_servico').select('*, categorias(nome, emoji)').eq('cliente_user_id', usuario.id).order('criado_em', { ascending: false }),
       supabase.from('perfis_cliente').select('*').eq('user_id', usuario.id).single(),
+      supabase.from('pastas_pedidos').select('*').eq('user_id', usuario.id).order('ordem', { ascending: true }),
     ])
 
     setStats({
@@ -98,6 +104,7 @@ export default function PerfilCliente() {
     setAvaliacoesFeitasData(avalsFeitasData || [])
     setHistorico(hist || [])
     setPedidos(peds || [])
+    setPastas(pastasData || [])
 
     if (perfilData) {
       setBio(perfilData.bio || '')
@@ -112,6 +119,22 @@ export default function PerfilCliente() {
     }
 
     setCarregando(false)
+  }
+
+  const criarPasta = async () => {
+    const nome = window.prompt('Nome da pasta (ex: "Casa da praia", "Urgente")')
+    if (!nome) return
+    const { data: nova } = await supabase
+      .from('pastas_pedidos')
+      .insert({ user_id: usuario.id, nome, ordem: pastas.length })
+      .select()
+      .single()
+    if (nova) setPastas(prev => [...prev, nova])
+  }
+
+  const atribuirPasta = async (pedidoId, pastaId) => {
+    setPedidos(prev => prev.map(p => p.id === pedidoId ? { ...p, pasta_id: pastaId || null } : p))
+    await supabase.from('pedidos_servico').update({ pasta_id: pastaId || null }).eq('id', pedidoId)
   }
 
   const salvarPerfil = async () => {
@@ -274,6 +297,8 @@ export default function PerfilCliente() {
       {/* ABA: PERFIL */}
       {aba === 'perfil' && (
         <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #E4E7E4' }}>
+          <Destaques userId={usuario.id} />
+
           <p className="text-sm font-medium mb-4" style={{ color: '#1F2937' }}>Editar perfil</p>
 
           <div className="space-y-4">
@@ -531,6 +556,20 @@ export default function PerfilCliente() {
               + Novo
             </button>
           </div>
+
+          {pedidos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 mb-4">
+              <Chip active={pastaFiltro === 'todos'} onClick={() => setPastaFiltro('todos')}>Todos</Chip>
+              {pastas.map(pasta => (
+                <Chip key={pasta.id} active={pastaFiltro === pasta.id} onClick={() => setPastaFiltro(pasta.id)}
+                  style={pastaFiltro === pasta.id ? { background: pasta.cor } : {}}>
+                  {pasta.nome}
+                </Chip>
+              ))}
+              <Chip onClick={criarPasta} icon={<Plus size={13} />}>Nova pasta</Chip>
+            </div>
+          )}
+
           {pedidos.length === 0 ? (
             <div className="text-center py-10">
               <ClipboardList size={36} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
@@ -542,16 +581,32 @@ export default function PerfilCliente() {
             </div>
           ) : (
             <div className="space-y-3">
-              {pedidos.map(p => (
-                <div key={p.id} onClick={() => navigate(`/pedidos/${p.id}`)}
-                  className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:opacity-80" style={{ background: '#F3F6F2' }}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#DCFCE7' }}>
+              {pedidos
+                .filter(p => pastaFiltro === 'todos' || p.pasta_id === pastaFiltro)
+                .map(p => (
+                <div key={p.id}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:opacity-80" style={{ background: '#F3F6F2' }}>
+                  <div onClick={() => navigate(`/pedidos/${p.id}`)} className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 cursor-pointer" style={{ background: '#DCFCE7' }}>
                     <Wrench size={16} color="#14853D" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div onClick={() => navigate(`/pedidos/${p.id}`)} className="flex-1 min-w-0 cursor-pointer">
                     <p className="text-sm font-medium truncate" style={{ color: '#1F2937' }}>{p.titulo}</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>{p.cidade}, {p.estado} · {new Date(p.criado_em).toLocaleDateString('pt-BR')}</p>
                   </div>
+                  {pastas.length > 0 && (
+                    <select
+                      value={p.pasta_id || ''}
+                      onChange={e => atribuirPasta(p.id, e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                      className="text-xs rounded-lg px-2 py-1 flex-shrink-0"
+                      style={{ border: '0.5px solid #E4E7E4', background: '#fff', color: '#6B7280', maxWidth: 90 }}
+                    >
+                      <option value="">Sem pasta</option>
+                      {pastas.map(pasta => (
+                        <option key={pasta.id} value={pasta.id}>{pasta.nome}</option>
+                      ))}
+                    </select>
+                  )}
                   <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
                     style={p.status === 'aberto' ? { background: '#DCFCE7', color: '#14853D' } : { background: '#F3F6F2', color: '#6B7280' }}>
                     {p.status}
