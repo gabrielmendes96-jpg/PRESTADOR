@@ -13,7 +13,7 @@ const state = {}
 describe('Fluxo crítico', () => {
   afterAll(async () => {
     await limpar(state)
-  })
+  }, 30000)
 
   it('1. Cadastro — cria conta cliente e conta prestador (plano básico)', async () => {
     state.categoriaId = await pegarCategoriaTeste()
@@ -253,6 +253,66 @@ describe('Fluxo crítico', () => {
     expect(perfil.cidade).toBe('Araraquara')
   }, 15000)
 
+  it('5c. Perfil social do cliente — pastas e destaques respeitam RLS', async () => {
+    // Pastas — organização pessoal dos pedidos do cliente
+    const { data: pasta, error: erroPasta } = await state.clienteSessao.cliente
+      .from('pastas_pedidos')
+      .insert({ user_id: state.clienteUserId, nome: 'Pasta de teste' })
+      .select()
+      .single()
+    expect(erroPasta).toBeNull()
+
+    const { error: erroAtribuir } = await state.clienteSessao.cliente
+      .from('pedidos_servico')
+      .update({ pasta_id: pasta.id })
+      .eq('id', state.pedidoId)
+    expect(erroAtribuir).toBeNull()
+
+    const { data: pedidosNaPasta } = await state.clienteSessao.cliente
+      .from('pedidos_servico')
+      .select('id')
+      .eq('pasta_id', pasta.id)
+    expect(pedidosNaPasta.map(p => p.id)).toContain(state.pedidoId)
+
+    // Outro cliente não pode ver a pasta de ninguém — é organização pessoal.
+    const outroCliente = await criarUsuarioTeste('outro-cliente')
+    const { data: pastaVistaPorOutro } = await outroCliente.cliente
+      .from('pastas_pedidos')
+      .select('id')
+      .eq('id', pasta.id)
+    expect(pastaVistaPorOutro).toHaveLength(0)
+    await admin.auth.admin.deleteUser(outroCliente.userId)
+
+    // Destaques — dono sempre vê; prestador com conversa ativa vê (dá
+    // contexto pra orçar); prestador sem nenhuma conversa não vê.
+    const { data: destaque, error: erroDestaque } = await state.clienteSessao.cliente
+      .from('destaques_cliente')
+      .insert({ user_id: state.clienteUserId, titulo: 'Minha casa', url: 'https://example.com/foto.jpg' })
+      .select()
+      .single()
+    expect(erroDestaque).toBeNull()
+
+    const { data: paraODono } = await state.clienteSessao.cliente
+      .from('destaques_cliente').select('id').eq('id', destaque.id)
+    expect(paraODono).toHaveLength(1)
+
+    const { data: paraOPrestadorComConversa } = await state.prestadorSessao.cliente
+      .from('destaques_cliente').select('id').eq('id', destaque.id)
+    expect(paraOPrestadorComConversa).toHaveLength(1)
+
+    const outroPrestador = await criarUsuarioTeste('outro-prestador')
+    await admin.from('prestadores').insert({
+      user_id: outroPrestador.userId, nome: 'Outro Prestador Teste', categoria_id: state.categoriaId,
+      cidade: 'São Paulo', estado: 'SP', plano_id: 'basico', servicos: [], disponivel: true,
+    })
+    const { data: paraOutroPrestador } = await outroPrestador.cliente
+      .from('destaques_cliente').select('id').eq('id', destaque.id)
+    expect(paraOutroPrestador).toHaveLength(0)
+
+    await admin.from('prestadores').delete().eq('user_id', outroPrestador.userId)
+    await admin.auth.admin.deleteUser(outroPrestador.userId)
+  }, 25000)
+
   // Opcional — só roda se ASAAS_KEY_SANDBOX estiver preenchido no .env.test.
   it.skipIf(!process.env.ASAAS_KEY_SANDBOX)('6a. (opcional) Pagamento — preço vem sempre do servidor (item inválido é recusado)', async () => {
     const invalido = await invocarFuncao(criarCobranca, {
@@ -357,8 +417,14 @@ describe('Fluxo crítico', () => {
       await admin.from('codigos_indicacao').delete().eq('user_id', indicador.userId)
       await admin.from('prestadores').delete().eq('user_id', indicador.userId)
       await admin.from('prestadores').delete().eq('user_id', indicado.userId)
-      await admin.auth.admin.deleteUser(indicador.userId)
-      await admin.auth.admin.deleteUser(indicado.userId)
+      // o webhook de mensalidade acima grava notificacoes pros dois lados —
+      // sem apagar isso primeiro, deleteUser falha (FK) silenciosamente.
+      await admin.from('notificacoes').delete().eq('user_id', indicador.userId)
+      await admin.from('notificacoes').delete().eq('user_id', indicado.userId)
+      const { error: erroDelIndicador } = await admin.auth.admin.deleteUser(indicador.userId)
+      const { error: erroDelIndicado } = await admin.auth.admin.deleteUser(indicado.userId)
+      if (erroDelIndicador) console.warn('Falha ao apagar usuário indicador de teste:', erroDelIndicador.message)
+      if (erroDelIndicado) console.warn('Falha ao apagar usuário indicado de teste:', erroDelIndicado.message)
     },
     20000
   )

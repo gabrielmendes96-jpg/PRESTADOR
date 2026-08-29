@@ -85,10 +85,18 @@ export async function limpar(state) {
     await admin.from('creditos_cliente').delete().eq('user_id', state.clienteUserId)
     await admin.from('compras_creditos').delete().eq('user_id', state.clienteUserId)
     await admin.from('perfis_cliente').delete().eq('user_id', state.clienteUserId)
-    await admin.auth.admin.deleteUser(state.clienteUserId).catch(() => {})
+    // destaques_cliente/pastas_pedidos têm "on delete cascade" em user_id,
+    // então some junto com o usuário — mas notificacoes não tem cascade
+    // nenhum, e deixar ela pra trás faz o deleteUser abaixo falhar
+    // silenciosamente (erro sem mensagem), acumulando contas órfãs.
+    await admin.from('notificacoes').delete().eq('user_id', state.clienteUserId)
+    const { error } = await admin.auth.admin.deleteUser(state.clienteUserId)
+    if (error) console.warn('Falha ao apagar usuário cliente de teste:', state.clienteUserId, error.message || error)
   }
   if (state.prestadorUserId) {
-    await admin.auth.admin.deleteUser(state.prestadorUserId).catch(() => {})
+    await admin.from('notificacoes').delete().eq('user_id', state.prestadorUserId)
+    const { error } = await admin.auth.admin.deleteUser(state.prestadorUserId)
+    if (error) console.warn('Falha ao apagar usuário prestador de teste:', state.prestadorUserId, error.message || error)
   }
 }
 
