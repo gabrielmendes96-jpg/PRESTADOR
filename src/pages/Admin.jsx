@@ -175,6 +175,18 @@ export default function Admin() {
                 style={{ background: '#FEF3C7', color: '#92610A' }}>
                 <TriangleAlert size={15} /> Verificar assinaturas vencidas
               </button>
+              <button onClick={async () => {
+                const r = await fetch('/api/verificar-tempo-resposta', {
+                  method: 'POST',
+                  headers: { 'x-cron-token': 'prestador-webhook-2026' }
+                })
+                const d = await r.json()
+                alert(`Tempo de resposta: ${d.verificadas} verificadas, ${d.penalizados} penalizados`)
+              }}
+                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
+                style={{ background: '#E0E7FF', color: '#3730A3' }}>
+                <MessageCircle size={15} /> Verificar tempo de resposta dos prestadores
+              </button>
             </div>
           </div>
         </div>

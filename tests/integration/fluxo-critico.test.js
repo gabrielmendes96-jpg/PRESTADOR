@@ -6,6 +6,7 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
+import verificarTempoResposta from '../../api/verificar-tempo-resposta.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
 const state = {}
@@ -313,6 +314,49 @@ describe('Fluxo crítico', () => {
     await admin.auth.admin.deleteUser(outroPrestador.userId)
   }, 25000)
 
+  // Opcional — só roda se ASAAS_WEBHOOK_TOKEN estiver preenchido no .env.test
+  // (usado aqui como o token de disparo manual do endpoint, igual ao botão do Admin.jsx).
+  it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(
+    '5d. Pontuação por tempo de resposta — cron penaliza e RPC de bônus soma pontos',
+    async () => {
+      // Simula uma conversa esperando resposta há 10 dias — bem além do
+      // prazo de 2h úteis, sem depender de que horas são agora de verdade.
+      const dezDiasAtras = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+      await admin.from('conversas')
+        .update({ cliente_aguardando_desde: dezDiasAtras, penalizado_em: null })
+        .eq('id', state.conversaId)
+
+      const { data: antes } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+
+      const { statusCode, body } = await invocarFuncao(verificarTempoResposta, {
+        method: 'POST',
+        headers: { 'x-cron-token': process.env.ASAAS_WEBHOOK_TOKEN },
+      })
+      expect(statusCode).toBe(200)
+      expect(body.penalizados).toBeGreaterThanOrEqual(1)
+
+      const { data: depois } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+      expect(depois.pontos_resposta).toBe(Math.max(0, (antes.pontos_resposta || 0) - 5))
+
+      const { data: conversaAtualizada } = await admin.from('conversas').select('penalizado_em').eq('id', state.conversaId).single()
+      expect(conversaAtualizada.penalizado_em).not.toBeNull()
+
+      // Rodar de novo não deve penalizar a mesma janela outra vez.
+      const { body: segunda } = await invocarFuncao(verificarTempoResposta, {
+        method: 'POST',
+        headers: { 'x-cron-token': process.env.ASAAS_WEBHOOK_TOKEN },
+      })
+      expect(segunda.penalizados).toBe(0)
+
+      // Bônus — o próprio prestador chama a RPC ao responder dentro do prazo.
+      const { data: pontosAntesBonus } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+      const { data: novoTotal, error: erroRpc } = await state.prestadorSessao.cliente.rpc('incrementar_pontos_resposta_bonus')
+      expect(erroRpc).toBeNull()
+      expect(novoTotal).toBe((pontosAntesBonus.pontos_resposta || 0) + 2)
+    },
+    20000
+  )
+
   // Opcional — só roda se ASAAS_KEY_SANDBOX estiver preenchido no .env.test.
   it.skipIf(!process.env.ASAAS_KEY_SANDBOX)('6a. (opcional) Pagamento — preço vem sempre do servidor (item inválido é recusado)', async () => {
     const invalido = await invocarFuncao(criarCobranca, {
@@ -417,10 +461,13 @@ describe('Fluxo crítico', () => {
       await admin.from('codigos_indicacao').delete().eq('user_id', indicador.userId)
       await admin.from('prestadores').delete().eq('user_id', indicador.userId)
       await admin.from('prestadores').delete().eq('user_id', indicado.userId)
-      // o webhook de mensalidade acima grava notificacoes pros dois lados —
+      // o webhook de mensalidade acima grava notificacoes pros dois lados, e
+      // resgatar_indicacao() dá 3 créditos pro indicado via creditos_cliente —
       // sem apagar isso primeiro, deleteUser falha (FK) silenciosamente.
       await admin.from('notificacoes').delete().eq('user_id', indicador.userId)
       await admin.from('notificacoes').delete().eq('user_id', indicado.userId)
+      await admin.from('creditos_cliente').delete().eq('user_id', indicador.userId)
+      await admin.from('creditos_cliente').delete().eq('user_id', indicado.userId)
       const { error: erroDelIndicador } = await admin.auth.admin.deleteUser(indicador.userId)
       const { error: erroDelIndicado } = await admin.auth.admin.deleteUser(indicado.userId)
       if (erroDelIndicador) console.warn('Falha ao apagar usuário indicador de teste:', erroDelIndicador.message)

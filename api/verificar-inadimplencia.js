@@ -1,13 +1,20 @@
 // api/verificar-inadimplencia.js
 // Verifica assinaturas vencidas e suspende perfis
-// Chamar via cron diário ou manualmente pelo admin
+// Chamado pelo Vercel Cron (GET) ou manualmente pelo admin (POST)
+
+function autorizado(req) {
+  const auth = req.headers['authorization'] || ''
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  if (process.env.CRON_SECRET && bearer === process.env.CRON_SECRET) return true
+  if (req.headers['x-cron-token'] === process.env.ASAAS_WEBHOOK_TOKEN) return true
+  return false
+}
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
-  // Verificar token de segurança
-  const token = req.headers['x-cron-token']
-  if (token !== process.env.ASAAS_WEBHOOK_TOKEN) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  if (!autorizado(req)) {
     return res.status(401).json({ error: 'Não autorizado' })
   }
 

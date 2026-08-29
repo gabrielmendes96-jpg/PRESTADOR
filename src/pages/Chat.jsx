@@ -4,6 +4,7 @@ import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow } from '../lib/design'
+import { estourouPrazo } from '../lib/tempoResposta'
 import Card from '../components/ui/Card'
 import IconButton from '../components/ui/IconButton'
 import Avatar from '../components/ui/Avatar'
@@ -111,13 +112,31 @@ export default function Chat() {
       return
     }
 
-    // Atualizar última mensagem e contador de não lidas
-    await supabase.from('conversas').update({
+    // Atualizar última mensagem, contador de não lidas e o relógio de
+    // tempo de resposta (pontos de agilidade do prestador — ver
+    // src/lib/tempoResposta.js e api/verificar-tempo-resposta.js)
+    const agora = new Date().toISOString()
+    const atualizacaoConversa = {
       ultima_mensagem: texto.trim(),
-      ultima_mensagem_em: new Date().toISOString(),
+      ultima_mensagem_em: agora,
       nao_lidas_prestador: ehPrestador ? 0 : (conversa?.nao_lidas_prestador || 0) + 1,
       nao_lidas_cliente: ehPrestador ? (conversa?.nao_lidas_cliente || 0) + 1 : 0,
-    }).eq('id', conversaId)
+    }
+
+    if (!ehPrestador && !conversa?.cliente_aguardando_desde) {
+      // Cliente abriu uma janela de espera nova (só se não tinha uma aberta)
+      atualizacaoConversa.cliente_aguardando_desde = agora
+      atualizacaoConversa.penalizado_em = null
+    } else if (ehPrestador && conversa?.cliente_aguardando_desde) {
+      // Prestador respondeu — fecha a janela e dá o bônus se foi dentro do prazo
+      atualizacaoConversa.cliente_aguardando_desde = null
+      if (!estourouPrazo(conversa.cliente_aguardando_desde, agora)) {
+        try { await supabase.rpc('incrementar_pontos_resposta_bonus') } catch { /* bônus é best-effort */ }
+      }
+    }
+
+    await supabase.from('conversas').update(atualizacaoConversa).eq('id', conversaId)
+    setConversa(prev => prev ? { ...prev, ...atualizacaoConversa } : prev)
 
     // Enviar push para o destinatário (o servidor descobre quem é a partir da conversa)
     supabase.auth.getSession().then(({ data: { session } }) => {

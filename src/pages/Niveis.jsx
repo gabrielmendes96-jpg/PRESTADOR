@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Medal, Crown, Trophy, Check } from 'lucide-react'
+import { Medal, Crown, Trophy, Check, Zap } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, spacing } from '../lib/design'
@@ -50,7 +50,7 @@ export default function Niveis() {
   const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [prestador, setPrestador] = useState(null)
-  const [stats, setStats] = useState({ avaliacoes: 0, nota: 0, mesesAtivo: 0 })
+  const [stats, setStats] = useState({ avaliacoes: 0, nota: 0, mesesAtivo: 0, pontosResposta: 0 })
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function Niveis() {
       ? Math.floor((new Date() - new Date(p.criado_em)) / (1000 * 60 * 60 * 24 * 30))
       : 0
 
-    setStats({ avaliacoes: totalAvaliacoes || 0, nota: parseFloat(nota.toFixed(1)), mesesAtivo })
+    setStats({ avaliacoes: totalAvaliacoes || 0, nota: parseFloat(nota.toFixed(1)), mesesAtivo, pontosResposta: p.pontos_resposta || 0 })
     setCarregando(false)
   }
 
@@ -123,6 +123,17 @@ export default function Niveis() {
             <p className="text-xl font-semibold" style={{ color: nivelAtual.cor }}>{stats.mesesAtivo}</p>
             <p className="text-xs" style={{ color: nivelAtual.cor, opacity: 0.7 }}>meses ativo</p>
           </div>
+        </div>
+      </div>
+
+      {/* Pontos de agilidade */}
+      <div className="bg-white rounded-2xl p-4 mb-5 flex items-center gap-3" style={{ border: '0.5px solid #E4E7E4' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Zap size={20} color="#3730A3" strokeWidth={1.8} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold" style={{ color: colors.text }}>{stats.pontosResposta} pontos de agilidade</p>
+          <p className="text-xs" style={{ color: '#6B7280' }}>+2 por responder clientes em até 2h úteis, -5 por demorar demais</p>
         </div>
       </div>
 
