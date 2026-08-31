@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
@@ -27,10 +27,25 @@ export default function Pagamento() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const tipo = params.get('tipo') // 'mensalidade' | 'creditos' | 'boost'
+  const tipo = params.get('tipo') // 'mensalidade' | 'creditos' | 'boost' | 'servico'
   const itemId = params.get('item')
+  const pedidoId = params.get('pedido')
 
-  const item = ITENS[tipo]?.[itemId]
+  const [pedidoServico, setPedidoServico] = useState(null)
+  const [carregandoPedido, setCarregandoPedido] = useState(tipo === 'servico')
+
+  useEffect(() => {
+    if (tipo !== 'servico' || !pedidoId) return
+    supabase.from('pedidos_servico').select('titulo, valor_acordado').eq('id', pedidoId).single()
+      .then(({ data }) => {
+        setPedidoServico(data)
+        setCarregandoPedido(false)
+      })
+  }, [tipo, pedidoId])
+
+  const item = tipo === 'servico'
+    ? (pedidoServico ? { nome: pedidoServico.titulo, valor: pedidoServico.valor_acordado } : null)
+    : ITENS[tipo]?.[itemId]
 
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
@@ -77,13 +92,21 @@ export default function Pagamento() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/criar-cobranca', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
+      const endpoint = tipo === 'servico' ? '/api/criar-cobranca-servico' : '/api/criar-cobranca'
+      const corpo = tipo === 'servico'
+        ? {
+          pedidoId,
+          nomeCliente: usuario.user_metadata?.nome || 'Cliente',
+          emailCliente: usuario.email,
+          cpfCliente: cpf.replace(/\D/g, ''),
+          telefoneCliente: telefone.replace(/\D/g, ''),
+          cepCliente: cep,
+          enderecoCliente: endereco,
+          numeroCliente: numero,
+          bairroCliente: bairro,
+          complementoCliente: complemento,
+        }
+        : {
           tipo,
           descricao: tipo === 'creditos'
             ? `Prestador App — ${item.creditos} créditos`
@@ -98,7 +121,15 @@ export default function Pagamento() {
           numeroCliente: numero,
           bairroCliente: bairro,
           complementoCliente: complemento,
-        })
+        }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify(corpo)
       })
 
       const data = await res.json()
@@ -120,6 +151,12 @@ export default function Pagamento() {
     }
   }
 
+  if (carregandoPedido) return (
+    <div className="text-center py-16">
+      <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
+    </div>
+  )
+
   if (!item) return (
     <div className="text-center py-16">
       <p className="text-sm" style={{ color: '#9CA3AF' }}>Item não encontrado.</p>
@@ -134,6 +171,7 @@ export default function Pagamento() {
         {tipo === 'mensalidade' && `Plano ${item.nome}`}
         {tipo === 'creditos' && `${item.creditos} crédito${item.creditos !== 1 ? 's' : ''}`}
         {tipo === 'boost' && item.nome}
+        {tipo === 'servico' && `Serviço: ${item.nome} (valor protegido até a conclusão)`}
         {' · '}
         <strong style={{ color: '#16A34A' }}>R${item.valor}</strong>
       </p>
@@ -145,6 +183,7 @@ export default function Pagamento() {
             {tipo === 'mensalidade' && `Plano ${item.nome} (mensal)`}
             {tipo === 'creditos' && `Pacote ${item.nome}`}
             {tipo === 'boost' && item.nome}
+            {tipo === 'servico' && item.nome}
           </p>
           <p className="text-sm font-semibold" style={{ color: '#1F2937' }}>R${item.valor},00</p>
         </div>

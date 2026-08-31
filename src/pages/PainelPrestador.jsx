@@ -101,7 +101,12 @@ export default function PainelPrestador() {
         .select('*')
         .eq('user_id', usuario.id)
         .single()
-      setPrestador(data || null)
+      // tipo_chave_pix precisa de um valor real no estado desde o
+      // início — o <select> mostra "CPF" como padrão visualmente, mas
+      // sem isso aqui o valor só entra no estado se o usuário abrir o
+      // dropdown, e salvar sem tocar nele gravava null mesmo com uma
+      // chave PIX preenchida.
+      setPrestador(data ? { ...data, tipo_chave_pix: data.tipo_chave_pix || 'CPF' } : null)
       setCarregando(false)
 
       if (data) {
@@ -172,6 +177,8 @@ export default function PainelPrestador() {
         disponivel: prestador.disponivel,
         mostrar_whatsapp: prestador.mostrar_whatsapp !== false,
         redes_sociais: prestador.redes_sociais || {},
+        chave_pix: prestador.chave_pix || null,
+        tipo_chave_pix: prestador.chave_pix ? prestador.tipo_chave_pix : null,
         geocodificado: false, // força re-geocodificação
       })
       .eq('user_id', usuario.id)
@@ -406,6 +413,34 @@ export default function PainelPrestador() {
                 links={prestador.redes_sociais || {}}
                 onChange={redes => setPrestador({ ...prestador, redes_sociais: redes })}
               />
+            </div>
+
+            {/* Dados para recebimento — pagamento protegido do serviço */}
+            <div style={{ marginBottom: 20, padding: 16, borderRadius: 16, background: colors.bg }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Dados para recebimento</p>
+              <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 16 }}>
+                Sua chave PIX pra receber quando um cliente pagar pelo app — o valor fica protegido até o serviço ser concluído.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <select
+                  value={prestador.tipo_chave_pix || 'CPF'}
+                  onChange={e => setPrestador({ ...prestador, tipo_chave_pix: e.target.value })}
+                  style={{ ...inputStyle, flex: '0 0 140px' }}
+                >
+                  <option value="CPF">CPF</option>
+                  <option value="CNPJ">CNPJ</option>
+                  <option value="EMAIL">E-mail</option>
+                  <option value="PHONE">Celular</option>
+                  <option value="EVP">Aleatória</option>
+                </select>
+                <input
+                  type="text"
+                  value={prestador.chave_pix || ''}
+                  onChange={e => setPrestador({ ...prestador, chave_pix: e.target.value })}
+                  placeholder="Sua chave PIX"
+                  style={{ ...inputStyle, flex: '1 1 200px' }}
+                />
+              </div>
             </div>
 
             {sucesso && (

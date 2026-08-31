@@ -4,6 +4,7 @@
   ],
   "crons": [
     { "path": "/api/verificar-tempo-resposta", "schedule": "*/30 * * * *" },
-    { "path": "/api/verificar-inadimplencia", "schedule": "0 9 * * *" }
+    { "path": "/api/verificar-inadimplencia", "schedule": "0 9 * * *" },
+    { "path": "/api/verificar-liberacao-automatica", "schedule": "0 */6 * * *" }
   ]
 }

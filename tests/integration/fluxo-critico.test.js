@@ -7,6 +7,8 @@ import { describe, it, expect, afterAll } from 'vitest'
 import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
 import verificarTempoResposta from '../../api/verificar-tempo-resposta.js'
+import criarCobrancaServico from '../../api/criar-cobranca-servico.js'
+import confirmarServicoConcluido from '../../api/confirmar-servico-concluido.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
 const state = {}
@@ -412,6 +414,67 @@ describe('Fluxo crítico', () => {
       .single()
     expect(creditos.creditos_disponiveis).toBe(5)
   }, 15000)
+
+  // Opcional — só roda se ASAAS_KEY_SANDBOX/ASAAS_WEBHOOK_TOKEN estiverem
+  // preenchidos. Cobre até a retenção do pagamento e a marcação de
+  // "entregue" — a liberação de verdade (transferência PIX) depende de
+  // uma permissão de saque via API que precisa ser habilitada na conta
+  // Asaas (fora do nosso código), então aqui só confirmamos que nosso
+  // lado se comporta corretamente nos dois desfechos possíveis.
+  it.skipIf(!process.env.ASAAS_KEY_SANDBOX || !process.env.ASAAS_WEBHOOK_TOKEN)(
+    '6c. (opcional) Pagamento protegido do serviço — retém, marca entregue, tenta liberar',
+    async () => {
+      await admin.from('prestadores').update({
+        chave_pix: state.prestadorSessao.email, tipo_chave_pix: 'EMAIL',
+      }).eq('id', state.prestadorId)
+      await admin.from('pedidos_servico').update({ status: 'em_andamento', valor_acordado: 150 }).eq('id', state.pedidoId)
+
+      const cobranca = await invocarFuncao(criarCobrancaServico, {
+        headers: { authorization: `Bearer ${state.clienteSessao.session.access_token}`, origin: 'https://prestador-lyart.vercel.app' },
+        body: {
+          pedidoId: state.pedidoId, nomeCliente: 'Cliente de Teste', emailCliente: state.clienteSessao.email,
+          cpfCliente: '12345678909', telefoneCliente: '11999998888', cepCliente: '01310100',
+          enderecoCliente: 'Avenida Paulista', numeroCliente: '1000', bairroCliente: 'Bela Vista',
+        },
+      })
+      expect(cobranca.statusCode).toBe(200)
+      expect(cobranca.body.link).toMatch(/^https:\/\//)
+
+      const webhook = await invocarFuncao(webhookAsaas, {
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN },
+        body: {
+          event: 'PAYMENT_CONFIRMED',
+          payment: { externalReference: `servico:${state.clienteUserId}:${state.pedidoId}`, value: 150, billingType: 'PIX' },
+        },
+      })
+      expect(webhook.statusCode).toBe(200)
+
+      const { data: retido } = await admin.from('pedidos_servico').select('status_pagamento').eq('id', state.pedidoId).single()
+      expect(retido.status_pagamento).toBe('retido')
+
+      const { error: erroRpc } = await state.prestadorSessao.cliente.rpc('marcar_servico_entregue', { p_pedido_id: state.pedidoId })
+      expect(erroRpc).toBeNull()
+
+      const { data: entregue } = await admin.from('pedidos_servico').select('entregue_em').eq('id', state.pedidoId).single()
+      expect(entregue.entregue_em).not.toBeNull()
+
+      // A liberação de verdade depende da conta Asaas ter permissão de
+      // saque via API — sem isso, o esperado é falhar e reverter pra
+      // 'retido' (não travar em 'liberando'). Aceitamos os dois
+      // desfechos, mas nunca um estado travado.
+      const confirmar = await invocarFuncao(confirmarServicoConcluido, {
+        headers: { authorization: `Bearer ${state.clienteSessao.session.access_token}` },
+        body: { pedidoId: state.pedidoId },
+      })
+
+      const { data: final } = await admin.from('pedidos_servico').select('status_pagamento').eq('id', state.pedidoId).single()
+      expect(['retido', 'liberado']).toContain(final.status_pagamento)
+      if (confirmar.statusCode !== 200) {
+        expect(final.status_pagamento).toBe('retido')
+      }
+    },
+    20000
+  )
 
   // Opcional — só roda se ASAAS_WEBHOOK_TOKEN estiver preenchido no .env.test.
   it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(

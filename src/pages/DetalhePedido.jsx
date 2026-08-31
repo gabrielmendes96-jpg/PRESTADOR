@@ -34,6 +34,9 @@ export default function DetalhePedido() {
   const [erro, setErro] = useState('')
   const [dataAgendada, setDataAgendada] = useState('')
   const [salvandoData, setSalvandoData] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+  const [marcandoEntregue, setMarcandoEntregue] = useState(false)
+  const [erroPagamento, setErroPagamento] = useState('')
 
   useEffect(() => {
     carregarTudo()
@@ -58,7 +61,7 @@ export default function DetalhePedido() {
 
     const { data: cands } = await supabase
       .from('candidaturas')
-      .select('*, prestadores(id, nome, categoria_id, cidade, estado, avaliacao_media, foto_perfil)')
+      .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil)')
       .eq('pedido_id', id)
       .order('criado_em', { ascending: false })
     setCandidaturas(cands || [])
@@ -105,6 +108,8 @@ export default function DetalhePedido() {
   const aceitarCandidatura = async (candidaturaId, prestadorId) => {
     setErro('')
 
+    const candidatura = candidaturas.find(c => c.id === candidaturaId)
+
     const { error } = await supabase.from('candidaturas').update({ status: 'aceito' }).eq('id', candidaturaId)
     if (error) {
       setErro('Não foi possível aceitar essa candidatura. Tente novamente.')
@@ -113,7 +118,10 @@ export default function DetalhePedido() {
 
     await supabase.from('candidaturas').update({ status: 'recusado' })
       .eq('pedido_id', id).neq('id', candidaturaId)
-    await supabase.from('pedidos_servico').update({ status: 'em_andamento' }).eq('id', id)
+    await supabase.from('pedidos_servico').update({
+      status: 'em_andamento',
+      valor_acordado: candidatura?.valor_proposto || null,
+    }).eq('id', id)
 
     // Iniciar conversa com o prestador escolhido
     const { data: conv, error: erroConversa } = await supabase.from('conversas').insert({
@@ -138,6 +146,30 @@ export default function DetalhePedido() {
       .update({ data_agendada: dataAgendada ? new Date(dataAgendada).toISOString() : null })
       .eq('id', id)
     setSalvandoData(false)
+  }
+
+  const confirmarConclusao = async () => {
+    setConfirmando(true)
+    setErroPagamento('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/confirmar-servico-concluido', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ pedidoId: id }),
+    })
+    const data = await res.json()
+    setConfirmando(false)
+    if (!res.ok) { setErroPagamento(data.error || 'Não foi possível confirmar a conclusão.'); return }
+    carregarTudo()
+  }
+
+  const marcarEntregue = async () => {
+    setMarcandoEntregue(true)
+    setErroPagamento('')
+    const { error } = await supabase.rpc('marcar_servico_entregue', { p_pedido_id: id })
+    setMarcandoEntregue(false)
+    if (error) { setErroPagamento('Não foi possível marcar como entregue.'); return }
+    carregarTudo()
   }
 
   if (carregando) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando...</p>
@@ -213,6 +245,79 @@ export default function DetalhePedido() {
           <Button size="sm" disabled={salvandoData} onClick={salvarDataAgendada}>
             {salvandoData ? 'Salvando...' : 'Salvar'}
           </Button>
+        </Card>
+      )}
+
+      {/* Pagamento protegido do serviço */}
+      {pedido.status === 'em_andamento' && (ehDono || souPrestadorAceito) && (
+        <Card padding={16} style={{ marginBottom: spacing.card }}>
+          {erroPagamento && (
+            <p style={{ fontSize: 13, marginBottom: 12, padding: '10px 14px', borderRadius: 12, color: '#B91C1C', background: '#FEF2F2' }}>
+              {erroPagamento}
+            </p>
+          )}
+
+          {!pedido.status_pagamento && (
+            ehDono ? (
+              pedido.valor_acordado ? (
+                <>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Pagamento protegido</p>
+                  <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>
+                    O valor combinado fica retido até você confirmar que o serviço foi concluído.
+                  </p>
+                  <Button fullWidth icon={<Wallet size={16} />} onClick={() => navigate(`/pagamento?tipo=servico&pedido=${id}`)}>
+                    Pagar pelo app — R${pedido.valor_acordado}
+                  </Button>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Combine o valor com o prestador pelo chat pra poder pagar pelo app.</p>
+              )
+            ) : (
+              <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Aguardando o cliente efetuar o pagamento protegido.</p>
+            )
+          )}
+
+          {pedido.status_pagamento === 'retido' && (
+            <>
+              <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Pagamento retido</p>
+              {souPrestadorAceito && !pedido.entregue_em && (
+                <>
+                  <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>
+                    O pagamento já está protegido. Marque como entregue quando concluir o serviço.
+                  </p>
+                  <Button fullWidth disabled={marcandoEntregue} onClick={marcarEntregue}>
+                    {marcandoEntregue ? 'Marcando...' : 'Marcar como entregue'}
+                  </Button>
+                </>
+              )}
+              {souPrestadorAceito && pedido.entregue_em && (
+                <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>
+                  Você marcou como entregue em {new Date(pedido.entregue_em).toLocaleDateString('pt-BR')}.
+                  O pagamento libera automaticamente em até 3 dias se o cliente não confirmar antes.
+                </p>
+              )}
+              {ehDono && (
+                <>
+                  <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>
+                    {pedido.entregue_em
+                      ? 'O prestador marcou o serviço como entregue. Se você não confirmar, o pagamento libera automaticamente em até 3 dias.'
+                      : 'Confirme quando o serviço for concluído pra liberar o pagamento ao prestador.'}
+                  </p>
+                  <Button fullWidth disabled={confirmando} onClick={confirmarConclusao}>
+                    {confirmando ? 'Confirmando...' : 'Confirmar conclusão e liberar pagamento'}
+                  </Button>
+                </>
+              )}
+            </>
+          )}
+
+          {pedido.status_pagamento === 'liberando' && (
+            <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Processando a liberação do pagamento...</p>
+          )}
+
+          {pedido.status_pagamento === 'liberado' && (
+            <Badge tone="success" icon={<Check size={12} strokeWidth={3} />}>Pagamento liberado</Badge>
+          )}
         </Card>
       )}
 

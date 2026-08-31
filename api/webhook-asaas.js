@@ -181,6 +181,51 @@ export default async function handler(req, res) {
       }
     }
 
+    if (tipo === 'servico') {
+      const pedidoId = extra
+
+      // Idempotente: .is('status_pagamento', null) garante que um
+      // reenvio do mesmo webhook pela Asaas não retenha o pagamento
+      // duas vezes nem sobrescreva um status já avançado.
+      const { data: atualizados } = await supabase
+        .from('pedidos_servico')
+        .update({
+          status_pagamento: 'retido',
+          pago_servico_em: new Date().toISOString(),
+        })
+        .eq('id', pedidoId)
+        .is('status_pagamento', null)
+        .select('id, cliente_user_id, titulo')
+
+      const pedido = atualizados?.[0]
+      if (pedido) {
+        const { data: candidatura } = await supabase
+          .from('candidaturas')
+          .select('prestadores(user_id)')
+          .eq('pedido_id', pedidoId)
+          .eq('status', 'aceito')
+          .single()
+
+        const notificacoes = [
+          {
+            user_id: pedido.cliente_user_id,
+            titulo: 'Pagamento confirmado',
+            corpo: `Seu pagamento por "${pedido.titulo}" está protegido até a conclusão do serviço.`,
+            tipo: 'pagamento', url: `/pedidos/${pedidoId}`,
+          },
+        ]
+        if (candidatura?.prestadores?.user_id) {
+          notificacoes.push({
+            user_id: candidatura.prestadores.user_id,
+            titulo: 'Cliente pagou pelo serviço',
+            corpo: `O pagamento de "${pedido.titulo}" está protegido — você recebe após a conclusão.`,
+            tipo: 'pagamento', url: `/pedidos/${pedidoId}`,
+          })
+        }
+        await supabase.from('notificacoes').insert(notificacoes)
+      }
+    }
+
     return res.status(200).json({ ok: true })
   } catch (error) {
     console.error('Erro no webhook:', error)
