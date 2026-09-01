@@ -164,9 +164,10 @@ export default function Admin() {
                 <MapPin size={15} /> Geocodificar prestadores sem coordenadas
               </button>
               <button onClick={async () => {
-                const r = await fetch('/api/verificar-inadimplencia', {
+                const r = await fetch('/api/manutencao', {
                   method: 'POST',
-                  headers: { 'x-cron-token': 'prestador-webhook-2026' }
+                  headers: { 'Content-Type': 'application/json', 'x-cron-token': 'prestador-webhook-2026' },
+                  body: JSON.stringify({ tarefa: 'inadimplencia' }),
                 })
                 const d = await r.json()
                 alert(`Inadimplência: ${d.suspensos} suspensos, ${d.reativados} reativados`)
@@ -176,9 +177,10 @@ export default function Admin() {
                 <TriangleAlert size={15} /> Verificar assinaturas vencidas
               </button>
               <button onClick={async () => {
-                const r = await fetch('/api/verificar-tempo-resposta', {
+                const r = await fetch('/api/manutencao', {
                   method: 'POST',
-                  headers: { 'x-cron-token': 'prestador-webhook-2026' }
+                  headers: { 'Content-Type': 'application/json', 'x-cron-token': 'prestador-webhook-2026' },
+                  body: JSON.stringify({ tarefa: 'tempo-resposta' }),
                 })
                 const d = await r.json()
                 alert(`Tempo de resposta: ${d.verificadas} verificadas, ${d.penalizados} penalizados`)
@@ -186,6 +188,19 @@ export default function Admin() {
                 className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
                 style={{ background: '#E0E7FF', color: '#3730A3' }}>
                 <MessageCircle size={15} /> Verificar tempo de resposta dos prestadores
+              </button>
+              <button onClick={async () => {
+                const r = await fetch('/api/manutencao', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'x-cron-token': 'prestador-webhook-2026' },
+                  body: JSON.stringify({ tarefa: 'liberacao-automatica' }),
+                })
+                const d = await r.json()
+                alert(`Liberação automática: ${d.verificados} verificados, ${d.liberados} liberados`)
+              }}
+                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
+                style={{ background: '#DCFCE7', color: '#14853D' }}>
+                <Wrench size={15} /> Verificar liberação automática de pagamentos
               </button>
             </div>
           </div>

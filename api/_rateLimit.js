@@ -1,4 +1,4 @@
-// api/rate-limit.js
+// api/_rateLimit.js
 // Utilitário de rate limiting simples em memória
 // Para produção use Redis ou Upstash
 

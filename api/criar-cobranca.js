@@ -3,7 +3,7 @@
 // cartão nunca toca este servidor, quem coleta é a própria página da
 // Asaas. Ver supabase.../docs.asaas.com/reference/create-new-checkout.
 
-import { checkRateLimit, getClientIp } from './rate-limit.js'
+import { checkRateLimit, getClientIp } from './_rateLimit.js'
 import { verificarUsuario } from './_verificarUsuario.js'
 
 // O campo "phone" da Asaas espera 10 dígitos (DDD + 8 números), mas
@@ -32,11 +32,11 @@ export default async function handler(req, res) {
   const userId = usuarioAutenticado.id
 
   const {
-    tipo, descricao, extra, nomeCliente, emailCliente, cpfCliente,
+    tipo, descricao, extra, pedidoId, nomeCliente, emailCliente, cpfCliente,
     telefoneCliente, cepCliente, enderecoCliente, numeroCliente, bairroCliente, complementoCliente,
   } = req.body
 
-  if (!tipo || !extra) {
+  if (!tipo || (tipo !== 'servico' && !extra) || (tipo === 'servico' && !pedidoId)) {
     return res.status(400).json({ error: 'Dados incompletos' })
   }
 
@@ -46,11 +46,51 @@ export default async function handler(req, res) {
   const PRECOS_CREDITOS = { 1: 9, 5: 35, 10: 59, 20: 99 }
   const PRECOS_BOOST = { '7dias': 20, '15dias': 39, '30dias': 59 }
 
-  const TABELAS_PRECO = { mensalidade: PRECOS_PLANO, creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
-  const tabela = TABELAS_PRECO[tipo]
-  const valor = tabela?.[extra]
-  if (!valor) {
-    return res.status(400).json({ error: 'Item inválido' })
+  let valor, itemNome, billingTypes = ['CREDIT_CARD', 'PIX'], pedido
+
+  if (tipo === 'servico') {
+    // Pagamento protegido de um serviço específico — o preço é o valor
+    // já combinado com o prestador (pedidos_servico.valor_acordado),
+    // nunca um valor fixo de tabela. Sem cartão aqui: parcelado libera
+    // o dinheiro pra nossa conta aos poucos, o que não combina com
+    // repassar o valor cheio ao prestador logo após o serviço.
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    const { data: p } = await supabase
+      .from('pedidos_servico')
+      .select('id, cliente_user_id, valor_acordado, status, status_pagamento, titulo')
+      .eq('id', pedidoId)
+      .single()
+
+    if (!p || p.cliente_user_id !== userId) {
+      return res.status(404).json({ error: 'Pedido não encontrado' })
+    }
+    if (p.status !== 'em_andamento') {
+      return res.status(400).json({ error: 'Este pedido ainda não tem um prestador confirmado' })
+    }
+    if (!p.valor_acordado) {
+      return res.status(400).json({ error: 'Valor do serviço ainda não foi combinado' })
+    }
+    if (p.status_pagamento) {
+      return res.status(400).json({ error: 'Este pedido já foi pago' })
+    }
+
+    pedido = p
+    valor = p.valor_acordado
+    // O Checkout da Asaas só aceita CREDIT_CARD ou PIX (BOLETO não é
+    // suportado neste produto).
+    billingTypes = ['PIX']
+    // items[].name tem limite de 30 caracteres no Checkout.
+    itemNome = (p.titulo || 'Serviço').slice(0, 30)
+  } else {
+    const TABELAS_PRECO = { mensalidade: PRECOS_PLANO, creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
+    const tabela = TABELAS_PRECO[tipo]
+    valor = tabela?.[extra]
+    if (!valor) {
+      return res.status(400).json({ error: 'Item inválido' })
+    }
+    itemNome = descricao || 'Prestador App'
   }
 
   const ASAAS_URL = process.env.ASAAS_SANDBOX === 'true'
@@ -65,17 +105,17 @@ export default async function handler(req, res) {
 
   try {
     const dadosCheckout = {
-      billingTypes: ['CREDIT_CARD', 'PIX'],
+      billingTypes,
       chargeTypes: ['DETACHED'],
       minutesToExpire: 1440,
-      externalReference: `${tipo}:${userId}:${extra}`,
+      externalReference: tipo === 'servico' ? `servico:${pedido.cliente_user_id}:${pedidoId}` : `${tipo}:${userId}:${extra}`,
       callback: {
         successUrl: `${origem}/pagamento/retorno?status=sucesso&tipo=${tipo}`,
         cancelUrl: `${origem}/pagamento/retorno?status=cancelado&tipo=${tipo}`,
         expiredUrl: `${origem}/pagamento/retorno?status=expirado&tipo=${tipo}`,
       },
       items: [
-        { name: descricao || 'Prestador App', quantity: 1, value: valor },
+        { name: itemNome, quantity: 1, value: valor },
       ],
       customerData: {
         name: nomeCliente || 'Cliente Prestador',

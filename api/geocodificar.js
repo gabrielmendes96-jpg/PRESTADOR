@@ -2,7 +2,7 @@
 // Converte cidade/estado em coordenadas usando Nominatim (gratuito)
 // Roda via cron ou chamada manual do admin
 
-import { checkRateLimit, getClientIp } from './rate-limit.js'
+import { checkRateLimit, getClientIp } from './_rateLimit.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })

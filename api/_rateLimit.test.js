@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { checkRateLimit, getClientIp } from './rate-limit.js'
+import { checkRateLimit, getClientIp } from './_rateLimit.js'
 
 describe('checkRateLimit', () => {
   afterEach(() => {

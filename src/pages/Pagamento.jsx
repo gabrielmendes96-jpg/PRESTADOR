@@ -92,10 +92,10 @@ export default function Pagamento() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const endpoint = tipo === 'servico' ? '/api/criar-cobranca-servico' : '/api/criar-cobranca'
+      const endpoint = '/api/criar-cobranca'
       const corpo = tipo === 'servico'
         ? {
-          pedidoId,
+          tipo, pedidoId,
           nomeCliente: usuario.user_metadata?.nome || 'Cliente',
           emailCliente: usuario.email,
           cpfCliente: cpf.replace(/\D/g, ''),

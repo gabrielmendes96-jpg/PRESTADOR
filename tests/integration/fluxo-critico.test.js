@@ -6,8 +6,7 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
-import verificarTempoResposta from '../../api/verificar-tempo-resposta.js'
-import criarCobrancaServico from '../../api/criar-cobranca-servico.js'
+import { verificarTempoResposta } from '../../api/manutencao.js'
 import confirmarServicoConcluido from '../../api/confirmar-servico-concluido.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
@@ -330,12 +329,9 @@ describe('Fluxo crítico', () => {
 
       const { data: antes } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
 
-      const { statusCode, body } = await invocarFuncao(verificarTempoResposta, {
-        method: 'POST',
-        headers: { 'x-cron-token': process.env.ASAAS_WEBHOOK_TOKEN },
-      })
-      expect(statusCode).toBe(200)
-      expect(body.penalizados).toBeGreaterThanOrEqual(1)
+      const resultado = await verificarTempoResposta(admin)
+      expect(resultado.ok).toBe(true)
+      expect(resultado.penalizados).toBeGreaterThanOrEqual(1)
 
       const { data: depois } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
       expect(depois.pontos_resposta).toBe(Math.max(0, (antes.pontos_resposta || 0) - 5))
@@ -344,10 +340,7 @@ describe('Fluxo crítico', () => {
       expect(conversaAtualizada.penalizado_em).not.toBeNull()
 
       // Rodar de novo não deve penalizar a mesma janela outra vez.
-      const { body: segunda } = await invocarFuncao(verificarTempoResposta, {
-        method: 'POST',
-        headers: { 'x-cron-token': process.env.ASAAS_WEBHOOK_TOKEN },
-      })
+      const segunda = await verificarTempoResposta(admin)
       expect(segunda.penalizados).toBe(0)
 
       // Bônus — o próprio prestador chama a RPC ao responder dentro do prazo.
@@ -429,10 +422,10 @@ describe('Fluxo crítico', () => {
       }).eq('id', state.prestadorId)
       await admin.from('pedidos_servico').update({ status: 'em_andamento', valor_acordado: 150 }).eq('id', state.pedidoId)
 
-      const cobranca = await invocarFuncao(criarCobrancaServico, {
+      const cobranca = await invocarFuncao(criarCobranca, {
         headers: { authorization: `Bearer ${state.clienteSessao.session.access_token}`, origin: 'https://prestador-lyart.vercel.app' },
         body: {
-          pedidoId: state.pedidoId, nomeCliente: 'Cliente de Teste', emailCliente: state.clienteSessao.email,
+          tipo: 'servico', pedidoId: state.pedidoId, nomeCliente: 'Cliente de Teste', emailCliente: state.clienteSessao.email,
           cpfCliente: '12345678909', telefoneCliente: '11999998888', cepCliente: '01310100',
           enderecoCliente: 'Avenida Paulista', numeroCliente: '1000', bairroCliente: 'Bela Vista',
         },
