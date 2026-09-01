@@ -155,7 +155,11 @@ export default function Admin() {
             <div className="mt-4 pt-4 space-y-2" style={{ borderTop: '0.5px solid #E4E7E4' }}>
               <p className="text-xs font-medium mb-2" style={{ color: '#6B7280' }}>AÇÕES DO SISTEMA</p>
               <button onClick={async () => {
-                const r = await fetch('/api/geocodificar', { method: 'POST' })
+                const { data: { session } } = await supabase.auth.getSession()
+                const r = await fetch('/api/geocodificar', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${session?.access_token}` },
+                })
                 const d = await r.json()
                 alert(`Geocodificação: ${d.sucesso} sucesso, ${d.falha} falhas`)
               }}
@@ -164,9 +168,10 @@ export default function Admin() {
                 <MapPin size={15} /> Geocodificar prestadores sem coordenadas
               </button>
               <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
                 const r = await fetch('/api/manutencao', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'x-cron-token': 'prestador-webhook-2026' },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                   body: JSON.stringify({ tarefa: 'inadimplencia' }),
                 })
                 const d = await r.json()
@@ -177,9 +182,10 @@ export default function Admin() {
                 <TriangleAlert size={15} /> Verificar assinaturas vencidas
               </button>
               <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
                 const r = await fetch('/api/manutencao', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'x-cron-token': 'prestador-webhook-2026' },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                   body: JSON.stringify({ tarefa: 'tempo-resposta' }),
                 })
                 const d = await r.json()
@@ -190,9 +196,10 @@ export default function Admin() {
                 <MessageCircle size={15} /> Verificar tempo de resposta dos prestadores
               </button>
               <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
                 const r = await fetch('/api/manutencao', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'x-cron-token': 'prestador-webhook-2026' },
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
                   body: JSON.stringify({ tarefa: 'liberacao-automatica' }),
                 })
                 const d = await r.json()

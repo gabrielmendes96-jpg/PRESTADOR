@@ -3,9 +3,15 @@
 // Roda via cron ou chamada manual do admin
 
 import { checkRateLimit, getClientIp } from './_rateLimit.js'
+import { verificarAdmin } from './_verificarAdmin.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  // Antes não tinha nenhuma checagem aqui — qualquer um podia disparar
+  // isso sem estar logado.
+  const usuarioAdmin = await verificarAdmin(req)
+  if (!usuarioAdmin) return res.status(401).json({ error: 'Não autorizado' })
 
   const ip = getClientIp(req)
   if (!checkRateLimit(ip, 3, 60000)) {

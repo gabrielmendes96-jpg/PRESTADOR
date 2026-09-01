@@ -3,17 +3,11 @@
 // Hobby da Vercel limita o total de Serverless Functions (12), e cada
 // arquivo em api/ conta como uma. Chamado internamente por
 // api/cron-diario.js (import direto, sem HTTP) e manualmente pelos
-// três botões de Admin.jsx (informando `tarefa` no corpo).
+// três botões de Admin.jsx, autenticado pela sessão real do admin (ver
+// api/_verificarAdmin.js) — nada de token fixo no código do cliente.
 import { estourouPrazo } from '../src/lib/tempoResposta.js'
 import { liberarPagamentoServico } from './_liberarPagamentoServico.js'
-
-function autorizado(req) {
-  const auth = req.headers['authorization'] || ''
-  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null
-  if (process.env.CRON_SECRET && bearer === process.env.CRON_SECRET) return true
-  if (req.headers['x-cron-token'] === process.env.ASAAS_WEBHOOK_TOKEN) return true
-  return false
-}
+import { verificarAdmin } from './_verificarAdmin.js'
 
 // Desconta pontos de agilidade de prestadores que estouraram o prazo
 // de 2h úteis pra responder um cliente (ver src/lib/tempoResposta.js).
@@ -140,7 +134,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
-  if (!autorizado(req)) {
+  const usuarioAdmin = await verificarAdmin(req)
+  if (!usuarioAdmin) {
     return res.status(401).json({ error: 'Não autorizado' })
   }
 
