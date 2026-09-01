@@ -6,8 +6,12 @@
 //
 // Habilitar em: Menu do usuário > Integrações > Mecanismos de segurança
 // (painel da Asaas) — aponte pra
-// https://SEU-DOMINIO/api/validar-saque-asaas e configure o mesmo token
-// usado em ASAAS_WEBHOOK_TOKEN.
+// https://SEU-DOMINIO/api/validar-saque-asaas. Token dedicado
+// (ASAAS_SAQUE_WEBHOOK_TOKEN), separado do ASAAS_WEBHOOK_TOKEN usado no
+// webhook de pagamento — invente uma senha nova, cole ela no campo
+// "Token de autenticação" da Asaas E como variável de ambiente na
+// Vercel, sem precisar ir procurar um valor que já existe em outro
+// lugar.
 //
 // IMPORTANTE: a documentação da Asaas não deixa 100% claro o formato
 // exato do corpo desta requisição — verifique o payload real (logado
@@ -19,7 +23,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const token = req.headers['asaas-access-token']
-  if (token !== process.env.ASAAS_WEBHOOK_TOKEN) {
+  if (token !== process.env.ASAAS_SAQUE_WEBHOOK_TOKEN) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
