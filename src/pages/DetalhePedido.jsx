@@ -37,6 +37,9 @@ export default function DetalhePedido() {
   const [confirmando, setConfirmando] = useState(false)
   const [marcandoEntregue, setMarcandoEntregue] = useState(false)
   const [erroPagamento, setErroPagamento] = useState('')
+  const [mostrarFormDisputa, setMostrarFormDisputa] = useState(false)
+  const [motivoDisputa, setMotivoDisputa] = useState('')
+  const [abrindoDisputa, setAbrindoDisputa] = useState(false)
 
   useEffect(() => {
     carregarTudo()
@@ -172,6 +175,20 @@ export default function DetalhePedido() {
     carregarTudo()
   }
 
+  const abrirDisputa = async () => {
+    if (!motivoDisputa.trim()) return
+    setAbrindoDisputa(true)
+    setErroPagamento('')
+    const { error } = await supabase.from('pedidos_servico').update({
+      disputa_aberta_em: new Date().toISOString(),
+      disputa_motivo: motivoDisputa.trim(),
+    }).eq('id', id)
+    setAbrindoDisputa(false)
+    if (error) { setErroPagamento('Não foi possível abrir a disputa.'); return }
+    setMostrarFormDisputa(false)
+    carregarTudo()
+  }
+
   if (carregando) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando...</p>
   if (!pedido) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Pedido não encontrado.</p>
 
@@ -280,6 +297,14 @@ export default function DetalhePedido() {
           {pedido.status_pagamento === 'retido' && (
             <>
               <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Pagamento retido</p>
+
+              {pedido.disputa_aberta_em && (
+                <div style={{ padding: 12, borderRadius: 12, background: '#FEF3C7', marginBottom: 12 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#92610A', margin: '0 0 4px' }}>Disputa aberta em análise</p>
+                  <p style={{ fontSize: 13, color: '#92610A', margin: 0 }}>{pedido.disputa_motivo}</p>
+                </div>
+              )}
+
               {souPrestadorAceito && !pedido.entregue_em && (
                 <>
                   <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>
@@ -290,7 +315,7 @@ export default function DetalhePedido() {
                   </Button>
                 </>
               )}
-              {souPrestadorAceito && pedido.entregue_em && (
+              {souPrestadorAceito && pedido.entregue_em && !pedido.disputa_aberta_em && (
                 <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>
                   Você marcou como entregue em {new Date(pedido.entregue_em).toLocaleDateString('pt-BR')}.
                   O pagamento libera automaticamente em até 3 dias se o cliente não confirmar antes.
@@ -306,6 +331,24 @@ export default function DetalhePedido() {
                   <Button fullWidth disabled={confirmando} onClick={confirmarConclusao}>
                     {confirmando ? 'Confirmando...' : 'Confirmar conclusão e liberar pagamento'}
                   </Button>
+
+                  {!pedido.disputa_aberta_em && !mostrarFormDisputa && (
+                    <button onClick={() => setMostrarFormDisputa(true)}
+                      style={{ marginTop: 10, fontSize: 12, color: colors.textSub, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                      Teve algum problema com o serviço?
+                    </button>
+                  )}
+                  {!pedido.disputa_aberta_em && mostrarFormDisputa && (
+                    <div style={{ marginTop: 10 }}>
+                      <textarea value={motivoDisputa} onChange={e => setMotivoDisputa(e.target.value)}
+                        placeholder="Explique o que houve..."
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 13, borderRadius: 12, border: `1px solid ${colors.border}`, outline: 'none', fontFamily: 'inherit', resize: 'none', marginBottom: 8 }}
+                        rows={3} />
+                      <Button size="sm" variant="secondary" fullWidth disabled={!motivoDisputa.trim() || abrindoDisputa} onClick={abrirDisputa}>
+                        {abrindoDisputa ? 'Abrindo...' : 'Abrir disputa'}
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </>

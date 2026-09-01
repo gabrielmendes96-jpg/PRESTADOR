@@ -114,6 +114,7 @@ export async function verificarLiberacaoAutomatica(supabase) {
     .eq('status_pagamento', 'retido')
     .not('entregue_em', 'is', null)
     .lte('entregue_em', dataCorte)
+    .is('disputa_aberta_em', null) // pedido disputado nunca libera sozinho
 
   let liberados = 0
   for (const pedido of (pendentes || [])) {

@@ -6,7 +6,7 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
-import { verificarTempoResposta } from '../../api/manutencao.js'
+import { verificarTempoResposta, verificarLiberacaoAutomatica } from '../../api/manutencao.js'
 import confirmarServicoConcluido from '../../api/confirmar-servico-concluido.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
@@ -468,6 +468,31 @@ describe('Fluxo crítico', () => {
     },
     20000
   )
+
+  it('6d. Disputa aberta pausa a liberação automática do pagamento', async () => {
+    // Independente do desfecho do teste 6c (que depende de permissão de
+    // saque na conta Asaas, fora do nosso controle) — reseta o estado
+    // aqui pra este teste ficar determinístico.
+    const dezDiasAtras = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+    await admin.from('pedidos_servico').update({
+      status_pagamento: 'retido',
+      entregue_em: dezDiasAtras,
+      disputa_aberta_em: new Date().toISOString(),
+      disputa_motivo: 'Serviço não foi concluído como combinado.',
+    }).eq('id', state.pedidoId)
+
+    const resultado = await verificarLiberacaoAutomatica(admin)
+    expect(resultado.ok).toBe(true)
+
+    const { data: pedido } = await admin.from('pedidos_servico')
+      .select('status_pagamento, disputa_aberta_em')
+      .eq('id', state.pedidoId)
+      .single()
+    // Mesmo com entregue_em de 10 dias atrás (bem além do prazo de 3
+    // dias), a disputa aberta impede a liberação automática.
+    expect(pedido.status_pagamento).toBe('retido')
+    expect(pedido.disputa_aberta_em).not.toBeNull()
+  }, 15000)
 
   // Opcional — só roda se ASAAS_WEBHOOK_TOKEN estiver preenchido no .env.test.
   it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(
