@@ -2,12 +2,21 @@
 // Envia notificação push para o outro participante de uma conversa
 
 import { verificarUsuario } from './_verificarUsuario.js'
+import { checkRateLimit } from './_rateLimit.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const usuarioAutenticado = await verificarUsuario(req)
   if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
+
+  // Sem isso, quem participa de uma conversa podia inundar a outra
+  // pessoa de notificações push repetidas — o limite é por pessoa que
+  // envia, não por conversa, pra não travar quem conversa com vários
+  // clientes/prestadores ao mesmo tempo.
+  if (!(await checkRateLimit(`enviar-push:${usuarioAutenticado.id}`, 20, 60))) {
+    return res.status(429).json({ error: 'Muitas notificações enviadas. Tente novamente em instantes.' })
+  }
 
   const { conversaId, titulo, corpo, url, tipo } = req.body
   if (!conversaId) return res.status(400).json({ error: 'conversaId obrigatório' })

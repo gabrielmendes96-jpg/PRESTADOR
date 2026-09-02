@@ -9,9 +9,19 @@
     "postbuild": "node scripts/gerar-sitemap.mjs",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.js"
+    "test:integration": "vitest run --config vitest.integration.config.js",
+    "mobile:sync": "vite build && npx cap sync",
+    "mobile:android": "npm run mobile:sync && npx cap open android",
+    "mobile:ios": "npm run mobile:sync && npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@supabase/supabase-js": "^2.45.0",
     "axios": "^1.6.0",
     "lucide-react": "^1.27.0",
@@ -21,6 +31,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.17",
     "dotenv": "^17.4.2",

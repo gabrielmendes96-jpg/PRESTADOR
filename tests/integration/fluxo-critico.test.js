@@ -60,7 +60,6 @@ describe('Fluxo crítico', () => {
         cidade: 'São Paulo',
         estado: 'SP',
         valor_pago: 9.0,
-        pago: true,
         status: 'aberto',
       })
       .select()
@@ -68,6 +67,7 @@ describe('Fluxo crítico', () => {
 
     expect(error).toBeNull()
     state.pedidoId = pedido.id
+    expect(pedido.pago).toBe(false)
 
     const { data: visivel } = await state.clienteSessao.cliente
       .from('pedidos_servico')
@@ -75,6 +75,64 @@ describe('Fluxo crítico', () => {
       .eq('id', pedido.id)
       .single()
     expect(visivel?.id).toBe(pedido.id)
+  }, 15000)
+
+  it('2b. Segurança — cliente não consegue marcar o próprio pedido como pago direto pela API', async () => {
+    const { error: erroPago } = await state.clienteSessao.cliente
+      .from('pedidos_servico')
+      .update({ pago: true })
+      .eq('id', state.pedidoId)
+    expect(erroPago).toBeTruthy()
+
+    // Só o backend (service role) ou a RPC debitar_credito() podem marcar
+    // como pago — usamos o admin aqui só pra deixar o pedido "pago" pro
+    // resto do fluxo do teste, do mesmo jeito que o webhook faria.
+    await admin.from('pedidos_servico').update({ pago: true }).eq('id', state.pedidoId)
+  }, 15000)
+
+  it('2c. Segurança — debitar_credito() desconta o crédito e marca o pedido como pago atomicamente', async () => {
+    const { data: pedidoTemp } = await state.clienteSessao.cliente.from('pedidos_servico').insert({
+      cliente_user_id: state.clienteUserId, cliente_nome: 'Cliente de Teste',
+      titulo: 'Pedido temporário — teste de crédito', categoria_id: state.categoriaId,
+      cidade: 'São Paulo', estado: 'SP', status: 'aberto',
+    }).select().single()
+
+    const { data: creditoExistente } = await admin.from('creditos_cliente').select('user_id').eq('user_id', state.clienteUserId).maybeSingle()
+    if (creditoExistente) {
+      await admin.from('creditos_cliente').update({ creditos_disponiveis: 1 }).eq('user_id', state.clienteUserId)
+    } else {
+      await admin.from('creditos_cliente').insert({ user_id: state.clienteUserId, creditos_disponiveis: 1 })
+    }
+
+    const { error: erroRpc } = await state.clienteSessao.cliente.rpc('debitar_credito', { p_pedido_id: pedidoTemp.id })
+    expect(erroRpc).toBeNull()
+
+    const { data: depois } = await admin.from('pedidos_servico').select('pago').eq('id', pedidoTemp.id).single()
+    expect(depois.pago).toBe(true)
+
+    const { data: credito } = await admin.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', state.clienteUserId).single()
+    expect(credito.creditos_disponiveis).toBe(0)
+
+    // Sem crédito, a segunda chamada falha — nunca fica negativo.
+    const { error: erroSemCredito } = await state.clienteSessao.cliente.rpc('debitar_credito', { p_pedido_id: pedidoTemp.id })
+    expect(erroSemCredito).toBeTruthy()
+
+    await admin.from('pedidos_servico').delete().eq('id', pedidoTemp.id)
+  }, 15000)
+
+  it('2d. Segurança — valor_acordado trava depois que o pagamento é retido', async () => {
+    await admin.from('pedidos_servico').update({ valor_acordado: 100, status_pagamento: 'retido' }).eq('id', state.pedidoId)
+
+    const { error: erroCliente } = await state.clienteSessao.cliente
+      .from('pedidos_servico').update({ valor_acordado: 10 }).eq('id', state.pedidoId)
+    expect(erroCliente).toBeTruthy()
+
+    const { error: erroAdmin } = await admin
+      .from('pedidos_servico').update({ valor_acordado: 90 }).eq('id', state.pedidoId)
+    expect(erroAdmin).toBeNull()
+
+    // Reseta pro resto do fluxo do teste não ser afetado por este estado.
+    await admin.from('pedidos_servico').update({ status_pagamento: null, valor_acordado: null }).eq('id', state.pedidoId)
   }, 15000)
 
   it('3a. Candidatura — RLS recusa prestador do plano básico', async () => {
@@ -643,5 +701,25 @@ describe('Fluxo crítico', () => {
     await verificarSuporteDisputa(admin)
     const { data: depois } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
     expect(depois.pontos_resposta).toBe(antes.pontos_resposta)
+  }, 15000)
+
+  it('12. Rate limiting — bloqueia a partir do limite e libera depois que a janela expira', async () => {
+    const chave = `teste-rate-limit-${Date.now()}`
+
+    const { data: primeira } = await admin.rpc('verificar_rate_limit', { p_chave: chave, p_max: 2, p_janela_segundos: 60 })
+    expect(primeira).toBe(true)
+    const { data: segunda } = await admin.rpc('verificar_rate_limit', { p_chave: chave, p_max: 2, p_janela_segundos: 60 })
+    expect(segunda).toBe(true)
+    const { data: terceira } = await admin.rpc('verificar_rate_limit', { p_chave: chave, p_max: 2, p_janela_segundos: 60 })
+    expect(terceira).toBe(false)
+
+    // Janela de 1s — depois de expirar, o contador reseta e libera de novo.
+    const chaveCurta = `${chave}-curta`
+    await admin.rpc('verificar_rate_limit', { p_chave: chaveCurta, p_max: 1, p_janela_segundos: 1 })
+    await new Promise(r => setTimeout(r, 1200))
+    const { data: aposExpirar } = await admin.rpc('verificar_rate_limit', { p_chave: chaveCurta, p_max: 1, p_janela_segundos: 1 })
+    expect(aposExpirar).toBe(true)
+
+    await admin.from('rate_limits').delete().in('chave', [chave, chaveCurta])
   }, 15000)
 })

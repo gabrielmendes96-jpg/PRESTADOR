@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Upload, Image, Play, X } from 'lucide-react'
+import { Upload, Image, Play, X, Camera as CameraIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { colors } from '../lib/design'
+import { isNative, tirarFotoNativa } from '../lib/native'
 
 export default function Portfolio({ prestadorId }) {
   const [midias, setMidias] = useState([])
@@ -25,6 +26,20 @@ export default function Portfolio({ prestadorId }) {
   const handleUpload = async (e) => {
     const arquivos = Array.from(e.target.files)
     if (!arquivos.length) return
+    await enviarArquivos(arquivos)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
+  const handleFotoNativa = async () => {
+    try {
+      const arquivo = await tirarFotoNativa()
+      await enviarArquivos([arquivo])
+    } catch (e) {
+      // Usuário cancelou a câmera/galeria — não é um erro de verdade.
+    }
+  }
+
+  const enviarArquivos = async (arquivos) => {
     setEnviando(true)
 
     for (const arquivo of arquivos) {
@@ -57,7 +72,6 @@ export default function Portfolio({ prestadorId }) {
     }
 
     setEnviando(false)
-    if (inputRef.current) inputRef.current.value = ''
   }
 
   const remover = async (id) => {
@@ -82,15 +96,28 @@ export default function Portfolio({ prestadorId }) {
           style={{ display: 'none' }}
           id="portfolio-upload"
         />
-        <button
-          onClick={() => document.getElementById('portfolio-upload').click()}
-          disabled={enviando}
-          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
-          style={{ background: colors.primary, color: '#fff' }}
-        >
-          <Upload size={16} />
-          {enviando ? 'Enviando...' : 'Adicionar fotos ou vídeos'}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => document.getElementById('portfolio-upload').click()}
+            disabled={enviando}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
+            style={{ background: colors.primary, color: '#fff' }}
+          >
+            <Upload size={16} />
+            {enviando ? 'Enviando...' : 'Adicionar fotos ou vídeos'}
+          </button>
+          {isNative() && (
+            <button
+              onClick={handleFotoNativa}
+              disabled={enviando}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
+              style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+            >
+              <CameraIcon size={16} />
+              Usar câmera
+            </button>
+          )}
+        </div>
         <p className="text-xs mt-1" style={{ color: colors.textSub }}>
           Você pode selecionar múltiplos arquivos de uma vez
         </p>

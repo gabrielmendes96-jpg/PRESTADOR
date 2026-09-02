@@ -1,23 +1,22 @@
 // api/_rateLimit.js
-// Utilitário de rate limiting simples em memória
-// Para produção use Redis ou Upstash
+// Rate limiting real, apoiado numa tabela no Supabase (ver
+// supabase/25_rate_limit_real.sql) — a versão anterior guardava a
+// contagem num Map() em memória do processo, que não é compartilhado
+// entre instâncias serverless da Vercel, então na prática nunca limitava
+// nada de verdade em produção.
 
-const requests = new Map()
+export async function checkRateLimit(chave, maxRequests = 10, windowSeconds = 60) {
+  const { createClient } = await import('@supabase/supabase-js')
+  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-export function checkRateLimit(ip, maxRequests = 10, windowMs = 60000) {
-  const now = Date.now()
-  const windowStart = now - windowMs
-
-  if (!requests.has(ip)) {
-    requests.set(ip, [])
+  const { data, error } = await supabase.rpc('verificar_rate_limit', {
+    p_chave: chave, p_max: maxRequests, p_janela_segundos: windowSeconds,
+  })
+  if (error) {
+    console.error('Erro ao checar rate limit:', error)
+    return true // falha aberta — melhor deixar passar do que derrubar o endpoint
   }
-
-  // Limpar requisições antigas
-  const reqs = requests.get(ip).filter(time => time > windowStart)
-  reqs.push(now)
-  requests.set(ip, reqs)
-
-  return reqs.length <= maxRequests
+  return data
 }
 
 export function getClientIp(req) {

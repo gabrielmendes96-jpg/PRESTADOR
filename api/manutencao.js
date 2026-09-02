@@ -174,11 +174,19 @@ export async function verificarSuporteDisputa(supabase) {
   return { ok: true, verificadas: disputas?.length || 0, penalizados }
 }
 
+// Zera as linhas de rate_limits mais antigas que 1 dia — sem isso a
+// tabela cresceria pra sempre (ver supabase/25_rate_limit_real.sql).
+export async function limparRateLimits(supabase) {
+  const { error } = await supabase.rpc('limpar_rate_limits_antigos')
+  return { ok: !error }
+}
+
 const TAREFAS = {
   'tempo-resposta': verificarTempoResposta,
   'inadimplencia': verificarInadimplencia,
   'liberacao-automatica': verificarLiberacaoAutomatica,
   'suporte-disputa': verificarSuporteDisputa,
+  'limpar-rate-limits': limparRateLimits,
 }
 
 export default async function handler(req, res) {

@@ -2,6 +2,7 @@
 // Cria assinatura recorrente mensal no Asaas
 
 import { verificarUsuario } from './_verificarUsuario.js'
+import { checkRateLimit } from './_rateLimit.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -9,6 +10,10 @@ export default async function handler(req, res) {
   const usuarioAutenticado = await verificarUsuario(req)
   if (!usuarioAutenticado) return res.status(401).json({ error: 'Não autenticado' })
   const userId = usuarioAutenticado.id
+
+  if (!(await checkRateLimit(`criar-assinatura:${userId}`, 5, 60))) {
+    return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 minuto.' })
+  }
 
   const { planoId, nomeCliente, emailCliente, cpfCliente } = req.body
 

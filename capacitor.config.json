@@ -1,0 +1,19 @@
+{
+  "appId": "com.prestador.app",
+  "appName": "Prestador",
+  "webDir": "dist",
+  "backgroundColor": "#F3F6F2",
+  "android": {
+    "backgroundColor": "#F3F6F2"
+  },
+  "ios": {
+    "backgroundColor": "#F3F6F2"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#F3F6F2",
+      "showSpinner": false
+    }
+  }
+}

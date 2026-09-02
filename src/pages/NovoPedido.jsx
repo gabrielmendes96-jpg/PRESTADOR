@@ -122,9 +122,10 @@ export default function NovoPedido() {
       return
     }
 
-    // Debita 1 crédito através da função de banco (garante que nunca fica
-    // negativo e que ninguém consegue burlar o desconto pela API direta).
-    const { error: erroCredito } = await supabase.rpc('debitar_credito')
+    // Debita 1 crédito e marca o pedido como pago na mesma função de banco
+    // (garante que nunca fica negativo e que ninguém consegue marcar o
+    // pedido como pago sem realmente descontar o crédito).
+    const { error: erroCredito } = await supabase.rpc('debitar_credito', { p_pedido_id: data.id })
     if (erroCredito) {
       // Sem crédito de verdade — desfaz o pedido que acabou de ser criado.
       await supabase.from('pedidos_servico').update({ status: 'cancelado' }).eq('id', data.id)
@@ -133,8 +134,6 @@ export default function NovoPedido() {
       setEtapa(2)
       return
     }
-
-    await supabase.from('pedidos_servico').update({ pago: true }).eq('id', data.id)
 
     // Sobe as fotos/vídeos anexados (precisa do id do pedido pra montar o caminho)
     if (midias.length > 0) {

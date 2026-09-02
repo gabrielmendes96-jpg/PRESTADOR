@@ -1,42 +1,32 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { checkRateLimit, getClientIp } from './_rateLimit.js'
 
+const rpcMock = vi.fn()
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: () => ({ rpc: rpcMock }),
+}))
+
 describe('checkRateLimit', () => {
-  afterEach(() => {
-    vi.useRealTimers()
+  beforeEach(() => {
+    rpcMock.mockReset()
   })
 
-  it('permite requisições dentro do limite', () => {
-    const ip = `1.1.1.${Math.random()}`
-    expect(checkRateLimit(ip, 3, 60000)).toBe(true)
-    expect(checkRateLimit(ip, 3, 60000)).toBe(true)
-    expect(checkRateLimit(ip, 3, 60000)).toBe(true)
+  it('repassa o resultado da função verificar_rate_limit no banco', async () => {
+    rpcMock.mockResolvedValue({ data: true, error: null })
+    expect(await checkRateLimit('rota:1.2.3.4', 5, 60)).toBe(true)
+    expect(rpcMock).toHaveBeenCalledWith('verificar_rate_limit', {
+      p_chave: 'rota:1.2.3.4', p_max: 5, p_janela_segundos: 60,
+    })
   })
 
-  it('bloqueia a partir da requisição que excede o limite', () => {
-    const ip = `2.2.2.${Math.random()}`
-    expect(checkRateLimit(ip, 2, 60000)).toBe(true)
-    expect(checkRateLimit(ip, 2, 60000)).toBe(true)
-    expect(checkRateLimit(ip, 2, 60000)).toBe(false)
+  it('bloqueia quando a função de banco retorna false', async () => {
+    rpcMock.mockResolvedValue({ data: false, error: null })
+    expect(await checkRateLimit('rota:1.2.3.4', 5, 60)).toBe(false)
   })
 
-  it('libera novamente depois que a janela de tempo expira', () => {
-    vi.useFakeTimers()
-    const ip = `3.3.3.${Math.random()}`
-    expect(checkRateLimit(ip, 1, 1000)).toBe(true)
-    expect(checkRateLimit(ip, 1, 1000)).toBe(false)
-
-    vi.advanceTimersByTime(1100)
-
-    expect(checkRateLimit(ip, 1, 1000)).toBe(true)
-  })
-
-  it('mantém contadores independentes por IP', () => {
-    const ipA = `4.4.4.${Math.random()}`
-    const ipB = `5.5.5.${Math.random()}`
-    expect(checkRateLimit(ipA, 1, 60000)).toBe(true)
-    expect(checkRateLimit(ipB, 1, 60000)).toBe(true)
-    expect(checkRateLimit(ipA, 1, 60000)).toBe(false)
+  it('falha aberta se a checagem no banco der erro (não derruba o endpoint)', async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'timeout' } })
+    expect(await checkRateLimit('rota:1.2.3.4', 5, 60)).toBe(true)
   })
 })
 

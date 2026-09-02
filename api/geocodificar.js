@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (!usuarioAdmin) return res.status(401).json({ error: 'Não autorizado' })
 
   const ip = getClientIp(req)
-  if (!checkRateLimit(ip, 3, 60000)) {
+  if (!(await checkRateLimit(`geocodificar:${ip}`, 3, 60))) {
     return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 minuto.' })
   }
 

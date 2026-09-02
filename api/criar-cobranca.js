@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   }
 
   const ip = getClientIp(req)
-  if (!checkRateLimit(ip, 5, 60000)) {
+  if (!(await checkRateLimit(`criar-cobranca:${ip}`, 5, 60))) {
     return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 minuto.' })
   }
 
