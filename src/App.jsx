@@ -1,41 +1,46 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, GitCompare } from 'lucide-react'
-import Home from './pages/Home'
-import Busca from './pages/Busca'
-import Perfil from './pages/Perfil'
-import Planos from './pages/Planos'
-import CadastroPro from './pages/CadastroPro'
-import Admin from './pages/Admin'
-import Login from './pages/Login'
-import Cadastro from './pages/Cadastro'
-import AuthCallback from './pages/AuthCallback'
-import PainelPrestador from './pages/PainelPrestador'
-import Chat from './pages/Chat'
-import Conversas from './pages/Conversas'
-import Pedidos from './pages/Pedidos'
-import NovoPedido from './pages/NovoPedido'
-import DetalhePedido from './pages/DetalhePedido'
-import Indicacao from './pages/Indicacao'
-import Convite from './pages/Convite'
-import EsqueciSenha from './pages/EsqueciSenha'
-import NovaSenha from './pages/NovaSenha'
-import Pagamento from './pages/Pagamento'
-import PagamentoRetorno from './pages/PagamentoRetorno'
-import ZonasQuentes from './pages/ZonasQuentes'
-import AssistentePerfil from './pages/AssistentePerfil'
-import Boost from './pages/Boost'
-import Disponibilidade from './pages/Disponibilidade'
-import Ganhos from './pages/Ganhos'
-import Niveis from './pages/Niveis'
-import SEOCategoria from './pages/SEOCategoria'
-import SEOCidadeCategoria from './pages/SEOCidadeCategoria'
-import Termos from './pages/Termos'
-import NotFound from './pages/NotFound'
-import PerfilCliente from './pages/PerfilCliente'
-import ComoFunciona from './pages/ComoFunciona'
-import Onboarding from './pages/Onboarding'
-import Comparar from './pages/Comparar'
+
+// Cada página vira um chunk próprio em vez de tudo ir num JS só — o
+// visitante que só quer buscar um prestador não baixa o código do
+// Admin, do painel do prestador, do fluxo de pagamento, etc.
+const Home = lazy(() => import('./pages/Home'))
+const Busca = lazy(() => import('./pages/Busca'))
+const Perfil = lazy(() => import('./pages/Perfil'))
+const Planos = lazy(() => import('./pages/Planos'))
+const CadastroPro = lazy(() => import('./pages/CadastroPro'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Login = lazy(() => import('./pages/Login'))
+const Cadastro = lazy(() => import('./pages/Cadastro'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
+const PainelPrestador = lazy(() => import('./pages/PainelPrestador'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Conversas = lazy(() => import('./pages/Conversas'))
+const Pedidos = lazy(() => import('./pages/Pedidos'))
+const NovoPedido = lazy(() => import('./pages/NovoPedido'))
+const DetalhePedido = lazy(() => import('./pages/DetalhePedido'))
+const Indicacao = lazy(() => import('./pages/Indicacao'))
+const Convite = lazy(() => import('./pages/Convite'))
+const EsqueciSenha = lazy(() => import('./pages/EsqueciSenha'))
+const NovaSenha = lazy(() => import('./pages/NovaSenha'))
+const Pagamento = lazy(() => import('./pages/Pagamento'))
+const PagamentoRetorno = lazy(() => import('./pages/PagamentoRetorno'))
+const ZonasQuentes = lazy(() => import('./pages/ZonasQuentes'))
+const AssistentePerfil = lazy(() => import('./pages/AssistentePerfil'))
+const Boost = lazy(() => import('./pages/Boost'))
+const Disponibilidade = lazy(() => import('./pages/Disponibilidade'))
+const Ganhos = lazy(() => import('./pages/Ganhos'))
+const Niveis = lazy(() => import('./pages/Niveis'))
+const SEOCategoria = lazy(() => import('./pages/SEOCategoria'))
+const SEOCidadeCategoria = lazy(() => import('./pages/SEOCidadeCategoria'))
+const Termos = lazy(() => import('./pages/Termos'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+const PerfilCliente = lazy(() => import('./pages/PerfilCliente'))
+const ComoFunciona = lazy(() => import('./pages/ComoFunciona'))
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const Comparar = lazy(() => import('./pages/Comparar'))
+
 import BottomNav from './components/BottomNav'
 import CentralNotificacoes from './components/CentralNotificacoes'
 import Logo from './components/Logo'
@@ -211,6 +216,9 @@ export default function App() {
         <div style={{ background: '#F3F6F2', minHeight: '100vh' }}>
           <Navbar />
           <main className="max-w-6xl mx-auto px-4 py-6 pb-20 sm:pb-6">
+            <Suspense fallback={
+              <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: '#6B7280' }}>Carregando...</p>
+            }>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/busca" element={<Busca />} />
@@ -248,6 +256,7 @@ export default function App() {
               <Route path="/comparar" element={<Comparar />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </main>
           <InstallPWA />
           <BottomNav />
