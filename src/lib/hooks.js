@@ -145,6 +145,7 @@ export function usePrestadores(filtros = {}) {
         totalAvaliacoes: p.total_avaliacoes,
         totalServicos: p.total_servicos,
         tempoResposta: p.tempo_resposta,
+        pontosResposta: p.pontos_resposta,
         raioAtendimento: p.raio_atendimento,
         plano: p.plano_id,
         categoria: p.categoria_id,
@@ -153,6 +154,7 @@ export function usePrestadores(filtros = {}) {
           qualidade: p.media_qualidade,
           preco: p.media_preco,
           limpeza: p.media_limpeza,
+          comunicacao: p.media_comunicacao,
         },
       }))
 
@@ -211,6 +213,7 @@ export function usePrestador(id) {
         totalAvaliacoes: p.total_avaliacoes,
         totalServicos: p.total_servicos,
         tempoResposta: p.tempo_resposta,
+        pontosResposta: p.pontos_resposta,
         raioAtendimento: p.raio_atendimento,
         plano: p.plano_id,
         categoria: p.categoria_id,
@@ -219,6 +222,7 @@ export function usePrestador(id) {
           qualidade: p.media_qualidade,
           preco: p.media_preco,
           limpeza: p.media_limpeza,
+          comunicacao: p.media_comunicacao,
         },
         avaliacoes: (avaliacoes || []).map(a => ({
           autor: a.autor_nome,
@@ -229,9 +233,8 @@ export function usePrestador(id) {
           midias: (a.midias_avaliacao || []),
           notas: {
             qualidade: a.qualidade,
-            preco_avaliacao: a.preco_avaliacao,
-            tempo_servico: a.tempo_servico,
-            higiene: a.higiene,
+            preco: a.preco,
+            limpeza: a.limpeza,
             comunicacao: a.comunicacao,
             pontualidade: a.pontualidade,
           }
@@ -281,6 +284,7 @@ export function usePrestadoresPorIds(ids = []) {
         totalAvaliacoes: p.total_avaliacoes,
         totalServicos: p.total_servicos,
         tempoResposta: p.tempo_resposta,
+        pontosResposta: p.pontos_resposta,
         raioAtendimento: p.raio_atendimento,
         plano: p.plano_id,
         categoria: p.categoria_id,
@@ -289,6 +293,7 @@ export function usePrestadoresPorIds(ids = []) {
           qualidade: p.media_qualidade,
           preco: p.media_preco,
           limpeza: p.media_limpeza,
+          comunicacao: p.media_comunicacao,
         },
       }))
 

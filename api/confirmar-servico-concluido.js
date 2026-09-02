@@ -6,6 +6,7 @@
 // automático, ver api/verificar-liberacao-automatica.js).
 import { verificarUsuario } from './_verificarUsuario.js'
 import { liberarPagamentoServico } from './_liberarPagamentoServico.js'
+import { registrarServicoConcluido } from './_registrarServicoConcluido.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
 
   const { data: pedido } = await supabase
     .from('pedidos_servico')
-    .select('id, cliente_user_id')
+    .select('id, cliente_user_id, titulo, categoria_id, status, status_pagamento, entregue_em, valor_acordado')
     .eq('id', pedidoId)
     .single()
 
@@ -29,8 +30,22 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Pedido não encontrado' })
   }
 
-  const resultado = await liberarPagamentoServico(supabase, pedidoId)
-  if (!resultado.ok) return res.status(400).json({ error: resultado.motivo })
+  if (pedido.status_pagamento === 'retido') {
+    const resultado = await liberarPagamentoServico(supabase, pedidoId)
+    if (!resultado.ok) return res.status(400).json({ error: resultado.motivo })
+    return res.status(200).json({ ok: true })
+  }
+
+  if (pedido.status !== 'em_andamento') {
+    return res.status(400).json({ error: 'Este pedido não pode ser marcado como concluído agora.' })
+  }
+
+  await supabase.from('pedidos_servico').update({
+    status: 'concluido',
+    concluido_em: new Date().toISOString(),
+  }).eq('id', pedidoId)
+
+  await registrarServicoConcluido(supabase, pedido)
 
   return res.status(200).json({ ok: true })
 }

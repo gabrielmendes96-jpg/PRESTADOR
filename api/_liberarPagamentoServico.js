@@ -3,12 +3,14 @@
 // api/confirmar-servico-concluido.js (cliente confirma manualmente) quanto
 // por api/verificar-liberacao-automatica.js (cron, 3 dias de segurança) —
 // centralizado aqui pra não duplicar a chamada de transferência nos dois.
+import { registrarServicoConcluido } from './_registrarServicoConcluido.js'
+
 const COMISSAO_PLATAFORMA = 0.15
 
 export async function liberarPagamentoServico(supabase, pedidoId) {
   const { data: pedido } = await supabase
     .from('pedidos_servico')
-    .select('id, valor_acordado, cliente_user_id')
+    .select('id, valor_acordado, cliente_user_id, titulo, categoria_id, entregue_em')
     .eq('id', pedidoId)
     .single()
 
@@ -89,6 +91,8 @@ export async function liberarPagamentoServico(supabase, pedidoId) {
       status_pagamento: 'liberado',
       liberado_em: new Date().toISOString(),
     }).eq('id', pedidoId)
+
+    await registrarServicoConcluido(supabase, pedido)
 
     await supabase.from('notificacoes').insert([
       {

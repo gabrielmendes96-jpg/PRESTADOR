@@ -5,49 +5,68 @@ import { useNavigate } from 'react-router-dom'
 import { Star, Trophy, DollarSign, Clock, Sparkles, MessageCircle, Calendar, Check, X, Info, Play } from 'lucide-react'
 import { colors } from '../lib/design'
 
+// Critérios unificados — antes o formulário gravava em
+// preco_avaliacao/tempo_servico/higiene, mas a média pública só lia
+// pontualidade/qualidade/preco/limpeza, então "Preço" e "Limpeza"
+// ficavam sempre zerados no perfil. Agora só existe este conjunto, e
+// todos os 5 entram na média (ver prestadores_completo).
 const criterios = [
   { key: 'nota', label: 'Geral', icon: Star },
   { key: 'qualidade', label: 'Qualidade', icon: Trophy },
-  { key: 'preco_avaliacao', label: 'Preço', icon: DollarSign },
-  { key: 'tempo_servico', label: 'Prazo', icon: Clock },
-  { key: 'higiene', label: 'Higiene', icon: Sparkles },
+  { key: 'preco', label: 'Preço', icon: DollarSign },
+  { key: 'limpeza', label: 'Limpeza', icon: Sparkles },
   { key: 'comunicacao', label: 'Comunicação', icon: MessageCircle },
   { key: 'pontualidade', label: 'Pontualidade', icon: Calendar },
 ]
 
-function EstrelasInterativas({ valor, onChange }) {
-  const [hover, setHover] = useState(0)
+const NOTAS_POSSIVEIS = Array.from({ length: 11 }, (_, i) => i) // 0..10
+
+function corDaNota(n) {
+  if (n >= 8) return colors.primaryHover
+  if (n >= 5) return '#92610A'
+  return '#B91C1C'
+}
+
+// Nota em número real (0 a 10), não estrelas — o cliente toca no
+// número em vez de preencher ícones.
+function NotaInterativa({ valor, onChange }) {
   return (
-    <div className="flex gap-0.5">
-      {[1,2,3,4,5].map(v => (
-        <button
-          key={v}
-          type="button"
-          onMouseEnter={() => setHover(v)}
-          onMouseLeave={() => setHover(0)}
-          onClick={() => onChange(v)}
-          style={{ lineHeight: 0 }}
-        >
-          <Star size={22} fill={v <= (hover || valor) ? colors.secondary : 'none'} color={v <= (hover || valor) ? colors.secondary : '#D1D5DB'} strokeWidth={1.5} />
-        </button>
-      ))}
+    <div className="flex gap-1 overflow-x-auto pb-0.5">
+      {NOTAS_POSSIVEIS.map(n => {
+        const ativo = valor === n
+        return (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className="flex-shrink-0 flex items-center justify-center rounded-lg text-xs font-semibold"
+            style={{
+              width: 26, height: 26,
+              background: ativo ? colors.primary : colors.bg,
+              color: ativo ? '#fff' : colors.textSub,
+              border: `1px solid ${ativo ? colors.primary : colors.border}`,
+            }}
+          >
+            {n}
+          </button>
+        )
+      })}
     </div>
   )
 }
 
-function EstrelasFixas({ nota, size = 13 }) {
+// Exibição de uma nota já dada — número grande, sem ícone repetido.
+function NotaFixa({ nota, size = 13 }) {
   return (
-    <span className="inline-flex gap-0.5" style={{ verticalAlign: 'middle' }}>
-      {[1, 2, 3, 4, 5].map(v => (
-        <Star key={v} size={size} fill={v <= nota ? colors.secondary : 'none'} color={colors.secondary} strokeWidth={1.5} />
-      ))}
+    <span className="inline-flex items-center font-semibold" style={{ fontSize: size, color: corDaNota(nota), verticalAlign: 'middle' }}>
+      {nota}<span style={{ opacity: 0.6, fontWeight: 500 }}>/10</span>
     </span>
   )
 }
 
 function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
   const { usuario } = useAuth()
-  const [notas, setNotas] = useState({ nota: 0, qualidade: 0, preco_avaliacao: 0, tempo_servico: 0, higiene: 0, comunicacao: 0, pontualidade: 0 })
+  const [notas, setNotas] = useState({ nota: null, qualidade: null, preco: null, limpeza: null, comunicacao: null, pontualidade: null })
   const [comentario, setComentario] = useState('')
   const [midias, setMidias] = useState([])
   const [previews, setPreviews] = useState([])
@@ -73,7 +92,7 @@ function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (notas.nota === 0) { setErro('Selecione a avaliação geral em estrelas.'); return }
+    if (notas.nota === null) { setErro('Dê uma nota geral de 0 a 10.'); return }
     setEnviando(true)
     setErro('')
 
@@ -150,7 +169,7 @@ function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
               <p className="flex items-center gap-1.5 text-xs mb-1.5" style={{ color: colors.textSub }}>
                 <c.icon size={13} /> {c.label}
               </p>
-              <EstrelasInterativas
+              <NotaInterativa
                 valor={notas[c.key]}
                 onChange={v => setNotas({ ...notas, [c.key]: v })}
               />
@@ -282,14 +301,14 @@ export default function Avaliacoes({ prestador }) {
                   </p>
                 </div>
               </div>
-              <EstrelasFixas nota={r.nota} />
+              <NotaFixa nota={r.nota} size={15} />
             </div>
 
             {r.notas && (
               <div className="flex flex-wrap gap-2 mb-2">
-                {criterios.filter(c => c.key !== 'nota' && r.notas[c.key] > 0).map(c => (
+                {criterios.filter(c => c.key !== 'nota' && r.notas[c.key] != null).map(c => (
                   <span key={c.key} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: colors.bg, color: colors.textSub }}>
-                    <c.icon size={11} /> {c.label}: <EstrelasFixas nota={r.notas[c.key]} size={10} />
+                    <c.icon size={11} /> {c.label}: <NotaFixa nota={r.notas[c.key]} size={11} />
                   </span>
                 ))}
               </div>

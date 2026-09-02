@@ -6,7 +6,7 @@
 import { describe, it, expect, afterAll } from 'vitest'
 import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
-import { verificarTempoResposta, verificarLiberacaoAutomatica } from '../../api/manutencao.js'
+import { verificarTempoResposta, verificarLiberacaoAutomatica, verificarSuporteDisputa } from '../../api/manutencao.js'
 import confirmarServicoConcluido from '../../api/confirmar-servico-concluido.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
@@ -556,4 +556,92 @@ describe('Fluxo crítico', () => {
     },
     20000
   )
+
+  it('8. Avaliações — constraint aceita 0 e 10, recusa acima de 10', async () => {
+    const { error: erroDez } = await state.clienteSessao.cliente.from('avaliacoes').insert({
+      prestador_id: state.prestadorId, autor_user_id: state.clienteUserId, autor_nome: 'Cliente de Teste',
+      nota: 10, pontualidade: 10, qualidade: 0, preco: 0, limpeza: 10, comunicacao: 10,
+    })
+    expect(erroDez).toBeNull()
+    await admin.from('avaliacoes').delete().eq('prestador_id', state.prestadorId).eq('nota', 10)
+
+    const { error: erroOnze } = await state.clienteSessao.cliente.from('avaliacoes').insert({
+      prestador_id: state.prestadorId, autor_user_id: state.clienteUserId, autor_nome: 'Cliente de Teste',
+      nota: 11, pontualidade: 5, qualidade: 5, preco: 5, limpeza: 5, comunicacao: 5,
+    })
+    expect(erroOnze).toBeTruthy()
+  }, 15000)
+
+  it('9. Serviço concluído sem pagamento — grava histórico e incrementa total_servicos', async () => {
+    await admin.from('pedidos_servico').update({
+      status: 'em_andamento', status_pagamento: null, valor_acordado: 80,
+    }).eq('id', state.pedidoId)
+
+    const { data: antes } = await admin.from('prestadores').select('total_servicos').eq('id', state.prestadorId).single()
+
+    const resultado = await invocarFuncao(confirmarServicoConcluido, {
+      headers: { authorization: `Bearer ${state.clienteSessao.session.access_token}` },
+      body: { pedidoId: state.pedidoId },
+    })
+    expect(resultado.statusCode).toBe(200)
+
+    const { data: pedido } = await admin.from('pedidos_servico').select('status, concluido_em').eq('id', state.pedidoId).single()
+    expect(pedido.status).toBe('concluido')
+    expect(pedido.concluido_em).not.toBeNull()
+
+    const { data: historico } = await admin.from('historico_servicos')
+      .select('*').eq('prestador_id', state.prestadorId).eq('cliente_user_id', state.clienteUserId)
+    expect(historico.length).toBeGreaterThanOrEqual(1)
+
+    const { data: depois } = await admin.from('prestadores').select('total_servicos').eq('id', state.prestadorId).single()
+    expect(depois.total_servicos).toBe((antes.total_servicos || 0) + 1)
+  }, 20000)
+
+  it('10. Suporte obrigatório — disputa sem resposta em 24h desconta 10 pontos, sem penalizar duas vezes', async () => {
+    const doisDiasAtras = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    await admin.from('pedidos_servico').update({
+      disputa_aberta_em: doisDiasAtras, disputa_motivo: 'Teste de suporte obrigatório.',
+      disputa_respondida_em: null, disputa_penalizada_em: null,
+    }).eq('id', state.pedidoId)
+
+    const { data: antes } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+
+    const primeira = await verificarSuporteDisputa(admin)
+    expect(primeira.ok).toBe(true)
+    expect(primeira.penalizados).toBeGreaterThanOrEqual(1)
+
+    const { data: depois } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+    expect(depois.pontos_resposta).toBe(Math.max(0, (antes.pontos_resposta || 0) - 10))
+
+    const { data: pedido } = await admin.from('pedidos_servico').select('disputa_penalizada_em').eq('id', state.pedidoId).single()
+    expect(pedido.disputa_penalizada_em).not.toBeNull()
+
+    // Rodar de novo não deve descontar a mesma disputa outra vez.
+    const segunda = await verificarSuporteDisputa(admin)
+    const { data: aindaMesmo } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+    expect(aindaMesmo.pontos_resposta).toBe(depois.pontos_resposta)
+  }, 15000)
+
+  it('11. Responder disputa — RPC grava a resposta do prestador e evita a penalidade', async () => {
+    const doisDiasAtras = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    await admin.from('pedidos_servico').update({
+      disputa_aberta_em: doisDiasAtras, disputa_motivo: 'Segunda disputa de teste.',
+      disputa_respondida_em: null, disputa_penalizada_em: null, disputa_resposta_prestador: null,
+    }).eq('id', state.pedidoId)
+
+    const { error: erroRpc } = await state.prestadorSessao.cliente.rpc('responder_disputa', {
+      p_pedido_id: state.pedidoId, p_resposta: 'O serviço foi concluído conforme combinado.',
+    })
+    expect(erroRpc).toBeNull()
+
+    const { data: pedido } = await admin.from('pedidos_servico')
+      .select('disputa_respondida_em, disputa_resposta_prestador').eq('id', state.pedidoId).single()
+    expect(pedido.disputa_respondida_em).not.toBeNull()
+    expect(pedido.disputa_resposta_prestador).toBe('O serviço foi concluído conforme combinado.')
+
+    const { data: antes } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+    await verificarSuporteDisputa(admin)
+    const { data: depois } = await admin.from('prestadores').select('pontos_resposta').eq('id', state.prestadorId).single()
+    expect(depois.pontos_resposta).toBe(antes.pontos_resposta)
+  }, 15000)
 })

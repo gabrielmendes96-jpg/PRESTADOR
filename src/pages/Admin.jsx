@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, HardHat, ClipboardList, Star, Flame, Wrench, Settings,
-  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle,
+  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
@@ -208,6 +208,20 @@ export default function Admin() {
                 className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
                 style={{ background: '#DCFCE7', color: '#14853D' }}>
                 <Wrench size={15} /> Verificar liberação automática de pagamentos
+              </button>
+              <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                const r = await fetch('/api/manutencao', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                  body: JSON.stringify({ tarefa: 'suporte-disputa' }),
+                })
+                const d = await r.json()
+                alert(`Suporte em disputa: ${d.verificadas} verificadas, ${d.penalizados} penalizados`)
+              }}
+                className="w-full py-2.5 text-sm rounded-xl hover:opacity-80 text-left px-4 flex items-center gap-2"
+                style={{ background: '#FEF2F2', color: '#B91C1C' }}>
+                <ShieldAlert size={15} /> Verificar suporte obrigatório em disputas
               </button>
             </div>
           </div>

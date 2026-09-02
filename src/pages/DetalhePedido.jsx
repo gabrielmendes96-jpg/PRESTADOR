@@ -40,6 +40,8 @@ export default function DetalhePedido() {
   const [mostrarFormDisputa, setMostrarFormDisputa] = useState(false)
   const [motivoDisputa, setMotivoDisputa] = useState('')
   const [abrindoDisputa, setAbrindoDisputa] = useState(false)
+  const [respostaDisputa, setRespostaDisputa] = useState('')
+  const [enviandoResposta, setEnviandoResposta] = useState(false)
 
   useEffect(() => {
     carregarTudo()
@@ -189,6 +191,17 @@ export default function DetalhePedido() {
     carregarTudo()
   }
 
+  const responderDisputa = async () => {
+    if (!respostaDisputa.trim()) return
+    setEnviandoResposta(true)
+    setErroPagamento('')
+    const { error } = await supabase.rpc('responder_disputa', { p_pedido_id: id, p_resposta: respostaDisputa.trim() })
+    setEnviandoResposta(false)
+    if (error) { setErroPagamento('Não foi possível enviar a resposta.'); return }
+    setRespostaDisputa('')
+    carregarTudo()
+  }
+
   if (carregando) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Carregando...</p>
   if (!pedido) return <p style={{ textAlign: 'center', padding: '64px 0', fontSize: 14, color: colors.textSub }}>Pedido não encontrado.</p>
 
@@ -276,19 +289,25 @@ export default function DetalhePedido() {
 
           {!pedido.status_pagamento && (
             ehDono ? (
-              pedido.valor_acordado ? (
-                <>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Pagamento protegido</p>
-                  <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>
-                    O valor combinado fica retido até você confirmar que o serviço foi concluído.
-                  </p>
-                  <Button fullWidth icon={<Wallet size={16} />} onClick={() => navigate(`/pagamento?tipo=servico&pedido=${id}`)}>
-                    Pagar pelo app — R${pedido.valor_acordado}
-                  </Button>
-                </>
-              ) : (
-                <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Combine o valor com o prestador pelo chat pra poder pagar pelo app.</p>
-              )
+              <>
+                {pedido.valor_acordado ? (
+                  <>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 4 }}>Pagamento protegido</p>
+                    <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>
+                      O valor combinado fica retido até você confirmar que o serviço foi concluído.
+                    </p>
+                    <Button fullWidth icon={<Wallet size={16} />} onClick={() => navigate(`/pagamento?tipo=servico&pedido=${id}`)}>
+                      Pagar pelo app — R${pedido.valor_acordado}
+                    </Button>
+                  </>
+                ) : (
+                  <p style={{ fontSize: 13, color: colors.textSub, marginBottom: 12 }}>Combine o valor com o prestador pelo chat pra poder pagar pelo app.</p>
+                )}
+                <button onClick={confirmarConclusao} disabled={confirmando}
+                  style={{ marginTop: 10, fontSize: 12, color: colors.textSub, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {confirmando ? 'Marcando...' : 'Já combinou o pagamento por fora? Marcar serviço como concluído'}
+                </button>
+              </>
             ) : (
               <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Aguardando o cliente efetuar o pagamento protegido.</p>
             )
@@ -302,6 +321,28 @@ export default function DetalhePedido() {
                 <div style={{ padding: 12, borderRadius: 12, background: '#FEF3C7', marginBottom: 12 }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: '#92610A', margin: '0 0 4px' }}>Disputa aberta em análise</p>
                   <p style={{ fontSize: 13, color: '#92610A', margin: 0 }}>{pedido.disputa_motivo}</p>
+
+                  {pedido.disputa_resposta_prestador && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(146,97,10,0.25)' }}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: '#92610A', margin: '0 0 4px' }}>Resposta do prestador</p>
+                      <p style={{ fontSize: 13, color: '#92610A', margin: 0 }}>{pedido.disputa_resposta_prestador}</p>
+                    </div>
+                  )}
+
+                  {souPrestadorAceito && !pedido.disputa_respondida_em && (
+                    <div style={{ marginTop: 10 }}>
+                      <p style={{ fontSize: 12, color: '#92610A', marginBottom: 6 }}>
+                        Responda em até 24h — deixar sem resposta desconta pontos de agilidade.
+                      </p>
+                      <textarea value={respostaDisputa} onChange={e => setRespostaDisputa(e.target.value)}
+                        placeholder="Explique sua versão..."
+                        style={{ width: '100%', padding: '10px 14px', fontSize: 13, borderRadius: 12, border: `1px solid ${colors.border}`, outline: 'none', fontFamily: 'inherit', resize: 'none', marginBottom: 8 }}
+                        rows={3} />
+                      <Button size="sm" fullWidth disabled={!respostaDisputa.trim() || enviandoResposta} onClick={responderDisputa}>
+                        {enviandoResposta ? 'Enviando...' : 'Responder disputa'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 

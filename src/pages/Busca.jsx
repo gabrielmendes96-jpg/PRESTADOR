@@ -14,7 +14,7 @@ import { getCategoriaIcone } from '../lib/categoriaIcones'
 import { recuperarLocalizacao, calcularDistancia } from '../lib/gps'
 
 const DISTANCIAS = [10, 25, 50, 100]
-const NOTAS = [0, 3, 4, 4.5]
+const NOTAS = [0, 6, 8, 9]
 
 export default function Busca() {
   const [params] = useSearchParams()
@@ -81,6 +81,7 @@ export default function Busca() {
         return a.distanciaReal - b.distanciaReal
       })
       case 'recente': return [...lista].sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em))
+      case 'agilidade': return [...lista].sort((a, b) => (b.pontosResposta || 0) - (a.pontosResposta || 0))
       default: return lista
     }
   }, [resultadosBrutos, ordenacao, filtrosAvancados.temFoto, filtro.distanciaMax, userLoc])
@@ -220,7 +221,7 @@ export default function Busca() {
                         fontSize: 13, fontWeight: 600, border: 'none',
                       }}
                     >
-                      {n === 0 ? 'Qualquer nota' : `${n}+ estrelas`}
+                      {n === 0 ? 'Qualquer nota' : `${n}+ pontos`}
                     </button>
                   ))}
                 </Card>
@@ -242,6 +243,7 @@ export default function Busca() {
             <option value="nota">Melhor nota</option>
             <option value="distancia">Mais próximo</option>
             <option value="recente">Mais recente</option>
+            <option value="agilidade">Mais ágeis</option>
           </select>
         </aside>
 

@@ -28,6 +28,7 @@ const menuItens = [
   { id: 'ganhos', label: 'Desempenho', icon: BarChart3 },
   { id: 'niveis', label: 'Meu Nível', icon: Trophy },
   { id: 'pedidos', label: 'Pedidos', icon: ClipboardList },
+  { id: 'historico', label: 'Histórico', icon: Wrench },
   { id: 'avaliacoes', label: 'Avaliações', icon: Star },
   { id: 'mensagens', label: 'Mensagens', icon: MessageCircle },
   { id: 'indicacao', label: 'Indique e Ganhe', icon: Gift },
@@ -83,6 +84,7 @@ export default function PainelPrestador() {
   const [pedidosCategoria, setPedidosCategoria] = useState([])
   const [totalPedidosCategoria, setTotalPedidosCategoria] = useState(0)
   const [pedidosHoje, setPedidosHoje] = useState(0)
+  const [historico, setHistorico] = useState([])
   const { categorias } = useCategorias()
 
   // Redireciona se não estiver logado (aguarda a sessão terminar de carregar)
@@ -123,6 +125,13 @@ export default function PainelPrestador() {
           .eq('prestador_id', data.id)
           .order('criado_em', { ascending: false })
         setMensagens(msgs || [])
+
+        const { data: hist } = await supabase
+          .from('historico_servicos')
+          .select('*')
+          .eq('prestador_id', data.id)
+          .order('data_servico', { ascending: false })
+        setHistorico(hist || [])
 
         // Pedidos abertos da mesma categoria do prestador — feed sempre
         // atualizado do que tem disponível pra ele hoje.
@@ -591,6 +600,36 @@ export default function PainelPrestador() {
                 <Button icon={<ClipboardList size={16} />} onClick={() => navigate('/pedidos')}>
                   Ver todos os pedidos ({totalPedidosCategoria})
                 </Button>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ABA: HISTÓRICO */}
+        {aba === 'historico' && (
+          <Card padding={24}>
+            <TabHeader icon={Wrench} title="Histórico de serviços" desc={`${historico.length} serviço${historico.length !== 1 ? 's' : ''} concluído${historico.length !== 1 ? 's' : ''}`} />
+            {historico.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <Wrench size={36} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
+                <p style={{ fontSize: 14, color: colors.textSub }}>Nenhum serviço concluído ainda.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {historico.map(h => (
+                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, background: colors.bg }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Wrench size={17} color="#14853D" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.titulo}</p>
+                      {h.valor && <p style={{ fontSize: 12, fontWeight: 700, color: colors.primaryHover, margin: 0 }}>R${h.valor}</p>}
+                    </div>
+                    <p style={{ fontSize: 12, color: colors.textSub, margin: 0, flexShrink: 0 }}>
+                      {h.data_servico ? new Date(h.data_servico).toLocaleDateString('pt-BR') : '—'}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </Card>

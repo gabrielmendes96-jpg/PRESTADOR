@@ -125,10 +125,60 @@ export async function verificarLiberacaoAutomatica(supabase) {
   return { ok: true, verificados: pendentes?.length || 0, liberados }
 }
 
+// Desconta pontos de agilidade de prestadores que deixaram uma disputa
+// sem resposta por mais de 24h (o dobro da penalidade de chat — deixar
+// uma disputa sem resposta é mais sério que demorar numa mensagem comum).
+export async function verificarSuporteDisputa(supabase) {
+  const HORAS_PRAZO = 24
+  const dataCorte = new Date(Date.now() - HORAS_PRAZO * 60 * 60 * 1000).toISOString()
+
+  const { data: disputas } = await supabase
+    .from('pedidos_servico')
+    .select('id, cliente_user_id')
+    .not('disputa_aberta_em', 'is', null)
+    .lte('disputa_aberta_em', dataCorte)
+    .is('disputa_respondida_em', null)
+    .is('disputa_penalizada_em', null)
+
+  let penalizados = 0
+
+  for (const pedido of (disputas || [])) {
+    const { data: candidatura } = await supabase
+      .from('candidaturas')
+      .select('prestador_id, prestadores(user_id, pontos_resposta)')
+      .eq('pedido_id', pedido.id)
+      .eq('status', 'aceito')
+      .single()
+
+    if (!candidatura) continue
+
+    await supabase.from('prestadores').update({
+      pontos_resposta: Math.max(0, (candidatura.prestadores?.pontos_resposta || 0) - 10),
+    }).eq('id', candidatura.prestador_id)
+
+    await supabase.from('pedidos_servico').update({ disputa_penalizada_em: new Date().toISOString() }).eq('id', pedido.id)
+
+    if (candidatura.prestadores?.user_id) {
+      await supabase.from('notificacoes').insert({
+        user_id: candidatura.prestadores.user_id,
+        titulo: 'Disputa sem resposta',
+        corpo: 'Você não respondeu a uma disputa dentro do prazo de 24h.',
+        tipo: 'disputa',
+        url: `/pedidos/${pedido.id}`,
+      })
+    }
+
+    penalizados++
+  }
+
+  return { ok: true, verificadas: disputas?.length || 0, penalizados }
+}
+
 const TAREFAS = {
   'tempo-resposta': verificarTempoResposta,
   'inadimplencia': verificarInadimplencia,
   'liberacao-automatica': verificarLiberacaoAutomatica,
+  'suporte-disputa': verificarSuporteDisputa,
 }
 
 export default async function handler(req, res) {

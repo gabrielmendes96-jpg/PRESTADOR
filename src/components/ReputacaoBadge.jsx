@@ -2,10 +2,10 @@ export function reputacaoConfig(nota, totalAvaliacoes) {
   if (!totalAvaliacoes || totalAvaliacoes === 0) return {
     cor: '#8A9E8F', bg: '#F0F4F0', label: 'Novo', dot: '#C9BFA8'
   }
-  if (nota >= 4.5) return {
+  if (nota >= 9) return {
     cor: '#0A6E3D', bg: '#E8F5EE', label: 'Excelente', dot: '#1FA855'
   }
-  if (nota >= 3.5) return {
+  if (nota >= 7) return {
     cor: '#7A4F00', bg: '#FEF6E4', label: 'Bom', dot: '#FFC857'
   }
   return {
@@ -41,7 +41,7 @@ export default function ReputacaoBadge({ nota, totalAvaliacoes, size = 'normal' 
       </span>
       {!isSmall && totalAvaliacoes > 0 && (
         <span style={{ fontSize: 11, color: config.cor, opacity: 0.65 }}>
-          {nota} ({totalAvaliacoes})
+          {nota}/10 ({totalAvaliacoes})
         </span>
       )}
     </div>

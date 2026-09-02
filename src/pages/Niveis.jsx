@@ -11,25 +11,25 @@ const niveis = [
   {
     id: 'bronze', nome: 'Bronze', icon: Medal,
     cor: '#B45309', bg: '#FEF3C7',
-    requisitos: { avaliacoes: 1, notaMin: 3.0, mesesAtivo: 0 },
+    requisitos: { avaliacoes: 1, notaMin: 6.0, mesesAtivo: 0 },
     beneficios: ['Perfil visível na plataforma', 'Pode receber avaliações', 'Acesso ao chat'],
   },
   {
     id: 'prata', nome: 'Prata', icon: Medal,
     cor: '#64748B', bg: '#F1F5F9',
-    requisitos: { avaliacoes: 10, notaMin: 4.0, mesesAtivo: 1 },
+    requisitos: { avaliacoes: 10, notaMin: 8.0, mesesAtivo: 1 },
     beneficios: ['Tudo do Bronze', 'Badge Prata no perfil', 'Aparece antes dos Bronze nas buscas'],
   },
   {
     id: 'ouro', nome: 'Ouro', icon: Medal,
     cor: '#92610A', bg: '#FEF3C7',
-    requisitos: { avaliacoes: 30, notaMin: 4.5, mesesAtivo: 3 },
+    requisitos: { avaliacoes: 30, notaMin: 9.0, mesesAtivo: 3 },
     beneficios: ['Tudo do Prata', 'Badge Ouro no perfil', 'Destaque na aba Destaques', '10% desconto nos planos'],
   },
   {
     id: 'embaixador', nome: 'Embaixador', icon: Crown,
     cor: colors.primaryHover, bg: '#DCFCE7',
-    requisitos: { avaliacoes: 100, notaMin: 4.8, mesesAtivo: 12 },
+    requisitos: { avaliacoes: 100, notaMin: 9.6, mesesAtivo: 12 },
     beneficios: ['Tudo do Ouro', 'Badge Embaixador exclusivo', 'Prioridade máxima nas buscas', 'Suporte prioritário', '1 mês grátis a cada 6 meses'],
   },
 ]

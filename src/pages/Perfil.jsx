@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Wrench, MapPin, X, MessageCircle, FileText, Phone, Share2 } from 'lucide-react'
+import { Wrench, MapPin, X, MessageCircle, FileText, Phone, Share2, Zap } from 'lucide-react'
 import { usePrestador } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
@@ -148,9 +148,12 @@ export default function Perfil() {
           <MapPin size={14} /> {prestador.cidade}, {prestador.estado} · atende até {prestador.raioAtendimento}km
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <ReputacaoBadge nota={prestador.avaliacao} totalAvaliacoes={prestador.totalAvaliacoes} />
           <span style={{ fontSize: 13, color: colors.textSub }}>· resp. em {prestador.tempoResposta}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: '#E0E7FF', color: '#3730A3' }}>
+            <Zap size={11} strokeWidth={3} /> {prestador.pontosResposta || 0} pts de agilidade
+          </span>
         </div>
 
         <p style={{ fontSize: 14, lineHeight: 1.6, color: colors.textSub, marginBottom: 16 }}>{prestador.descricao}</p>
@@ -221,12 +224,12 @@ export default function Perfil() {
           <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: colors.textSub, marginBottom: 16 }}>Avaliação por critério</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {Object.entries(prestador.avaliacaoDetalhada).map(([key, val]) => {
-              const labels = { pontualidade: 'Pontualidade', qualidade: 'Qualidade', preco: 'Preço justo', limpeza: 'Limpeza' }
+              const labels = { pontualidade: 'Pontualidade', qualidade: 'Qualidade', preco: 'Preço justo', limpeza: 'Limpeza', comunicacao: 'Comunicação' }
               return (
                 <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: colors.textSub, width: 90, flexShrink: 0 }}>{labels[key]}</span>
                   <div style={{ flex: 1, height: 6, borderRadius: 999, background: '#F1F5F9' }}>
-                    <div style={{ height: 6, borderRadius: 999, width: `${(val / 5) * 100}%`, background: colors.secondary }} />
+                    <div style={{ height: 6, borderRadius: 999, width: `${(val / 10) * 100}%`, background: colors.secondary }} />
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 700, color: colors.text, width: 20 }}>{val}</span>
                 </div>

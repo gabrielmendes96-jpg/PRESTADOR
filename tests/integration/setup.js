@@ -79,6 +79,9 @@ export async function limpar(state) {
   if (state.prestadorId) {
     await admin.from('assinaturas').delete().eq('prestador_id', state.prestadorId)
     await admin.from('boosts').delete().eq('prestador_id', state.prestadorId)
+    // historico_servicos.prestador_id não tem "on delete cascade" — sem
+    // apagar aqui, cada execução do teste 9 deixaria uma linha órfã.
+    await admin.from('historico_servicos').delete().eq('prestador_id', state.prestadorId)
     await admin.from('prestadores').delete().eq('id', state.prestadorId)
   }
   if (state.clienteUserId) {
