@@ -3,7 +3,7 @@
 // de produção de verdade (RLS real), usando duas contas descartáveis
 // criadas e apagadas nesta mesma execução. Ver tests/integration/setup.js
 // e .env.test.example para como configurar antes de rodar.
-import { describe, it, expect, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
 import { verificarTempoResposta, verificarLiberacaoAutomatica, verificarSuporteDisputa } from '../../api/manutencao.js'
@@ -13,6 +13,18 @@ import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } 
 const state = {}
 
 describe('Fluxo crítico', () => {
+  // O rate limiting agora é de verdade (tabela no banco, não memória —
+  // ver supabase/25_rate_limit_real.sql), o que é ótimo em produção mas
+  // deixa a suíte frágil a reexecuções rápidas: todas as chamadas de
+  // teste passam pelas mesmas rotas sem um IP real, então caem na mesma
+  // chave de contagem. Zera essas chaves antes de começar.
+  beforeAll(async () => {
+    await admin.from('rate_limits').delete().like('chave', 'criar-cobranca:%')
+    await admin.from('rate_limits').delete().like('chave', 'geocodificar:%')
+    await admin.from('rate_limits').delete().like('chave', 'criar-assinatura:%')
+    await admin.from('rate_limits').delete().like('chave', 'enviar-push:%')
+  }, 15000)
+
   afterAll(async () => {
     await limpar(state)
   }, 30000)
@@ -721,5 +733,65 @@ describe('Fluxo crítico', () => {
     expect(aposExpirar).toBe(true)
 
     await admin.from('rate_limits').delete().in('chave', [chave, chaveCurta])
+  }, 15000)
+
+  it('13. Segurança — prestador não consegue aceitar a própria candidatura', async () => {
+    const { data: pedidoTemp } = await admin.from('pedidos_servico').insert({
+      cliente_user_id: state.clienteUserId, cliente_nome: 'Cliente de Teste',
+      titulo: 'Pedido temporário — teste de autoaceite', categoria_id: state.categoriaId,
+      cidade: 'São Paulo', estado: 'SP', status: 'aberto',
+    }).select().single()
+
+    const { data: candTemp } = await state.prestadorSessao.cliente.from('candidaturas').insert({
+      pedido_id: pedidoTemp.id, prestador_id: state.prestadorId, mensagem: 'Tentativa de autoaceite.',
+    }).select().single()
+
+    const { error: erroAutoAceite } = await state.prestadorSessao.cliente
+      .from('candidaturas').update({ status: 'aceito' }).eq('id', candTemp.id)
+    expect(erroAutoAceite).toBeTruthy()
+
+    // O cliente de verdade continua conseguindo aceitar normalmente.
+    const { error: erroAceiteReal } = await state.clienteSessao.cliente
+      .from('candidaturas').update({ status: 'aceito' }).eq('id', candTemp.id)
+    expect(erroAceiteReal).toBeNull()
+
+    await admin.from('candidaturas').delete().eq('id', candTemp.id)
+    await admin.from('pedidos_servico').delete().eq('id', pedidoTemp.id)
+  }, 15000)
+
+  it('14. Segurança — prestador não consegue se autoavaliar', async () => {
+    const { error } = await state.prestadorSessao.cliente.from('avaliacoes').insert({
+      prestador_id: state.prestadorId, autor_user_id: state.prestadorUserId, autor_nome: 'Eu mesmo',
+      nota: 10, pontualidade: 10, qualidade: 10, preco: 10, limpeza: 10, comunicacao: 10,
+    })
+    expect(error).toBeTruthy()
+  }, 15000)
+
+  it('15. Segurança — ninguém insere direto em historico_servicos ou boosts (só o backend)', async () => {
+    const { error: erroHistorico } = await state.prestadorSessao.cliente.from('historico_servicos').insert({
+      prestador_id: state.prestadorId, cliente_user_id: state.clienteUserId, titulo: 'Forjado', status: 'concluido',
+    })
+    expect(erroHistorico).toBeTruthy()
+
+    const { error: erroBoost } = await state.prestadorSessao.cliente.from('boosts').insert({
+      prestador_id: state.prestadorId, status: 'ativo', plano: '30dias', valor: 59,
+      expira_em: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    expect(erroBoost).toBeTruthy()
+  }, 15000)
+
+  it('16. Contador de serviços — incrementar_total_servicos() soma de forma atômica', async () => {
+    const { data: antes } = await admin.from('prestadores').select('total_servicos').eq('id', state.prestadorId).single()
+
+    // Duas chamadas "ao mesmo tempo" — com update lido-e-escrito em dois
+    // passos, uma delas perderia o incremento; com a função atômica, as
+    // duas somam de verdade.
+    await Promise.all([
+      admin.rpc('incrementar_total_servicos', { p_prestador_id: state.prestadorId }),
+      admin.rpc('incrementar_total_servicos', { p_prestador_id: state.prestadorId }),
+    ])
+
+    const { data: depois } = await admin.from('prestadores').select('total_servicos').eq('id', state.prestadorId).single()
+    expect(depois.total_servicos).toBe((antes.total_servicos || 0) + 2)
   }, 15000)
 })

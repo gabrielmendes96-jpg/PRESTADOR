@@ -26,13 +26,9 @@ export async function registrarServicoConcluido(supabase, pedido) {
     status: 'concluido',
   })
 
-  const { data: prestador } = await supabase
-    .from('prestadores')
-    .select('total_servicos')
-    .eq('id', candidatura.prestador_id)
-    .single()
-
-  await supabase.from('prestadores')
-    .update({ total_servicos: (prestador?.total_servicos || 0) + 1 })
-    .eq('id', candidatura.prestador_id)
+  // Incremento atômico via função de banco (ver supabase/30_incremento_atomico_total_servicos.sql)
+  // — ler o valor e escrever de volta em duas chamadas separadas perderia
+  // incrementos se dois serviços do mesmo prestador concluíssem quase ao
+  // mesmo tempo.
+  await supabase.rpc('incrementar_total_servicos', { p_prestador_id: candidatura.prestador_id })
 }
