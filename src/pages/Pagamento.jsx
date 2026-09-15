@@ -4,12 +4,11 @@ import { ShieldCheck } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 
+const CICLO_LABEL = { mensal: 'mensal', semestral: 'semestral', anual: 'anual' }
+
+const formatarReais = (valor) => (valor ?? 0).toFixed(2).replace('.', ',')
+
 const ITENS = {
-  mensalidade: {
-    basico: { nome: 'Básico', valor: 49 },
-    profissional: { nome: 'Profissional', valor: 99 },
-    premium: { nome: 'Premium', valor: 199 },
-  },
   creditos: {
     avulso: { nome: 'Avulso', valor: 9, creditos: 1 },
     basico: { nome: 'Básico', valor: 35, creditos: 5 },
@@ -30,9 +29,12 @@ export default function Pagamento() {
   const tipo = params.get('tipo') // 'mensalidade' | 'creditos' | 'boost' | 'servico'
   const itemId = params.get('item')
   const pedidoId = params.get('pedido')
+  const ciclo = ['mensal', 'semestral', 'anual'].includes(params.get('ciclo')) ? params.get('ciclo') : 'mensal'
 
   const [pedidoServico, setPedidoServico] = useState(null)
+  const [plano, setPlano] = useState(null)
   const [carregandoPedido, setCarregandoPedido] = useState(tipo === 'servico')
+  const [carregandoPlano, setCarregandoPlano] = useState(tipo === 'mensalidade')
 
   useEffect(() => {
     if (tipo !== 'servico' || !pedidoId) return
@@ -43,9 +45,20 @@ export default function Pagamento() {
       })
   }, [tipo, pedidoId])
 
+  useEffect(() => {
+    if (tipo !== 'mensalidade' || !itemId) return
+    supabase.from('planos').select('nome, preco_mensal, preco_semestral, preco_anual').eq('id', itemId).single()
+      .then(({ data }) => {
+        setPlano(data)
+        setCarregandoPlano(false)
+      })
+  }, [tipo, itemId])
+
   const item = tipo === 'servico'
     ? (pedidoServico ? { nome: pedidoServico.titulo, valor: pedidoServico.valor_acordado } : null)
-    : ITENS[tipo]?.[itemId]
+    : tipo === 'mensalidade'
+      ? (plano ? { nome: plano.nome, valor: { mensal: plano.preco_mensal, semestral: plano.preco_semestral, anual: plano.preco_anual }[ciclo] } : null)
+      : ITENS[tipo]?.[itemId]
 
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
@@ -108,9 +121,12 @@ export default function Pagamento() {
         }
         : {
           tipo,
+          ciclo: tipo === 'mensalidade' ? ciclo : undefined,
           descricao: tipo === 'creditos'
             ? `Prestador App — ${item.creditos} créditos`
-            : `Prestador App — ${item.nome}`,
+            : tipo === 'mensalidade'
+              ? `Prestador App — ${item.nome} (${CICLO_LABEL[ciclo]})`
+              : `Prestador App — ${item.nome}`,
           extra: tipo === 'creditos' ? String(item.creditos) : itemId,
           nomeCliente: usuario.user_metadata?.nome || 'Cliente',
           emailCliente: usuario.email,
@@ -151,7 +167,7 @@ export default function Pagamento() {
     }
   }
 
-  if (carregandoPedido) return (
+  if (carregandoPedido || carregandoPlano) return (
     <div className="text-center py-16">
       <p className="text-sm" style={{ color: '#9CA3AF' }}>Carregando...</p>
     </div>
@@ -168,24 +184,24 @@ export default function Pagamento() {
     <div className="max-w-md mx-auto">
       <h1 className="text-xl font-semibold mb-1" style={{ color: '#1F2937' }}>Pagamento</h1>
       <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
-        {tipo === 'mensalidade' && `Plano ${item.nome}`}
+        {tipo === 'mensalidade' && `Plano ${item.nome} (${CICLO_LABEL[ciclo]})`}
         {tipo === 'creditos' && `${item.creditos} crédito${item.creditos !== 1 ? 's' : ''}`}
         {tipo === 'boost' && item.nome}
         {tipo === 'servico' && `Serviço: ${item.nome} (valor protegido até a conclusão)`}
         {' · '}
-        <strong style={{ color: '#16A34A' }}>R${item.valor}</strong>
+        <strong style={{ color: '#16A34A' }}>R${formatarReais(item.valor)}</strong>
       </p>
 
       {/* Resumo */}
       <div className="bg-white rounded-2xl p-4 mb-5" style={{ border: '0.5px solid #E4E7E4' }}>
         <div className="flex justify-between items-center">
           <p className="text-sm" style={{ color: '#6B7280' }}>
-            {tipo === 'mensalidade' && `Plano ${item.nome} (mensal)`}
+            {tipo === 'mensalidade' && `Plano ${item.nome} (${CICLO_LABEL[ciclo]})`}
             {tipo === 'creditos' && `Pacote ${item.nome}`}
             {tipo === 'boost' && item.nome}
             {tipo === 'servico' && item.nome}
           </p>
-          <p className="text-sm font-semibold" style={{ color: '#1F2937' }}>R${item.valor},00</p>
+          <p className="text-sm font-semibold" style={{ color: '#1F2937' }}>R${formatarReais(item.valor)}</p>
         </div>
         {tipo === 'creditos' && (
           <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
@@ -292,7 +308,7 @@ export default function Pagamento() {
         className="w-full py-3 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
         style={{ background: '#16A34A' }}
       >
-        {carregando ? 'Preparando pagamento...' : `Continuar para pagamento — R$${item.valor},00`}
+        {carregando ? 'Preparando pagamento...' : `Continuar para pagamento — R$${formatarReais(item.valor)}`}
       </button>
     </div>
   )

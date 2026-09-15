@@ -40,9 +40,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Dados incompletos' })
   }
 
+  // Ciclo da mensalidade — mensal (padrão), semestral ou anual. Vem do
+  // corpo da requisição, mas é validado contra uma lista fechada (nunca
+  // um valor arbitrário).
+  const CICLOS_VALIDOS = ['mensal', 'semestral', 'anual']
+  const ciclo = CICLOS_VALIDOS.includes(req.body.ciclo) ? req.body.ciclo : 'mensal'
+
   // Preço vem sempre do servidor, nunca do valor enviado pelo cliente —
   // do contrário qualquer requisição poderia forjar um valor menor.
-  const PRECOS_PLANO = { basico: 49, profissional: 99, premium: 199 }
   const PRECOS_CREDITOS = { 1: 9, 5: 35, 10: 59, 20: 99 }
   const PRECOS_BOOST = { '7dias': 20, '15dias': 39, '30dias': 59 }
 
@@ -83,8 +88,29 @@ export default async function handler(req, res) {
     billingTypes = ['PIX']
     // items[].name tem limite de 30 caracteres no Checkout.
     itemNome = (p.titulo || 'Serviço').slice(0, 30)
+  } else if (tipo === 'mensalidade') {
+    // Preço por ciclo vem sempre da tabela `planos` — nunca de um mapa
+    // fixo no código, pra não precisar de deploy toda vez que o preço
+    // mudar, e pra nunca dessincronizar do que a tela de Planos mostra.
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    const { data: plano } = await supabase
+      .from('planos')
+      .select('nome, preco_mensal, preco_semestral, preco_anual')
+      .eq('id', extra)
+      .single()
+
+    const PRECO_POR_CICLO = {
+      mensal: plano?.preco_mensal, semestral: plano?.preco_semestral, anual: plano?.preco_anual,
+    }
+    valor = PRECO_POR_CICLO[ciclo]
+    if (!plano || !valor) {
+      return res.status(400).json({ error: 'Item inválido' })
+    }
+    itemNome = descricao || `Prestador App — ${plano.nome}`
   } else {
-    const TABELAS_PRECO = { mensalidade: PRECOS_PLANO, creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
+    const TABELAS_PRECO = { creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
     const tabela = TABELAS_PRECO[tipo]
     valor = tabela?.[extra]
     if (!valor) {
@@ -108,7 +134,11 @@ export default async function handler(req, res) {
       billingTypes,
       chargeTypes: ['DETACHED'],
       minutesToExpire: 1440,
-      externalReference: tipo === 'servico' ? `servico:${pedido.cliente_user_id}:${pedidoId}` : `${tipo}:${userId}:${extra}`,
+      externalReference: tipo === 'servico'
+        ? `servico:${pedido.cliente_user_id}:${pedidoId}`
+        : tipo === 'mensalidade'
+          ? `mensalidade:${userId}:${extra}:${ciclo}`
+          : `${tipo}:${userId}:${extra}`,
       callback: {
         successUrl: `${origem}/pagamento/retorno?status=sucesso&tipo=${tipo}`,
         cancelUrl: `${origem}/pagamento/retorno?status=cancelado&tipo=${tipo}`,

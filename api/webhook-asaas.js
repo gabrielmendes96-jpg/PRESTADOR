@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true })
   }
 
-  const [tipo, userId, extra] = externalReference.split(':')
+  const [tipo, userId, extra, cicloRaw] = externalReference.split(':')
 
   // Importar cliente Supabase com service role (acesso total)
   const { createClient } = await import('@supabase/supabase-js')
@@ -39,6 +39,14 @@ export default async function handler(req, res) {
   try {
     if (tipo === 'mensalidade') {
       const planoId = extra
+      // Ciclo comprado — mensal, semestral ou anual. Referências antigas
+      // (de antes dos pacotes existirem) não têm esse 4º campo, então
+      // cai no mensal por padrão.
+      const MESES_POR_CICLO = { mensal: 1, semestral: 6, anual: 12 }
+      const ciclo = MESES_POR_CICLO[cicloRaw] ? cicloRaw : 'mensal'
+      const dataVencimento = new Date()
+      dataVencimento.setMonth(dataVencimento.getMonth() + MESES_POR_CICLO[ciclo])
+
       // Buscar dados do usuário
       const { data: userData } = await supabase.auth.admin.getUserById(userId)
       const nomeUsuario = userData?.user?.user_metadata?.nome || 'Prestador'
@@ -56,6 +64,8 @@ export default async function handler(req, res) {
         metodo_pagamento: pagamento.billingType === 'PIX' ? 'pix' : 'cartao',
         valor: pagamento.value,
         pago_em: new Date().toISOString(),
+        ciclo,
+        data_vencimento: dataVencimento.toISOString().split('T')[0],
       })
 
       // Enviar email de confirmação
