@@ -44,10 +44,15 @@ export default function DetalhePedido() {
   const [enviandoResposta, setEnviandoResposta] = useState(false)
 
   useEffect(() => {
-    carregarTudo()
+    // Se o usuário navegar de um pedido pra outro rápido, a resposta do
+    // pedido anterior pode chegar depois — o "cancelado" evita que ela
+    // sobrescreva os dados do pedido certo com os do pedido errado.
+    let cancelado = false
+    carregarTudo(() => cancelado)
+    return () => { cancelado = true }
   }, [id, usuario])
 
-  const carregarTudo = async () => {
+  const carregarTudo = async (foiCancelado = () => false) => {
     setCarregando(true)
 
     const { data: p } = await supabase
@@ -55,6 +60,7 @@ export default function DetalhePedido() {
       .select('*, categorias(nome, emoji)')
       .eq('id', id)
       .single()
+    if (foiCancelado()) return
     setPedido(p)
     if (p?.data_agendada) setDataAgendada(new Date(p.data_agendada).toISOString().slice(0, 16))
 
@@ -62,6 +68,7 @@ export default function DetalhePedido() {
       .from('midias_pedido')
       .select('*')
       .eq('pedido_id', id)
+    if (foiCancelado()) return
     setMidias(mids || [])
 
     const { data: cands } = await supabase
@@ -69,6 +76,7 @@ export default function DetalhePedido() {
       .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil)')
       .eq('pedido_id', id)
       .order('criado_em', { ascending: false })
+    if (foiCancelado()) return
     setCandidaturas(cands || [])
 
     if (usuario) {
@@ -77,6 +85,7 @@ export default function DetalhePedido() {
         .select('id, plano_id')
         .eq('user_id', usuario.id)
         .single()
+      if (foiCancelado()) return
       setMeuPrestador(prest || null)
 
       if (prest) {

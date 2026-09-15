@@ -64,6 +64,11 @@ export function usePrestadores(filtros = {}) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Filtros mudam rápido (digitação, cliques em chips) — sem essa
+    // checagem, a resposta de uma busca antiga podia chegar depois da
+    // mais nova e sobrescrever o resultado certo com um desatualizado.
+    let cancelado = false
+
     async function carregar() {
       setLoading(true)
       let query = supabase.from('prestadores_completo').select('*')
@@ -113,6 +118,7 @@ export function usePrestadores(filtros = {}) {
       }
 
       const { data, error } = await query
+      if (cancelado) return
 
       if (error) {
         console.error('Erro ao buscar prestadores:', error)
@@ -158,10 +164,12 @@ export function usePrestadores(filtros = {}) {
         },
       }))
 
+      if (cancelado) return
       setPrestadores(completos)
       setLoading(false)
     }
     carregar()
+    return () => { cancelado = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filtros)])
 
@@ -177,6 +185,10 @@ export function usePrestador(id) {
 
   useEffect(() => {
     if (!id) return
+    // Se o usuário navegar de um perfil pra outro rápido, a resposta do
+    // perfil anterior pode chegar depois — sem essa checagem, ela
+    // sobrescreveria os dados do perfil certo com os do perfil errado.
+    let cancelado = false
 
     async function carregar() {
       setLoading(true)
@@ -187,6 +199,7 @@ export function usePrestador(id) {
         .eq('id', id)
         .single()
 
+      if (cancelado) return
       if (error) {
         console.error('Erro ao buscar prestador:', error)
         setPrestador(null)
@@ -206,6 +219,7 @@ export function usePrestador(id) {
         .eq('prestador_id', id)
         .order('criado_em', { ascending: false })
 
+      if (cancelado) return
       setPrestador({
         ...p,
         fotos: (fotos || []).map(f => ({ url: f.url, tipo: f.tipo })),
@@ -243,6 +257,7 @@ export function usePrestador(id) {
       setLoading(false)
     }
     carregar()
+    return () => { cancelado = true }
   }, [id])
 
   return { prestador, loading }
@@ -264,6 +279,8 @@ export function usePrestadoresPorIds(ids = []) {
       return
     }
 
+    let cancelado = false
+
     async function carregar() {
       setLoading(true)
       const { data, error } = await supabase
@@ -271,6 +288,7 @@ export function usePrestadoresPorIds(ids = []) {
         .select('*')
         .in('id', ids)
 
+      if (cancelado) return
       if (error) {
         console.error('Erro ao buscar prestadores para comparação:', error)
         setPrestadores([])
@@ -303,6 +321,7 @@ export function usePrestadoresPorIds(ids = []) {
       setLoading(false)
     }
     carregar()
+    return () => { cancelado = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave])
 

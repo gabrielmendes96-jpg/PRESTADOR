@@ -25,7 +25,12 @@ export default function Chat() {
   useEffect(() => {
     if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
-    carregarConversa()
+    // Se o usuário trocar de conversa rápido, a resposta da conversa
+    // anterior pode chegar depois da nova — esse "cancelado" evita que
+    // ela sobrescreva os dados da conversa certa.
+    let cancelado = false
+    carregarConversa(() => cancelado)
+    return () => { cancelado = true }
   }, [conversaId, usuario, authCarregando])
 
   useEffect(() => {
@@ -50,7 +55,7 @@ export default function Chat() {
     return () => supabase.removeChannel(channel)
   }, [conversaId])
 
-  const carregarConversa = async () => {
+  const carregarConversa = async (foiCancelado) => {
     setCarregando(true)
 
     const { data: conv } = await supabase
@@ -59,6 +64,7 @@ export default function Chat() {
       .eq('id', conversaId)
       .single()
 
+    if (foiCancelado()) return
     setConversa(conv)
 
     const { data: msgs } = await supabase
@@ -67,6 +73,7 @@ export default function Chat() {
       .eq('conversa_id', conversaId)
       .order('criado_em', { ascending: true })
 
+    if (foiCancelado()) return
     setMensagens(msgs || [])
     setCarregando(false)
 
@@ -80,6 +87,7 @@ export default function Chat() {
         .select('*')
         .eq('user_id', conv.cliente_user_id)
         .order('ordem', { ascending: true })
+      if (foiCancelado()) return
       setDestaquesCliente(destaques || [])
     } else {
       await supabase.from('conversas').update({ nao_lidas_cliente: 0 }).eq('id', conversaId)
