@@ -51,7 +51,7 @@ export default async function handler(req, res) {
   const PRECOS_CREDITOS = { 1: 9, 5: 35, 10: 59, 20: 99 }
   const PRECOS_BOOST = { '7dias': 20, '15dias': 39, '30dias': 59 }
 
-  let valor, itemNome, billingTypes = ['CREDIT_CARD', 'PIX'], pedido
+  let valor, itemNome, itemDescricao, billingTypes = ['CREDIT_CARD', 'PIX'], pedido
 
   if (tipo === 'servico') {
     // Pagamento protegido de um serviço específico — o preço é o valor
@@ -108,7 +108,10 @@ export default async function handler(req, res) {
     if (!plano || !valor) {
       return res.status(400).json({ error: 'Item inválido' })
     }
-    itemNome = descricao || `Prestador App — ${plano.nome}`
+    // items[].name aceita no máximo 30 caracteres (a Asaas recusa o checkout
+    // inteiro se passar) — o texto completo com o ciclo vai na descrição.
+    itemNome = `Plano ${plano.nome}`
+    itemDescricao = `Prestador App — Plano ${plano.nome} (${ciclo})`
   } else {
     const TABELAS_PRECO = { creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
     const tabela = TABELAS_PRECO[tipo]
@@ -145,7 +148,7 @@ export default async function handler(req, res) {
         expiredUrl: `${origem}/pagamento/retorno?status=expirado&tipo=${tipo}`,
       },
       items: [
-        { name: itemNome, quantity: 1, value: valor },
+        { name: itemNome.slice(0, 30), description: itemDescricao, quantity: 1, value: valor },
       ],
       customerData: {
         name: nomeCliente || 'Cliente Prestador',
