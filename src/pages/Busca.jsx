@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { SlidersHorizontal, Star, MapPin, Zap, Crown, SearchX, ChevronDown } from 'lucide-react'
-import { useCategorias, useTopicos, usePrestadores } from '../lib/hooks'
+import { useCategorias, useTopicos, usePrestadores, useDebounce } from '../lib/hooks'
 import CardPrestador from '../components/CardPrestador'
 import CardSkeleton from '../components/CardSkeleton'
 import FiltrosAvancados from '../components/FiltrosAvancados'
@@ -9,6 +9,7 @@ import BarraComparacao from '../components/BarraComparacao'
 import SearchBar from '../components/ui/SearchBar'
 import Chip from '../components/ui/Chip'
 import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 import { colors, spacing } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
 import { recuperarLocalizacao, calcularDistancia } from '../lib/gps'
@@ -18,6 +19,7 @@ const NOTAS = [0, 6, 8, 9]
 
 export default function Busca() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const topicoInicial = params.get('topico') || ''
   const [filtro, setFiltro] = useState({
     busca: params.get('q') || '',
@@ -26,10 +28,11 @@ export default function Busca() {
     nota: '',
     disponivel: false,
     distanciaMax: null, // filtro rápido de distância (chip), independente do slider do modal
+    atendeAqui: params.get('atende') === '1', // só quem tem a minha localização dentro do raio de atendimento
   })
   const [showFiltros, setShowFiltros] = useState(false)
   const [openPopover, setOpenPopover] = useState(null) // 'distancia' | 'avaliacao' | null
-  const [ordenacao, setOrdenacao] = useState('relevancia')
+  const [ordenacao, setOrdenacao] = useState(params.get('ordem') === 'distancia' ? 'distancia' : 'relevancia')
   const [filtrosAvancados, setFiltrosAvancados] = useState({
     notaMinima: 0, distanciaMax: 50, plano: '', disponivel: false, temFoto: false
   })
@@ -49,14 +52,50 @@ export default function Busca() {
     return categorias.filter(c => categoriasDoTopico.includes(c.id))
   }, [categorias, categoriasDoTopico])
 
-  const { prestadores: resultadosBrutos, loading } = usePrestadores({
-    busca: filtro.busca,
+  // Só busca depois que a pessoa para de digitar (antes, cada tecla
+  // disparava de 3 a 4 consultas).
+  const buscaDebounced = useDebounce(filtro.busca, 350)
+
+  // Paginação: "Ver mais" aumenta o limite. A chave dos filtros zera isso
+  // sozinha quando qualquer filtro ou a ordenação muda — sem efeito extra.
+  const PAGINA = 24
+  const chaveFiltros = JSON.stringify([
+    buscaDebounced, filtro.categoria, filtro.topico, filtro.nota, filtro.disponivel,
+    filtrosAvancados.notaMinima, filtrosAvancados.disponivel, filtrosAvancados.plano, ordenacao, filtro.atendeAqui,
+  ])
+  const [paginacao, setPaginacao] = useState({ chave: chaveFiltros, limite: PAGINA })
+  const limiteAtual = paginacao.chave === chaveFiltros ? paginacao.limite : PAGINA
+  const [carregandoMais, setCarregandoMais] = useState(false)
+
+  // "Mais próximo" depende da localização, que o banco não tem: traz os 200
+  // mais relevantes e a tela ordena por distância dentro deles (sem paginar).
+  const porDistancia = ordenacao === 'distancia' || (filtro.atendeAqui && !!userLoc)
+
+  const { prestadores: resultadosBrutos, loading, temMais } = usePrestadores({
+    busca: buscaDebounced,
     categoria: filtro.categoria,
     categorias: categoriasDoTopico,
     nota: filtro.nota || filtrosAvancados.notaMinima,
     disponivel: filtro.disponivel || filtrosAvancados.disponivel,
     plano: filtrosAvancados.plano,
+    ordenar: porDistancia ? 'relevancia' : ordenacao,
+    limite: porDistancia ? 200 : limiteAtual,
   })
+
+  useEffect(() => {
+    if (!loading) setCarregandoMais(false)
+  }, [loading])
+
+  const limparFiltros = () => {
+    setFiltro({ busca: '', categoria: '', topico: '', nota: '', disponivel: false, distanciaMax: null, atendeAqui: false })
+    setFiltrosAvancados({ notaMinima: 0, distanciaMax: 50, plano: '', disponivel: false, temFoto: false })
+    setOrdenacao('relevancia')
+  }
+
+  const verMais = () => {
+    setCarregandoMais(true)
+    setPaginacao({ chave: chaveFiltros, limite: limiteAtual + PAGINA })
+  }
 
   const resultados = useMemo(() => {
     let lista = resultadosBrutos.map(p => ({
@@ -72,19 +111,21 @@ export default function Busca() {
     if (filtro.distanciaMax && userLoc) {
       lista = lista.filter(p => p.distanciaReal === null || p.distanciaReal <= filtro.distanciaMax)
     }
+    // "Atende no meu local": a minha posição está dentro do raio que o próprio prestador cadastrou.
+    if (filtro.atendeAqui && userLoc) {
+      lista = lista.filter(p => p.distanciaReal !== null && p.distanciaReal <= (p.raio_atendimento || 0))
+    }
 
-    switch (ordenacao) {
-      case 'nota': return [...lista].sort((a, b) => (b.avaliacao || 0) - (a.avaliacao || 0))
-      case 'distancia': return [...lista].sort((a, b) => {
+    // Relevância, nota, recente e agilidade já chegam ordenados do servidor.
+    if (porDistancia) {
+      return [...lista].sort((a, b) => {
         if (!a.distanciaReal) return 1
         if (!b.distanciaReal) return -1
         return a.distanciaReal - b.distanciaReal
       })
-      case 'recente': return [...lista].sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em))
-      case 'agilidade': return [...lista].sort((a, b) => (b.pontosResposta || 0) - (a.pontosResposta || 0))
-      default: return lista
     }
-  }, [resultadosBrutos, ordenacao, filtrosAvancados.temFoto, filtro.distanciaMax, userLoc])
+    return lista
+  }, [resultadosBrutos, porDistancia, filtrosAvancados.temFoto, filtro.distanciaMax, filtro.atendeAqui, userLoc])
 
   const temFiltrosAtivos = filtrosAvancados.notaMinima > 0 || filtrosAvancados.plano || filtrosAvancados.disponivel || filtrosAvancados.temFoto
   const topicoAtual = topicos.find(t => t.id === filtro.topico)
@@ -157,6 +198,16 @@ export default function Busca() {
             >
               Disponível hoje
             </Chip>
+
+            {userLoc && (
+              <Chip
+                active={filtro.atendeAqui}
+                onClick={() => setFiltro({ ...filtro, atendeAqui: !filtro.atendeAqui })}
+                icon={<MapPin size={13} />}
+              >
+                Atende no meu local
+              </Chip>
+            )}
 
             <Chip
               active={filtrosAvancados.plano === 'premium'}
@@ -258,11 +309,11 @@ export default function Busca() {
               </p>
             ) : <span />}
             <p style={{ fontSize: 13, color: colors.textSub }}>
-              {loading ? 'buscando...' : `${resultados.length} ${resultados.length !== 1 ? 'profissionais' : 'profissional'}`}
+              {loading && !carregandoMais ? 'buscando...' : `${resultados.length}${temMais ? '+' : ''} ${resultados.length !== 1 ? 'profissionais' : 'profissional'}`}
             </p>
           </div>
 
-          {loading ? (
+          {loading && !carregandoMais ? (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {[1, 2, 3, 4].map(i => <CardSkeleton key={i} modo="lista" />)}
             </div>
@@ -270,14 +321,44 @@ export default function Busca() {
             <div style={{ textAlign: 'center', padding: '64px 0' }}>
               <SearchX size={44} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
               <p style={{ fontSize: 16, fontWeight: 600, color: colors.text, marginBottom: 4 }}>Nenhum profissional encontrado</p>
-              <p style={{ fontSize: 14, color: colors.textSub }}>Tente outros termos ou remova os filtros</p>
+              <p style={{ fontSize: 14, color: colors.textSub, marginBottom: 20 }}>Tente outros termos ou remova os filtros — ou deixe que os profissionais venham até você.</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                <Button onClick={() => navigate('/pedidos/novo')}>Pedir orçamento</Button>
+                <Button variant="secondary" onClick={limparFiltros}>Limpar filtros</Button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {resultados.map(p => (
-                <CardPrestador key={p.id} prestador={p} layout="horizontal" distancia={p.distanciaReal} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {resultados.map(p => (
+                  <CardPrestador key={p.id} prestador={p} layout="horizontal" distancia={p.distanciaReal} />
+                ))}
+              </div>
+
+              {temMais && !porDistancia && (
+                <div style={{ textAlign: 'center', marginTop: spacing.card * 1.5 }}>
+                  <button
+                    onClick={verMais}
+                    disabled={carregandoMais}
+                    style={{
+                      padding: '12px 28px', borderRadius: 999, border: `1px solid ${colors.border}`,
+                      background: '#fff', color: colors.text, fontSize: 14, fontWeight: 600,
+                      cursor: carregandoMais ? 'default' : 'pointer', opacity: carregandoMais ? 0.6 : 1,
+                    }}
+                  >
+                    {carregandoMais ? 'Carregando...' : 'Ver mais profissionais'}
+                  </button>
+                </div>
+              )}
+
+              <Card padding={20} style={{ marginTop: spacing.card * 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 200, flex: 1 }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Não achou o profissional ideal?</p>
+                  <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Descreva o que precisa e receba propostas de quem atende na sua região.</p>
+                </div>
+                <Button onClick={() => navigate('/pedidos/novo')}>Pedir orçamento</Button>
+              </Card>
+            </>
           )}
         </div>
       </div>

@@ -40,11 +40,11 @@ export default function FiltrosAvancados({ onAplicar, onFechar }) {
             <div className="flex justify-between mb-2">
               <label className="text-sm" style={{ color: '#5F6F65' }}>Nota mínima</label>
               <span className="text-sm font-medium flex items-center gap-1" style={{ color: '#1FA855' }}>
-                {filtros.notaMinima === 0 ? 'Qualquer' : <>{filtros.notaMinima}+ <Star size={13} fill="#1FA855" strokeWidth={0} /></>}
+                {filtros.notaMinima === 0 ? 'Qualquer' : `${filtros.notaMinima}+ pontos`}
               </span>
             </div>
             <div className="flex gap-2">
-              {[0, 3, 4, 4.5, 5].map(n => (
+              {[0, 6, 8, 9].map(n => (
                 <button key={n} onClick={() => setFiltros({ ...filtros, notaMinima: n })}
                   className="flex-1 py-2 text-xs font-medium rounded-lg transition-colors"
                   style={filtros.notaMinima === n

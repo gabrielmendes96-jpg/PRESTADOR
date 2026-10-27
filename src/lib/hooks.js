@@ -56,11 +56,160 @@ export function useTopicos() {
 }
 
 // ------------------------------------------------------------
-// usePrestadores — lista de prestadores com filtros opcionais
-// filtros: { busca, categoria, categorias (array), nota, disponivel }
+// useDebounce — só repassa o valor depois que ele parou de mudar por
+// `atrasoMs`. Evita disparar uma busca (3-4 consultas) a cada tecla.
 // ------------------------------------------------------------
+export function useDebounce(valor, atrasoMs = 350) {
+  const [valorEstavel, setValorEstavel] = useState(valor)
+
+  useEffect(() => {
+    const t = setTimeout(() => setValorEstavel(valor), atrasoMs)
+    return () => clearTimeout(t)
+  }, [valor, atrasoMs])
+
+  return valorEstavel
+}
+
+// Ordem aplicada no servidor (antes a lista inteira vinha do banco sem
+// critério e era ordenada no navegador). Cada item é [coluna, crescente].
+// "relevancia" entrega o que os planos prometem: boost ativo > plano >
+// nota > agilidade (colunas da view, ver supabase/32_busca_ranking_boost_plano.sql).
+const ORDENACOES = {
+  relevancia: [['boost_ativo', false], ['plano_rank', false], ['avaliacao_media', false], ['pontos_resposta', false]],
+  nota: [['avaliacao_media', false], ['total_avaliacoes', false]],
+  recente: [['criado_em', false]],
+  agilidade: [['pontos_resposta', false], ['avaliacao_media', false]],
+}
+
+// O texto da busca entra num filtro .or() do PostgREST, onde vírgula e
+// parênteses são sintaxe — "Silva, João" quebrava a consulta inteira (e
+// a tela mostrava "nenhum resultado"). % e _ também são curingas do ilike.
+const limparBusca = (texto) => String(texto || '').replace(/[,()*\\"%_]/g, ' ').replace(/\s+/g, ' ').trim()
+
+// ------------------------------------------------------------
+// buscarPrestadores — consulta da busca (usada pelo hook usePrestadores
+// logo abaixo, e testável sozinha)
+// filtros: { busca, categoria, categorias (array), nota, disponivel,
+//            plano, ordenar, limite }
+// `limite` ativa a paginação: traz só esse tanto e informa em `temMais`
+// se há mais (sem ele, traz todos — usado pela Home).
+// ------------------------------------------------------------
+export async function buscarPrestadores(filtros = {}, foiCancelado = () => false) {
+  let query = supabase.from('prestadores_completo').select('*')
+
+  // CRÍTICO: apenas prestadores com plano ativo aparecem
+  query = query.eq('plano_status', 'ativo')
+
+  if (filtros.categoria) {
+    query = query.eq('categoria_id', filtros.categoria)
+  }
+  if (filtros.categorias && filtros.categorias.length > 0) {
+    query = query.in('categoria_id', filtros.categorias)
+  }
+  if (filtros.disponivel) {
+    query = query.eq('disponivel', true)
+  }
+  if (filtros.nota) {
+    query = query.gte('avaliacao_media', filtros.nota)
+  }
+  if (filtros.plano) {
+    query = query.eq('plano_id', filtros.plano)
+  }
+
+  const busca = limparBusca(filtros.busca)
+  if (busca) {
+    // Busca por nome, cidade, hashtag OU nome da profissão/categoria —
+    // assim "instalador de acessórios" encontra quem está nessa
+    // categoria, mesmo sem ter cadastrado essa hashtag.
+    const [{ data: porTag }, { data: porCategoria }] = await Promise.all([
+      supabase.from('servicos_prestador').select('prestador_id').ilike('tag', `%${busca.toLowerCase()}%`),
+      supabase.from('categorias').select('id').ilike('nome', `%${busca}%`),
+    ])
+
+    const idsPorTag = [...new Set((porTag || []).map(t => t.prestador_id))]
+    const idsPorCategoria = (porCategoria || []).map(c => c.id)
+
+    const condicoes = [`nome.ilike.%${busca}%`, `cidade.ilike.%${busca}%`]
+    if (idsPorTag.length > 0) condicoes.push(`id.in.(${idsPorTag.join(',')})`)
+    if (idsPorCategoria.length > 0) condicoes.push(`categoria_id.in.(${idsPorCategoria.join(',')})`)
+
+    query = query.or(condicoes.join(','))
+  }
+
+  // Ordem no servidor. "distancia" depende da localização do visitante,
+  // que o banco não tem — ordena por relevância aqui e a tela reordena
+  // por distância dentro do conjunto trazido.
+  const ordem = (ORDENACOES[filtros.ordenar] || ORDENACOES.relevancia)
+    .filter(([coluna]) => !(filtros.semRanking && (coluna === 'boost_ativo' || coluna === 'plano_rank')))
+  for (const [coluna, crescente] of ordem) {
+    query = query.order(coluna, { ascending: crescente, nullsFirst: false })
+  }
+  query = query.order('id')
+
+  // Pede um a mais que o limite só pra saber se existe próxima página.
+  if (filtros.limite) query = query.limit(filtros.limite + 1)
+
+  const { data: linhas, error } = await query
+  if (foiCancelado()) return null
+
+  if (error) {
+    // A view ainda não tem as colunas de ranking (supabase/32 não foi
+    // rodada neste banco): refaz sem elas em vez de mostrar "nenhum
+    // resultado" — assim a ordem de deploy entre código e SQL não importa.
+    if (!filtros.semRanking && /boost_ativo|plano_rank/.test(error.message || '')) {
+      return buscarPrestadores({ ...filtros, semRanking: true }, foiCancelado)
+    }
+    console.error('Erro ao buscar prestadores:', error)
+    return { prestadores: [], temMais: false }
+  }
+
+  const temMais = !!filtros.limite && (linhas || []).length > filtros.limite
+  const data = temMais ? linhas.slice(0, filtros.limite) : (linhas || [])
+
+  // Buscar fotos de cada prestador
+  const ids = data.map(p => p.id)
+  let fotosPorPrestador = {}
+  if (ids.length > 0) {
+    const { data: fotos } = await supabase
+      .from('portfolio_prestador')
+      .select('*')
+      .in('prestador_id', ids)
+      .order('ordem', { ascending: true })
+
+    fotosPorPrestador = (fotos || []).reduce((acc, f) => {
+      acc[f.prestador_id] = acc[f.prestador_id] || []
+      acc[f.prestador_id].push(f.url)
+      return acc
+    }, {})
+  }
+  if (foiCancelado()) return null
+
+  const prestadores = data.map(p => ({
+    ...p,
+    fotos: fotosPorPrestador[p.id] || [],
+    avaliacao: p.avaliacao_media,
+    totalAvaliacoes: p.total_avaliacoes,
+    totalServicos: p.total_servicos,
+    tempoResposta: p.tempo_resposta,
+    pontosResposta: p.pontos_resposta,
+    raioAtendimento: p.raio_atendimento,
+    plano: p.plano_id,
+    categoria: p.categoria_id,
+    avaliacaoDetalhada: {
+      pontualidade: p.media_pontualidade,
+      qualidade: p.media_qualidade,
+      preco: p.media_preco,
+      limpeza: p.media_limpeza,
+      comunicacao: p.media_comunicacao,
+    },
+  }))
+
+  return { prestadores, temMais }
+}
+
 export function usePrestadores(filtros = {}) {
   const [prestadores, setPrestadores] = useState([])
+  const [temMais, setTemMais] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -68,112 +217,20 @@ export function usePrestadores(filtros = {}) {
     // checagem, a resposta de uma busca antiga podia chegar depois da
     // mais nova e sobrescrever o resultado certo com um desatualizado.
     let cancelado = false
+    setLoading(true)
 
-    async function carregar() {
-      setLoading(true)
-      let query = supabase.from('prestadores_completo').select('*')
-
-      // CRÍTICO: apenas prestadores com plano ativo aparecem
-      query = query.eq('plano_status', 'ativo')
-
-      if (filtros.categoria) {
-        query = query.eq('categoria_id', filtros.categoria)
-      }
-      if (filtros.categorias && filtros.categorias.length > 0) {
-        query = query.in('categoria_id', filtros.categorias)
-      }
-      if (filtros.disponivel) {
-        query = query.eq('disponivel', true)
-      }
-      if (filtros.nota) {
-        query = query.gte('avaliacao_media', filtros.nota)
-      }
-      if (filtros.plano) {
-        query = query.eq('plano_id', filtros.plano)
-      }
-      if (filtros.busca) {
-        // Busca por nome, cidade, hashtag OU nome da profissão/categoria —
-        // assim "instalador de acessórios" encontra quem está nessa
-        // categoria, mesmo sem ter cadastrado essa hashtag.
-        const buscaLower = filtros.busca.toLowerCase()
-
-        const { data: porTag } = await supabase
-          .from('servicos_prestador')
-          .select('prestador_id')
-          .ilike('tag', `%${buscaLower}%`)
-
-        const { data: porCategoria } = await supabase
-          .from('categorias')
-          .select('id')
-          .ilike('nome', `%${filtros.busca}%`)
-
-        const idsPorTag = (porTag || []).map(t => t.prestador_id)
-        const idsPorCategoria = (porCategoria || []).map(c => c.id)
-
-        const condicoes = [`nome.ilike.%${filtros.busca}%`, `cidade.ilike.%${filtros.busca}%`]
-        if (idsPorTag.length > 0) condicoes.push(`id.in.(${idsPorTag.join(',')})`)
-        if (idsPorCategoria.length > 0) condicoes.push(`categoria_id.in.(${idsPorCategoria.join(',')})`)
-
-        query = query.or(condicoes.join(','))
-      }
-
-      const { data, error } = await query
-      if (cancelado) return
-
-      if (error) {
-        console.error('Erro ao buscar prestadores:', error)
-        setPrestadores([])
-        setLoading(false)
-        return
-      }
-
-      // Buscar fotos de cada prestador
-      const ids = (data || []).map(p => p.id)
-      let fotosPorPrestador = {}
-      if (ids.length > 0) {
-        const { data: fotos } = await supabase
-          .from('portfolio_prestador')
-          .select('*')
-          .in('prestador_id', ids)
-          .order('ordem', { ascending: true })
-
-        fotosPorPrestador = (fotos || []).reduce((acc, f) => {
-          acc[f.prestador_id] = acc[f.prestador_id] || []
-          acc[f.prestador_id].push(f.url)
-          return acc
-        }, {})
-      }
-
-      const completos = (data || []).map(p => ({
-        ...p,
-        fotos: fotosPorPrestador[p.id] || [],
-        avaliacao: p.avaliacao_media,
-        totalAvaliacoes: p.total_avaliacoes,
-        totalServicos: p.total_servicos,
-        tempoResposta: p.tempo_resposta,
-        pontosResposta: p.pontos_resposta,
-        raioAtendimento: p.raio_atendimento,
-        plano: p.plano_id,
-        categoria: p.categoria_id,
-        avaliacaoDetalhada: {
-          pontualidade: p.media_pontualidade,
-          qualidade: p.media_qualidade,
-          preco: p.media_preco,
-          limpeza: p.media_limpeza,
-          comunicacao: p.media_comunicacao,
-        },
-      }))
-
-      if (cancelado) return
-      setPrestadores(completos)
+    buscarPrestadores(filtros, () => cancelado).then((resultado) => {
+      if (cancelado || !resultado) return
+      setPrestadores(resultado.prestadores)
+      setTemMais(resultado.temMais)
       setLoading(false)
-    }
-    carregar()
+    })
+
     return () => { cancelado = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filtros)])
 
-  return { prestadores, loading }
+  return { prestadores, loading, temMais }
 }
 
 // ------------------------------------------------------------

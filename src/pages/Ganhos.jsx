@@ -120,10 +120,9 @@ export default function Ganhos() {
         </p>
         <div className="space-y-3">
           {[
-            { ok: (prestador.avaliacao_media || 0) >= 4.5, texto: 'Mantenha nota acima de 4.5 para entrar nos Destaques', acao: null },
+            { ok: (prestador.avaliacao_media || 0) >= 9, texto: 'Mantenha nota acima de 9 para entrar nos Destaques', acao: null },
             { ok: stats.avaliacoes >= 10, texto: 'Tenha pelo menos 10 avaliações para maior credibilidade', acao: null },
             { ok: false, texto: 'Impulsione seu perfil para aparecer no topo das buscas', acao: () => navigate('/boost') },
-            { ok: false, texto: 'Use o Assistente IA para melhorar sua bio e hashtags', acao: () => navigate('/assistente') },
           ].map((d, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"

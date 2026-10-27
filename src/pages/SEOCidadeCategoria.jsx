@@ -133,9 +133,9 @@ export default function SEOCidadeCategoria() {
         </Card>
         <Card padding={12} style={{ textAlign: 'center' }}>
           <p className="text-xl font-semibold" style={{ color: colors.primary }}>
-            {prestadores.filter(p => (p.avaliacao_media || 0) >= 4.5).length}
+            {prestadores.filter(p => (p.avaliacao_media || 0) >= 9).length}
           </p>
-          <p className="text-xs" style={{ color: colors.textSub }}>com nota ≥ 4.5</p>
+          <p className="text-xs" style={{ color: colors.textSub }}>com nota ≥ 9</p>
         </Card>
         <Card padding={12} style={{ textAlign: 'center' }}>
           <p className="text-xl font-semibold" style={{ color: colors.primary }}>

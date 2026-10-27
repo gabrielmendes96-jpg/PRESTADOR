@@ -32,7 +32,7 @@ const perguntas = [
   { q: 'Como funciona para os prestadores?', r: 'Prestadores pagam uma mensalidade a partir de R$49/mês para aparecer na plataforma. Os primeiros 30 dias são gratuitos para novos cadastros.' },
   { q: 'As avaliações são reais?', r: 'Sim! Só pode avaliar quem teve uma conversa real ou contratou o profissional pelo app. Isso garante que todas as avaliações são de clientes reais.' },
   { q: 'O app está disponível em quais cidades?', r: 'Estamos começando por Araraquara e cidades da região. Em breve expandindo para todo o Brasil.' },
-  { q: 'Como o profissional aparece em destaque?', r: 'Prestadores com nota ≥ 4.5 e avaliações verificadas entram automaticamente na aba Destaques. Também é possível impulsionar o perfil a partir de R$20.' },
+  { q: 'Como o profissional aparece em destaque?', r: 'Prestadores com nota ≥ 9 (de 0 a 10) e avaliações verificadas entram automaticamente na aba Destaques. Também é possível impulsionar o perfil a partir de R$20.' },
 ]
 
 const planos = [
