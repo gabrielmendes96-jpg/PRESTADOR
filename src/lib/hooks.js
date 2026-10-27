@@ -24,6 +24,62 @@ export function useCategorias() {
 }
 
 // ------------------------------------------------------------
+// useServicosCatalogo — serviços concretos de uma categoria
+// ("Troca de chuveiro elétrico", "Pintura de parede residencial"...).
+// Categoria sem catálogo devolve lista vazia — o pedido aceita texto livre.
+// ------------------------------------------------------------
+export function useServicosCatalogo(categoriaId) {
+  const [servicos, setServicos] = useState([])
+  const [loading, setLoading] = useState(!!categoriaId)
+
+  useEffect(() => {
+    if (!categoriaId) { setServicos([]); setLoading(false); return }
+    let cancelado = false
+    setLoading(true)
+    supabase
+      .from('servicos_catalogo')
+      .select('id, nome')
+      .eq('categoria_id', categoriaId)
+      .eq('ativo', true)
+      .order('nome', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelado) return
+        if (error) console.error('Erro ao buscar serviços:', error)
+        setServicos(data || [])
+        setLoading(false)
+      })
+    return () => { cancelado = true }
+  }, [categoriaId])
+
+  return { servicos, loading }
+}
+
+// ------------------------------------------------------------
+// usePrestadorServicos — serviços que um prestador marcou que faz
+// ------------------------------------------------------------
+export function usePrestadorServicos(prestadorId) {
+  const [servicos, setServicos] = useState([])
+  const [loading, setLoading] = useState(!!prestadorId)
+
+  useEffect(() => {
+    if (!prestadorId) { setServicos([]); setLoading(false); return }
+    let cancelado = false
+    supabase
+      .from('prestador_servicos')
+      .select('servico_id, servicos_catalogo(id, nome, categoria_id)')
+      .eq('prestador_id', prestadorId)
+      .then(({ data }) => {
+        if (cancelado) return
+        setServicos((data || []).map(r => r.servicos_catalogo).filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome)))
+        setLoading(false)
+      })
+    return () => { cancelado = true }
+  }, [prestadorId])
+
+  return { servicos, loading }
+}
+
+// ------------------------------------------------------------
 // useTopicos — tópicos amplos + suas categorias relacionadas
 // ------------------------------------------------------------
 export function useTopicos() {
@@ -121,12 +177,14 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
     // Busca por nome, cidade, hashtag OU nome da profissão/categoria —
     // assim "instalador de acessórios" encontra quem está nessa
     // categoria, mesmo sem ter cadastrado essa hashtag.
-    const [{ data: porTag }, { data: porCategoria }] = await Promise.all([
+    const [{ data: porTag }, { data: porCategoria }, { data: porServico }] = await Promise.all([
       supabase.from('servicos_prestador').select('prestador_id').ilike('tag', `%${busca.toLowerCase()}%`),
       supabase.from('categorias').select('id').ilike('nome', `%${busca}%`),
+      // Serviços do catálogo que o prestador marcou ("troca de chuveiro").
+      supabase.from('prestador_servicos').select('prestador_id, servicos_catalogo!inner(nome)').ilike('servicos_catalogo.nome', `%${busca}%`),
     ])
 
-    const idsPorTag = [...new Set((porTag || []).map(t => t.prestador_id))]
+    const idsPorTag = [...new Set([...(porTag || []), ...(porServico || [])].map(t => t.prestador_id))]
     const idsPorCategoria = (porCategoria || []).map(c => c.id)
 
     const condicoes = [`nome.ilike.%${busca}%`, `cidade.ilike.%${busca}%`]

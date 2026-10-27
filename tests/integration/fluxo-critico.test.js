@@ -1150,4 +1150,103 @@ describe('Fluxo crítico', () => {
     expect(excedeu?.message).toMatch(/muitos chamados/)
   }, 40000)
 
+
+  it('27. Catálogo de serviços — leitura pública, escrita só do admin', async () => {
+    const { data: servico } = await admin.from('servicos_catalogo').select('id, nome, categoria_id').eq('nome', 'Troca de chuveiro elétrico').single()
+    expect(servico).toBeTruthy()
+    state.servicoId = servico.id
+    state.servicoCategoriaId = servico.categoria_id
+
+    // Qualquer visitante (sem login) enxerga o catálogo.
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    const { data: publico } = await visitante.from('servicos_catalogo').select('id').eq('categoria_id', servico.categoria_id)
+    expect(publico.length).toBeGreaterThan(3)
+
+    // Usuário comum não cria nem apaga serviço do catálogo.
+    const { error: erroCriar } = await state.clienteSessao.cliente.from('servicos_catalogo')
+      .insert({ categoria_id: servico.categoria_id, nome: 'Serviço inventado pelo cliente' })
+    expect(erroCriar).toBeTruthy()
+    await state.clienteSessao.cliente.from('servicos_catalogo').delete().eq('id', servico.id)
+    const { data: continua } = await admin.from('servicos_catalogo').select('id').eq('id', servico.id)
+    expect(continua).toHaveLength(1)
+  }, 30000)
+
+  it('28. Serviços do prestador — só o dono marca e desmarca no próprio perfil', async () => {
+    // Cliente (sem perfil de prestador) não marca serviço no perfil de ninguém.
+    const { error: erroCliente } = await state.clienteSessao.cliente.from('prestador_servicos')
+      .insert({ prestador_id: state.prestadorId, servico_id: state.servicoId })
+    expect(erroCliente).toBeTruthy()
+
+    // O próprio prestador marca...
+    const { error: erroDono } = await state.prestadorSessao.cliente.from('prestador_servicos')
+      .insert({ prestador_id: state.prestadorId, servico_id: state.servicoId })
+    expect(erroDono).toBeNull()
+
+    // ...e todo mundo enxerga (aparece no perfil público e alimenta a busca).
+    const { data: lidoPeloCliente } = await state.clienteSessao.cliente.from('prestador_servicos')
+      .select('servico_id').eq('prestador_id', state.prestadorId)
+    expect(lidoPeloCliente.map(r => r.servico_id)).toContain(state.servicoId)
+
+    // Cliente não consegue desmarcar o serviço de outra pessoa (afeta 0 linhas).
+    await state.clienteSessao.cliente.from('prestador_servicos').delete().eq('prestador_id', state.prestadorId)
+    const { data: intacto } = await admin.from('prestador_servicos').select('servico_id').eq('prestador_id', state.prestadorId)
+    expect(intacto).toHaveLength(1)
+  }, 30000)
+
+  it('29. Pedido com serviço escolhido + busca pelo nome do serviço', async () => {
+    // A permissão por coluna de pedidos_servico precisa aceitar servico_id.
+    const { data: pedido, error } = await state.clienteSessao.cliente.from('pedidos_servico').insert({
+      cliente_user_id: state.clienteUserId, cliente_nome: 'Cliente de Teste', titulo: 'Troca de chuveiro elétrico',
+      categoria_id: state.servicoCategoriaId, cidade: 'São Paulo', estado: 'SP', status: 'aberto', servico_id: state.servicoId,
+    }).select('id, servico_id, servicos_catalogo(nome)').single()
+    expect(error).toBeNull()
+    expect(pedido.servicos_catalogo.nome).toBe('Troca de chuveiro elétrico')
+    await admin.from('pedidos_servico').delete().eq('id', pedido.id)
+
+    // "chuveiro" encontra quem marcou o serviço (sem hashtag nenhuma cadastrada).
+    await admin.from('prestadores').update({ plano_status: 'ativo' }).eq('id', state.prestadorId)
+    const achados = await buscarPrestadores({ busca: 'troca de chuveiro' })
+    expect(achados.prestadores.map(p => p.id)).toContain(state.prestadorId)
+  }, 30000)
+
+  it('30. Conversa — assunto/serviço pelos participantes; só o prestador muda a etapa', async () => {
+    // Cliente e prestador podem gravar o assunto.
+    const { error: erroAssunto } = await state.clienteSessao.cliente.from('conversas')
+      .update({ servico_id: state.servicoId, assunto: 'Troca de chuveiro elétrico' }).eq('id', state.conversaId)
+    expect(erroAssunto).toBeNull()
+
+    // A etapa é do prestador: o cliente tenta e é barrado pelo gatilho.
+    const { error: erroEtapaCliente } = await state.clienteSessao.cliente.from('conversas')
+      .update({ etapa: 'concluido' }).eq('id', state.conversaId)
+    expect(erroEtapaCliente?.message).toMatch(/Só o prestador/)
+
+    const { error: erroEtapaPrestador } = await state.prestadorSessao.cliente.from('conversas')
+      .update({ etapa: 'agendado' }).eq('id', state.conversaId)
+    expect(erroEtapaPrestador).toBeNull()
+    const { data: conversa } = await admin.from('conversas').select('etapa, assunto, servico_id').eq('id', state.conversaId).single()
+    expect(conversa).toEqual({ etapa: 'agendado', assunto: 'Troca de chuveiro elétrico', servico_id: state.servicoId })
+
+    // Etapa inventada é recusada pelo banco.
+    const { error: erroInvalida } = await state.prestadorSessao.cliente.from('conversas')
+      .update({ etapa: 'qualquer_coisa' }).eq('id', state.conversaId)
+    expect(erroInvalida).toBeTruthy()
+  }, 30000)
+
+  it('31. Respostas rápidas — privadas do prestador', async () => {
+    const { data: criada, error } = await state.prestadorSessao.cliente.from('respostas_rapidas')
+      .insert({ prestador_id: state.prestadorId, titulo: 'Horários', texto: 'Atendo de segunda a sexta, das 8h às 18h.' })
+      .select().single()
+    expect(error).toBeNull()
+
+    // O cliente não enxerga nem cria resposta rápida do prestador.
+    const { data: vistaPeloCliente } = await state.clienteSessao.cliente.from('respostas_rapidas').select('id').eq('id', criada.id)
+    expect(vistaPeloCliente).toHaveLength(0)
+    const { error: erroCliente } = await state.clienteSessao.cliente.from('respostas_rapidas')
+      .insert({ prestador_id: state.prestadorId, titulo: 'Golpe', texto: 'texto injetado por outro usuário' })
+    expect(erroCliente).toBeTruthy()
+
+    await state.prestadorSessao.cliente.from('respostas_rapidas').delete().eq('id', criada.id)
+  }, 30000)
+
 })

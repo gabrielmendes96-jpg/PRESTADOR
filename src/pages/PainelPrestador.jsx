@@ -11,6 +11,7 @@ import { useCategorias } from '../lib/hooks'
 import { colors, radius, shadow, spacing } from '../lib/design'
 import Portfolio from '../components/Portfolio'
 import HashtagsInput from '../components/HashtagsInput'
+import ServicosDoPrestador from '../components/ServicosDoPrestador'
 import FotoPerfilUpload from '../components/FotoPerfilUpload'
 import RedesSociaisForm from '../components/RedesSociaisForm'
 import BannerIndicacao from '../components/BannerIndicacao'
@@ -84,6 +85,7 @@ export default function PainelPrestador() {
   const [totalPedidosCategoria, setTotalPedidosCategoria] = useState(0)
   const [pedidosHoje, setPedidosHoje] = useState(0)
   const [historico, setHistorico] = useState([])
+  const [meusServicosIds, setMeusServicosIds] = useState(new Set())
   const [assinaturaInfo, setAssinaturaInfo] = useState(null)
   const [cancelando, setCancelando] = useState(false)
   const [erroAssinatura, setErroAssinatura] = useState('')
@@ -151,14 +153,20 @@ export default function PainelPrestador() {
 
           const { data: lista } = await supabase
             .from('pedidos_servico')
-            .select('id, titulo, cidade, estado, orcamento_min, orcamento_max, criado_em')
+            .select('id, titulo, cidade, estado, orcamento_min, orcamento_max, criado_em, servico_id, servicos_catalogo(nome)')
             .eq('categoria_id', data.categoria_id)
             .eq('status', 'aberto')
             .eq('pago', true)
             .gt('expira_em', new Date().toISOString())
             .order('criado_em', { ascending: false })
-            .limit(5)
-          setPedidosCategoria(lista || [])
+            .limit(20)
+
+          // Pedidos do serviço que o prestador marcou que faz vêm primeiro.
+          const { data: meus } = await supabase.from('prestador_servicos').select('servico_id').eq('prestador_id', data.id)
+          const ids = new Set((meus || []).map(r => r.servico_id))
+          setMeusServicosIds(ids)
+          const combina = (p) => (p.servico_id && ids.has(p.servico_id) ? 0 : 1)
+          setPedidosCategoria([...(lista || [])].sort((a, b) => combina(a) - combina(b)).slice(0, 5))
 
           const { count: total } = await filtroBase()
           setTotalPedidosCategoria(total || 0)
@@ -610,7 +618,12 @@ export default function PainelPrestador() {
                     >
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.titulo}</p>
-                        <p style={{ fontSize: 12, color: colors.textSub, margin: 0 }}>{p.cidade}, {p.estado}</p>
+                        <p style={{ fontSize: 12, color: colors.textSub, margin: 0 }}>
+                          {p.servicos_catalogo?.nome ? p.servicos_catalogo.nome + ' · ' : ''}{p.cidade}, {p.estado}
+                        </p>
+                        {p.servico_id && meusServicosIds.has(p.servico_id) && (
+                          <span style={{ display: 'inline-block', marginTop: 4, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#FEF3C7', color: '#92610A' }}>Combina com seus serviços</span>
+                        )}
                       </div>
                       {(p.orcamento_min || p.orcamento_max) && (
                         <p style={{ fontSize: 13, fontWeight: 700, color: colors.primary, margin: 0, flexShrink: 0 }}>
@@ -661,8 +674,12 @@ export default function PainelPrestador() {
         {/* ABA: MEUS SERVIÇOS */}
         {aba === 'hashtags' && (
           <Card padding={24}>
-            <TabHeader icon={Tag} title="Meus serviços" desc="Adicione hashtags dos serviços que você realiza. Os clientes podem buscar por elas e encontrar você mais facilmente." />
-            <p style={{ fontSize: 13, color: colors.primary, marginTop: -12, marginBottom: 16 }}>#pintura #reboco #reforma #banheiro #cozinha</p>
+            <TabHeader icon={Tag} title="Meus serviços" desc="Diga o que você faz: o cliente escolhe esses serviços ao pedir orçamento e encontra você pelas buscas." />
+            <ServicosDoPrestador prestadorId={prestador.id} categoriaId={prestador.categoria_id} />
+            <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: '0 0 4px' }}>Hashtags</p>
+            <p style={{ fontSize: 13, color: colors.textSub, margin: '0 0 12px' }}>
+              Palavras extras pra descrever o que você faz (ex: #pintura #reboco #reforma).
+            </p>
             <HashtagsInput prestadorId={prestador.id} />
           </Card>
         )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, ClipboardList, MapPin, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -15,14 +15,21 @@ export default function Pedidos() {
   const [carregando, setCarregando] = useState(true)
   const [filtroCategoria, setFiltroCategoria] = useState('')
   const [filtroCidade, setFiltroCidade] = useState('')
+  const [meusServicosIds, setMeusServicosIds] = useState(new Set())
   const { categorias } = useCategorias()
 
   // Prestador logado já abre a lista filtrada na própria categoria —
   // continua dando pra trocar pra "Todas as categorias" manualmente.
   useEffect(() => {
     if (!usuario) return
-    supabase.from('prestadores').select('categoria_id').eq('user_id', usuario.id).single()
-      .then(({ data }) => { if (data?.categoria_id) setFiltroCategoria(data.categoria_id) })
+    supabase.from('prestadores').select('id, categoria_id').eq('user_id', usuario.id).single()
+      .then(({ data }) => {
+        if (!data) return
+        if (data.categoria_id) setFiltroCategoria(data.categoria_id)
+        // Serviços que ele marcou: pedidos desses serviços ganham destaque.
+        supabase.from('prestador_servicos').select('servico_id').eq('prestador_id', data.id)
+          .then(({ data: meus }) => setMeusServicosIds(new Set((meus || []).map(r => r.servico_id))))
+      })
   }, [usuario])
 
   useEffect(() => {
@@ -33,7 +40,7 @@ export default function Pedidos() {
     setCarregando(true)
     let query = supabase
       .from('pedidos_servico')
-      .select('*, categorias(nome, emoji)')
+      .select('*, categorias(nome, emoji), servicos_catalogo(nome)')
       .eq('status', 'aberto')
       .eq('pago', true)
       .gt('expira_em', new Date().toISOString())
@@ -46,6 +53,12 @@ export default function Pedidos() {
     setPedidos(data || [])
     setCarregando(false)
   }
+
+  // Quem combina com o que o prestador faz vem primeiro (a ordem por data é mantida dentro de cada grupo).
+  const pedidosOrdenados = useMemo(() => {
+    const combina = (p) => (p.servico_id && meusServicosIds.has(p.servico_id) ? 0 : 1)
+    return [...pedidos].sort((a, b) => combina(a) - combina(b))
+  }, [pedidos, meusServicosIds])
 
   const inputStyle = {
     flex: 1, padding: '10px 14px', fontSize: 14, borderRadius: 12,
@@ -61,7 +74,7 @@ export default function Pedidos() {
         </div>
         {usuario && (
           <Button icon={<Plus size={16} />} onClick={() => navigate('/pedidos/novo')}>
-            Postar pedido
+            Pedir orçamento
           </Button>
         )}
       </div>
@@ -96,7 +109,7 @@ export default function Pedidos() {
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
-          {pedidos.map(p => (
+          {pedidosOrdenados.map(p => (
             <Card key={p.id} interactive padding={20} onClick={() => navigate(`/pedidos/${p.id}`)}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -105,6 +118,14 @@ export default function Pedidos() {
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 999, background: '#DCFCE7', color: colors.primaryHover }}>
                       {p.categorias?.nome}
                     </span>
+                    {p.servicos_catalogo?.nome && (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 999, background: '#F0FDF4', color: colors.primaryHover, border: '1px solid #BBF7D0' }}>
+                        {p.servicos_catalogo.nome}
+                      </span>
+                    )}
+                    {p.servico_id && meusServicosIds.has(p.servico_id) && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#FEF3C7', color: '#92610A', flexShrink: 0 }}>Combina com seus serviços</span>
+                    )}
                   </div>
                   <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: colors.textSub, margin: 0 }}>
                     <MapPin size={13} /> {p.cidade}, {p.estado}

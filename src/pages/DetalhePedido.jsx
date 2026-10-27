@@ -57,7 +57,7 @@ export default function DetalhePedido() {
 
     const { data: p } = await supabase
       .from('pedidos_servico')
-      .select('*, categorias(nome, emoji)')
+      .select('*, categorias(nome, emoji), servicos_catalogo(nome)')
       .eq('id', id)
       .single()
     if (foiCancelado()) return
@@ -142,6 +142,9 @@ export default function DetalhePedido() {
       prestador_id: prestadorId,
       cliente_user_id: usuario.id,
       cliente_nome: pedido.cliente_nome,
+      // A conversa já nasce sabendo sobre o que é (aparece na caixa do prestador).
+      servico_id: pedido.servico_id || null,
+      assunto: pedido.titulo,
     }).select().single()
 
     if (erroConversa || !conv) {
@@ -234,6 +237,11 @@ export default function DetalhePedido() {
           <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#DCFCE7', color: colors.primaryHover }}>
             {pedido.categorias?.nome}
           </span>
+          {pedido.servicos_catalogo?.nome && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: '#F0FDF4', color: colors.primaryHover, border: '1px solid #BBF7D0' }}>
+              {pedido.servicos_catalogo.nome}
+            </span>
+          )}
           <span style={{
             fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, textTransform: 'capitalize',
             background: pedido.status === 'aberto' ? '#DCFCE7' : '#FEF3C7',

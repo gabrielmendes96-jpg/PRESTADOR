@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Camera, Video, X, Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { useCategorias } from '../lib/hooks'
+import { useCategorias, useServicosCatalogo } from '../lib/hooks'
 import { ESTADOS, buscarMunicipios } from '../lib/localidades'
 import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import SearchableSelect from '../components/ui/SearchableSelect'
+import Chip from '../components/ui/Chip'
 
 const pacotes = [
   { id: 'avulso', nome: 'Avulso', preco: 9, creditos: 1, destaque: false, desc: '1 pedido' },
@@ -37,12 +38,14 @@ export default function NovoPedido() {
     titulo: '',
     descricao: '',
     categoria_id: '',
+    servico_id: '',
     cidade: '',
     estado: '',
     orcamento_min: '',
     orcamento_max: '',
     prazo: '',
   })
+  const { servicos: catalogo } = useServicosCatalogo(dados.categoria_id)
   const [cidades, setCidades] = useState([])
   const [carregandoCidades, setCarregandoCidades] = useState(false)
   const [midias, setMidias] = useState([]) // [{ file, url, tipo }]
@@ -77,6 +80,20 @@ export default function NovoPedido() {
 
   const atualizar = (campo, valor) => setDados({ ...dados, [campo]: valor })
 
+  // Trocar de categoria limpa o serviço escolhido (ele pertence à categoria).
+  const mudarCategoria = (id) => setDados(prev => ({ ...prev, categoria_id: id, servico_id: '' }))
+
+  // Escolher um serviço preenche o título sozinho — a menos que a pessoa
+  // já tenha escrito um título próprio.
+  const escolherServico = (servico) => setDados(prev => {
+    const nomeAnterior = catalogo.find(x => x.id === prev.servico_id)?.nome
+    const tituloAutomatico = !prev.titulo || prev.titulo === nomeAnterior
+    if (prev.servico_id === servico.id) {
+      return { ...prev, servico_id: '', titulo: tituloAutomatico ? '' : prev.titulo }
+    }
+    return { ...prev, servico_id: servico.id, titulo: tituloAutomatico ? servico.nome : prev.titulo }
+  })
+
   const mudarEstado = (uf) => setDados(prev => ({ ...prev, estado: uf, cidade: '' }))
 
   const handleArquivosMidia = (e) => {
@@ -109,6 +126,7 @@ export default function NovoPedido() {
         ...dados,
         orcamento_min: dados.orcamento_min ? parseFloat(dados.orcamento_min) : null,
         orcamento_max: dados.orcamento_max ? parseFloat(dados.orcamento_max) : null,
+        servico_id: dados.servico_id || null,
         valor_pago: 9.00,
         pago: false,
         status: 'aberto',
@@ -179,6 +197,31 @@ export default function NovoPedido() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
+              <label style={labelStyle}>Categoria *</label>
+              <SearchableSelect
+                options={categorias.map(c => ({ value: c.id, label: c.nome }))}
+                value={dados.categoria_id}
+                onChange={mudarCategoria}
+                placeholder="Digite para buscar a categoria..."
+                emptyMessage="Nenhuma categoria encontrada"
+              />
+            </div>
+            {catalogo.length > 0 && (
+              <div>
+                <label style={labelStyle}>O que você precisa?</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {catalogo.map(sv => (
+                    <Chip key={sv.id} active={dados.servico_id === sv.id} onClick={() => escolherServico(sv)}>
+                      {sv.nome}
+                    </Chip>
+                  ))}
+                </div>
+                <p style={{ fontSize: 12, color: colors.textSub, margin: '8px 0 0' }}>
+                  Não é nenhum desses? É só descrever no título abaixo.
+                </p>
+              </div>
+            )}
+            <div>
               <label style={labelStyle}>Título do pedido *</label>
               <input type="text" value={dados.titulo} onChange={e => atualizar('titulo', e.target.value)}
                 style={inputStyle} placeholder="Ex: Preciso pintar sala e quartos" />
@@ -187,16 +230,6 @@ export default function NovoPedido() {
               <label style={labelStyle}>Descrição</label>
               <textarea value={dados.descricao} onChange={e => atualizar('descricao', e.target.value)}
                 style={{ ...inputStyle, resize: 'none' }} rows={3} placeholder="Detalhes do serviço que você precisa..." />
-            </div>
-            <div>
-              <label style={labelStyle}>Categoria *</label>
-              <SearchableSelect
-                options={categorias.map(c => ({ value: c.id, label: c.nome }))}
-                value={dados.categoria_id}
-                onChange={v => atualizar('categoria_id', v)}
-                placeholder="Digite para buscar a categoria..."
-                emptyMessage="Nenhuma categoria encontrada"
-              />
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ width: 140 }}>

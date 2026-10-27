@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, MessageCircle, Send, X, BookmarkPlus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow } from '../lib/design'
 import { estourouPrazo } from '../lib/tempoResposta'
+import { ETAPAS, etapaPorId, RESPOSTAS_PADRAO, aplicarModelo } from '../lib/espera'
 import Card from '../components/ui/Card'
 import IconButton from '../components/ui/IconButton'
 import Avatar from '../components/ui/Avatar'
 
 export default function Chat() {
   const { conversaId } = useParams()
+  const [params] = useSearchParams()
   const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [mensagens, setMensagens] = useState([])
@@ -20,6 +22,8 @@ export default function Chat() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [destaquesCliente, setDestaquesCliente] = useState([])
+  const [respostasSalvas, setRespostasSalvas] = useState([])
+  const prefillFeito = useRef(false)
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -58,11 +62,20 @@ export default function Chat() {
   const carregarConversa = async (foiCancelado) => {
     setCarregando(true)
 
-    const { data: conv } = await supabase
+    const colunasPrestador = 'prestadores(id, nome, categoria_id, cidade, estado, foto_perfil, user_id)'
+    let { data: conv, error: erroConv } = await supabase
       .from('conversas')
-      .select('*, prestadores(id, nome, categoria_id, cidade, estado, foto_perfil, user_id)')
+      .select('*, ' + colunasPrestador + ', servicos_catalogo(nome)')
       .eq('id', conversaId)
       .single()
+    if (erroConv) {
+      // Banco sem o catálogo de serviços (supabase/34): segue só com o básico.
+      ;({ data: conv } = await supabase
+        .from('conversas')
+        .select('*, ' + colunasPrestador)
+        .eq('id', conversaId)
+        .single())
+    }
 
     if (foiCancelado()) return
     setConversa(conv)
@@ -89,6 +102,11 @@ export default function Chat() {
         .order('ordem', { ascending: true })
       if (foiCancelado()) return
       setDestaquesCliente(destaques || [])
+
+      const { data: salvas } = await supabase
+        .from('respostas_rapidas').select('*').eq('prestador_id', conv.prestador_id).order('criado_em', { ascending: true })
+      if (foiCancelado()) return
+      setRespostasSalvas(salvas || [])
     } else {
       await supabase.from('conversas').update({ nao_lidas_cliente: 0 }).eq('id', conversaId)
     }
@@ -131,6 +149,11 @@ export default function Chat() {
       nao_lidas_cliente: ehPrestador ? (conversa?.nao_lidas_cliente || 0) + 1 : 0,
     }
 
+    // Primeira resposta do prestador tira a conversa de "novo" (só se o banco já tem a coluna).
+    if (ehPrestador && conversa?.etapa === 'novo') {
+      atualizacaoConversa.etapa = 'em_orcamento'
+    }
+
     if (!ehPrestador && !conversa?.cliente_aguardando_desde) {
       // Cliente abriu uma janela de espera nova (só se não tinha uma aberta)
       atualizacaoConversa.cliente_aguardando_desde = agora
@@ -168,6 +191,54 @@ export default function Chat() {
     setEnviando(false)
   }
 
+  const nomeServicoConversa = conversa?.servicos_catalogo?.nome || conversa?.assunto || ''
+
+  // Cliente que chegou do botão "Pedir orçamento" de um serviço do perfil:
+  // a mensagem já vem escrita (ele edita e envia pelo fluxo normal).
+  useEffect(() => {
+    if (prefillFeito.current || carregando || !conversa) return
+    const servicoParam = params.get('servico')
+    const ehPrest = conversa.prestadores?.user_id === usuario?.id
+    if (servicoParam && !ehPrest && mensagens.length === 0 && !texto && nomeServicoConversa) {
+      prefillFeito.current = true
+      setTexto('Olá! Gostaria de um orçamento para: ' + nomeServicoConversa + '.')
+    }
+  }, [carregando, conversa, mensagens.length])
+
+  const mudarEtapa = async (etapa) => {
+    const anterior = conversa.etapa
+    setConversa(prev => ({ ...prev, etapa }))
+    const { error } = await supabase.from('conversas').update({ etapa }).eq('id', conversaId)
+    if (error) {
+      setConversa(prev => ({ ...prev, etapa: anterior }))
+      setErro('Não foi possível mudar a etapa agora.')
+    }
+  }
+
+  const usarResposta = (modelo) => {
+    const preenchido = aplicarModelo(modelo, { nome: conversa?.cliente_nome, servico: nomeServicoConversa })
+    setTexto(atual => (atual.trim() ? atual.trim() + ' ' + preenchido : preenchido))
+  }
+
+  const salvarComoResposta = async () => {
+    const corpo = texto.trim()
+    if (!corpo) return
+    const titulo = window.prompt('Dê um nome curto pra essa resposta rápida (ex: "Horários disponíveis"):')
+    if (!titulo || titulo.trim().length < 2) return
+    const { data, error } = await supabase
+      .from('respostas_rapidas')
+      .insert({ prestador_id: conversa.prestador_id, titulo: titulo.trim().slice(0, 40), texto: corpo.slice(0, 1000) })
+      .select().single()
+    if (error) { setErro('Não foi possível salvar a resposta rápida.'); return }
+    setRespostasSalvas(prev => [...prev, data])
+  }
+
+  const removerResposta = async (resposta) => {
+    if (!window.confirm('Remover a resposta rápida "' + resposta.titulo + '"?')) return
+    const { error } = await supabase.from('respostas_rapidas').delete().eq('id', resposta.id)
+    if (!error) setRespostasSalvas(prev => prev.filter(r => r.id !== resposta.id))
+  }
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -200,10 +271,28 @@ export default function Chat() {
         <Avatar nome={nomeContato} foto={fotoContato} size={40} style={{ fontSize: 14 }} />
         <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: 0 }}>{nomeContato}</p>
-          <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>
-            {conversa?.prestadores?.categoria_id} · {conversa?.prestadores?.cidade}, {conversa?.prestadores?.estado}
+          <p style={{ fontSize: 12, color: colors.textSub, textTransform: ehPrestadorLogado ? 'none' : 'capitalize', margin: 0 }}>
+            {ehPrestadorLogado
+              ? (nomeServicoConversa ? 'Pedido: ' + nomeServicoConversa : 'Conversa direta')
+              : conversa?.prestadores?.categoria_id + ' · ' + conversa?.prestadores?.cidade + ', ' + conversa?.prestadores?.estado}
           </p>
+          {!ehPrestadorLogado && nomeServicoConversa && (
+            <p style={{ fontSize: 12, fontWeight: 700, color: colors.primaryHover, margin: '2px 0 0' }}>{nomeServicoConversa}</p>
+          )}
         </div>
+        {ehPrestadorLogado && conversa?.etapa && (
+          <select
+            value={conversa.etapa}
+            onChange={e => mudarEtapa(e.target.value)}
+            aria-label="Etapa da conversa"
+            style={{
+              marginLeft: 'auto', flexShrink: 0, padding: '7px 10px', fontSize: 12, fontWeight: 700, borderRadius: 999,
+              border: 'none', cursor: 'pointer', background: etapaPorId(conversa.etapa).bg, color: etapaPorId(conversa.etapa).cor,
+            }}
+          >
+            {ETAPAS.map(e => <option key={e.id} value={e.id}>{e.label}</option>)}
+          </select>
+        )}
       </Card>
 
       {/* Destaques do cliente — dá contexto pro prestador antes de orçar */}
@@ -282,6 +371,36 @@ export default function Chat() {
         <p style={{ fontSize: 12, marginBottom: 8, padding: '8px 12px', borderRadius: 10, color: '#B91C1C', background: '#FEF2F2' }}>
           {erro}
         </p>
+      )}
+
+      {/* Respostas rápidas (só o prestador) */}
+      {ehPrestadorLogado && (
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, marginBottom: 4, scrollbarWidth: 'none' }}>
+          {RESPOSTAS_PADRAO.map(r => (
+            <button key={r.id} type="button" onClick={() => usarResposta(r.texto)}
+              style={{ flexShrink: 0, padding: '7px 13px', fontSize: 12, fontWeight: 600, borderRadius: 999, border: '1px solid ' + colors.border, background: '#fff', color: colors.textSub, cursor: 'pointer' }}>
+              {r.titulo}
+            </button>
+          ))}
+          {respostasSalvas.map(r => (
+            <span key={r.id} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', borderRadius: 999, border: '1px solid #BBF7D0', background: '#F0FDF4' }}>
+              <button type="button" onClick={() => usarResposta(r.texto)}
+                style={{ padding: '7px 6px 7px 13px', fontSize: 12, fontWeight: 600, border: 'none', background: 'none', color: colors.primaryHover, cursor: 'pointer' }}>
+                {r.titulo}
+              </button>
+              <button type="button" onClick={() => removerResposta(r)} aria-label={'Remover ' + r.titulo}
+                style={{ padding: '0 9px 0 2px', border: 'none', background: 'none', color: colors.primaryHover, cursor: 'pointer', display: 'flex' }}>
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+          {texto.trim().length > 1 && (
+            <button type="button" onClick={salvarComoResposta}
+              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 13px', fontSize: 12, fontWeight: 600, borderRadius: 999, border: '1px dashed ' + colors.border, background: 'none', color: colors.textSub, cursor: 'pointer' }}>
+              <BookmarkPlus size={13} /> Salvar texto atual
+            </button>
+          )}
+        </div>
       )}
 
       {/* Input */}

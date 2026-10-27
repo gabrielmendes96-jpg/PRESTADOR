@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Wrench, MapPin, X, MessageCircle, FileText, Phone, Share2, Zap } from 'lucide-react'
-import { usePrestador } from '../lib/hooks'
+import { usePrestador, usePrestadorServicos } from '../lib/hooks'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow } from '../lib/design'
@@ -14,6 +14,7 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import IconButton from '../components/ui/IconButton'
 import Badge from '../components/ui/Badge'
+import Chip from '../components/ui/Chip'
 
 function iniciaisDe(nome = '') {
   return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'P'
@@ -26,6 +27,8 @@ export default function Perfil() {
   const [iniciandoChat, setIniciandoChat] = useState(false)
   const [erroChat, setErroChat] = useState(false)
   const { prestador, loading } = usePrestador(id)
+  const { servicos: servicosDoPrestador } = usePrestadorServicos(id)
+  const [escolhendoServico, setEscolhendoServico] = useState(false)
 
   // Registra uma visualização real (não dono, no máximo 1 por sessão/dia)
   useEffect(() => {
@@ -40,7 +43,7 @@ export default function Perfil() {
     supabase.from('visualizacoes_perfil').insert({ prestador_id: prestador.id }).then(() => {})
   }, [prestador, usuario])
 
-  const iniciarConversa = async () => {
+  const iniciarConversa = async (servico = null) => {
     if (!usuario) { navigate('/login'); return }
     setIniciandoChat(true)
     setErroChat(false)
@@ -52,8 +55,14 @@ export default function Perfil() {
       .eq('cliente_user_id', usuario.id)
       .single()
 
+    const sufixoServico = servico ? `?servico=${servico.id}` : ''
+
     if (existente) {
-      navigate(`/chat/${existente.id}`)
+      // A conversa já existe: o assunto passa a ser o serviço do pedido mais recente.
+      if (servico) {
+        await supabase.from('conversas').update({ servico_id: servico.id, assunto: servico.nome }).eq('id', existente.id)
+      }
+      navigate(`/chat/${existente.id}${sufixoServico}`)
       return
     }
 
@@ -64,6 +73,7 @@ export default function Perfil() {
         cliente_user_id: usuario.id,
         cliente_nome: usuario.user_metadata?.nome || usuario.email?.split('@')[0] || 'Cliente',
         cliente_foto_url: usuario.user_metadata?.foto_url || null,
+        ...(servico ? { servico_id: servico.id, assunto: servico.nome } : {}),
       })
       .select()
       .single()
@@ -75,7 +85,7 @@ export default function Perfil() {
       return
     }
 
-    navigate(`/chat/${nova.id}`)
+    navigate(`/chat/${nova.id}${sufixoServico}`)
   }
 
   const compartilhar = () => {
@@ -158,6 +168,20 @@ export default function Perfil() {
 
         <p style={{ fontSize: 14, lineHeight: 1.6, color: colors.textSub, marginBottom: 16 }}>{prestador.descricao}</p>
 
+        {/* Serviços do catálogo que o prestador marcou */}
+        {servicosDoPrestador.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: colors.textSub, letterSpacing: '0.4px', marginBottom: 8 }}>SERVIÇOS QUE FAZ</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {servicosDoPrestador.map(sv => (
+                <span key={sv.id} style={{ fontSize: 12, fontWeight: 600, padding: '5px 11px', borderRadius: 999, background: '#F0FDF4', color: colors.primaryHover, border: '1px solid #BBF7D0' }}>
+                  {sv.nome}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Hashtags */}
         {prestador.hashtags && prestador.hashtags.filter(Boolean).length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
@@ -195,13 +219,25 @@ export default function Perfil() {
 
         {/* CTAs principais */}
         <div className="flex flex-col sm:flex-row" style={{ gap: 10, marginBottom: 10 }}>
-          <Button variant="secondary" icon={<MessageCircle size={17} />} fullWidth onClick={iniciarConversa} disabled={iniciandoChat}>
+          <Button variant="secondary" icon={<MessageCircle size={17} />} fullWidth onClick={() => iniciarConversa()} disabled={iniciandoChat}>
             Conversar com o prestador
           </Button>
-          <Button variant="dark" icon={<FileText size={17} />} fullWidth onClick={iniciarConversa} disabled={iniciandoChat}>
+          <Button variant="dark" icon={<FileText size={17} />} fullWidth onClick={() => (servicosDoPrestador.length > 0 && usuario ? setEscolhendoServico(v => !v) : iniciarConversa())} disabled={iniciandoChat}>
             {iniciandoChat ? 'Abrindo...' : 'Pedir orçamento'}
           </Button>
         </div>
+
+        {escolhendoServico && (
+          <div style={{ padding: 14, borderRadius: 14, background: colors.bg, marginBottom: 10 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: colors.text, margin: '0 0 10px' }}>Qual serviço você quer orçar?</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {servicosDoPrestador.map(sv => (
+                <Chip key={sv.id} onClick={() => iniciarConversa(sv)}>{sv.nome}</Chip>
+              ))}
+              <Chip onClick={() => iniciarConversa()}>Outro serviço</Chip>
+            </div>
+          </div>
+        )}
 
         {/* WhatsApp direto — perk exclusivo do plano Premium, e mesmo
             assim só se o prestador não tiver desativado no painel */}
