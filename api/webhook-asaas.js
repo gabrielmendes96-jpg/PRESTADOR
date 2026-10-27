@@ -36,6 +36,28 @@ export default async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
+  // Idempotência: a Asaas manda PAYMENT_CONFIRMED e depois PAYMENT_RECEIVED
+  // pro mesmo pagamento de cartão, e reenvia webhooks que demoram a
+  // responder. Registrar o id do pagamento antes de processar garante que
+  // só o primeiro evento tem efeito (ver supabase/31_webhook_idempotencia.sql).
+  const paymentId = pagamento.id
+  let marcadorCriado = false
+  if (paymentId) {
+    const { error: erroMarcador } = await supabase
+      .from('webhook_pagamentos_processados')
+      .insert({ payment_id: paymentId, evento: evento.event })
+
+    if (erroMarcador?.code === '23505') {
+      return res.status(200).json({ ok: true, duplicado: true })
+    }
+    if (erroMarcador) {
+      // Não derruba o pagamento por causa disso — segue sem a proteção.
+      console.error('Não foi possível registrar o marcador de idempotência:', erroMarcador)
+    } else {
+      marcadorCriado = true
+    }
+  }
+
   try {
     if (tipo === 'mensalidade') {
       const planoId = extra
@@ -44,7 +66,35 @@ export default async function handler(req, res) {
       // cai no mensal por padrão.
       const MESES_POR_CICLO = { mensal: 1, semestral: 6, anual: 12 }
       const ciclo = MESES_POR_CICLO[cicloRaw] ? cicloRaw : 'mensal'
-      const dataVencimento = new Date()
+
+      const { data: prestadorAtual } = await supabase.from('prestadores').select('id').eq('user_id', userId).single()
+
+      // Assinaturas anteriores ainda vigentes. Duas coisas dependem delas:
+      // 1) Renovar o MESMO plano antes de vencer soma o tempo que sobrava
+      //    (quem paga adiantado não perde dias).
+      // 2) A assinatura antiga precisa ser encerrada — senão a rotina de
+      //    inadimplência (verificarInadimplencia) ainda a enxerga como
+      //    vencida e suspende quem acabou de renovar.
+      const baseVencimento = new Date()
+      if (prestadorAtual?.id) {
+        const { data: vigentes } = await supabase
+          .from('assinaturas')
+          .select('id, plano_id, data_vencimento')
+          .eq('prestador_id', prestadorAtual.id)
+          .in('status', ['ativo', 'pago'])
+
+        const restante = (vigentes || [])
+          .filter(v => v.plano_id === planoId && v.data_vencimento)
+          .map(v => new Date(v.data_vencimento))
+          .sort((a, b) => b - a)[0]
+        if (restante && restante > baseVencimento) baseVencimento.setTime(restante.getTime())
+
+        if (vigentes?.length) {
+          await supabase.from('assinaturas').update({ status: 'encerrado' }).in('id', vigentes.map(v => v.id))
+        }
+      }
+
+      const dataVencimento = new Date(baseVencimento)
       dataVencimento.setMonth(dataVencimento.getMonth() + MESES_POR_CICLO[ciclo])
 
       // Buscar dados do usuário
@@ -58,7 +108,7 @@ export default async function handler(req, res) {
         .eq('user_id', userId)
 
       await supabase.from('assinaturas').insert({
-        prestador_id: (await supabase.from('prestadores').select('id').eq('user_id', userId).single()).data?.id,
+        prestador_id: prestadorAtual?.id,
         plano_id: planoId,
         status: 'pago',
         metodo_pagamento: pagamento.billingType === 'PIX' ? 'pix' : 'cartao',
@@ -239,6 +289,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true })
   } catch (error) {
     console.error('Erro no webhook:', error)
+    // Libera o marcador pra Asaas poder reenviar e a gente tentar de novo —
+    // senão um erro passageiro aqui faria o pagamento nunca ser aplicado.
+    if (marcadorCriado) {
+      await supabase.from('webhook_pagamentos_processados').delete().eq('payment_id', paymentId)
+    }
     return res.status(500).json({ error: 'Internal server error' })
   }
 }

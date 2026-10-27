@@ -794,4 +794,104 @@ describe('Fluxo crítico', () => {
     const { data: depois } = await admin.from('prestadores').select('total_servicos').eq('id', state.prestadorId).single()
     expect(depois.total_servicos).toBe((antes.total_servicos || 0) + 2)
   }, 15000)
+
+  it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(
+    '17. Webhook — CONFIRMED + RECEIVED do mesmo pagamento de cartão creditam uma vez só',
+    async () => {
+      const paymentId = `pay_teste_${Date.now()}`
+      const chamar = (event) => invocarFuncao(webhookAsaas, {
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN },
+        body: {
+          event,
+          payment: { id: paymentId, externalReference: `creditos:${state.clienteUserId}:5`, value: 35, billingType: 'CREDIT_CARD' },
+        },
+      })
+
+      const { data: antes } = await admin.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', state.clienteUserId).maybeSingle()
+
+      expect((await chamar('PAYMENT_CONFIRMED')).statusCode).toBe(200)
+      const segundo = await chamar('PAYMENT_RECEIVED')
+      expect(segundo.statusCode).toBe(200)
+      expect(segundo.body.duplicado).toBe(true)
+      // Reenvio do mesmo evento (a Asaas reenvia se a resposta demora) também não repete.
+      expect((await chamar('PAYMENT_CONFIRMED')).body.duplicado).toBe(true)
+
+      const { data: depois } = await admin.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', state.clienteUserId).single()
+      expect(depois.creditos_disponiveis).toBe((antes?.creditos_disponiveis || 0) + 5)
+
+      await admin.from('webhook_pagamentos_processados').delete().eq('payment_id', paymentId)
+    },
+    20000
+  )
+
+  it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN)(
+    '18. Mensalidade — renovar encerra a assinatura anterior e soma o tempo que sobrava',
+    async () => {
+      await admin.from('assinaturas').delete().eq('prestador_id', state.prestadorId)
+
+      const pagar = (paymentId, ciclo) => invocarFuncao(webhookAsaas, {
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN, host: 'prestador-lyart.vercel.app' },
+        body: {
+          event: 'PAYMENT_CONFIRMED',
+          payment: { id: paymentId, externalReference: `mensalidade:${state.prestadorUserId}:premium:${ciclo}`, value: 199, billingType: 'PIX' },
+        },
+      })
+
+      const id1 = `pay_teste_m1_${Date.now()}`
+      const id2 = `pay_teste_m2_${Date.now()}`
+      expect((await pagar(id1, 'mensal')).statusCode).toBe(200)
+
+      const { data: primeira } = await admin.from('assinaturas').select('*').eq('prestador_id', state.prestadorId)
+      expect(primeira).toHaveLength(1)
+      expect(primeira[0].ciclo).toBe('mensal')
+      expect(primeira[0].data_vencimento).not.toBeNull()
+
+      // Renovação antecipada no plano anual, com a mensal ainda vigente.
+      expect((await pagar(id2, 'anual')).statusCode).toBe(200)
+
+      const { data: todas } = await admin.from('assinaturas').select('*').eq('prestador_id', state.prestadorId).order('pago_em')
+      expect(todas).toHaveLength(2)
+      expect(todas[0].status).toBe('encerrado')
+      expect(todas[1].ciclo).toBe('anual')
+
+      // O anual começa no fim do mensal (soma o que sobrava), não de hoje.
+      const venc1 = new Date(todas[0].data_vencimento)
+      const esperado = new Date(venc1)
+      esperado.setMonth(esperado.getMonth() + 12)
+      expect(todas[1].data_vencimento).toBe(esperado.toISOString().split('T')[0])
+
+      await admin.from('webhook_pagamentos_processados').delete().in('payment_id', [id1, id2])
+    },
+    30000
+  )
+
+  it.skipIf(!process.env.ASAAS_KEY_SANDBOX)(
+    '19. Mensalidade — o checkout é aceito pela Asaas em todos os planos e ciclos',
+    async () => {
+      // Regressão real: o nome do item passou de 30 caracteres quando os
+      // ciclos foram adicionados ("Prestador App — Premium (mensal)") e a
+      // Asaas recusava o checkout inteiro. Só gerar o checkout de verdade
+      // pega isso — validar preço e tela não pega.
+      for (const plano of ['basico', 'profissional', 'premium']) {
+        for (const ciclo of ['mensal', 'semestral', 'anual']) {
+          await admin.from('rate_limits').delete().like('chave', 'criar-cobranca:%')
+          const r = await invocarFuncao(criarCobranca, {
+            headers: {
+              authorization: `Bearer ${state.clienteSessao.session.access_token}`,
+              origin: 'https://prestador-lyart.vercel.app',
+            },
+            body: {
+              tipo: 'mensalidade', extra: plano, ciclo,
+              nomeCliente: 'Cliente de Teste', emailCliente: state.clienteSessao.email,
+              cpfCliente: '12345678909', telefoneCliente: '11999998888', cepCliente: '01310100',
+              enderecoCliente: 'Avenida Paulista', numeroCliente: '1000', bairroCliente: 'Bela Vista',
+            },
+          })
+          expect({ plano, ciclo, status: r.statusCode, erro: r.body?.error }).toEqual({ plano, ciclo, status: 200, erro: undefined })
+          expect(r.body.link).toMatch(/^https:\/\//)
+        }
+      }
+    },
+    60000
+  )
 })

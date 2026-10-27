@@ -1,91 +1,30 @@
 // Service Worker do app Prestador
-// Cache desativado para sempre carregar versão mais recente
+// Cache desativado de propósito: sempre carrega a versão mais recente.
+// (Havia uma segunda metade com cache offline que referenciava uma
+// variável nunca definida — CACHE_VERSION — e disparava erro a cada
+// instalação e a cada requisição; foi removida.)
 
 self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', e => e.waitUntil(
-  caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
-))
-self.addEventListener('fetch', e => e.respondWith(fetch(e.request)))
 
-// Arquivos essenciais para funcionar offline
-const ARQUIVOS_ESSENCIAIS = [
-  '/',
-  '/index.html',
-  '/busca',
-  '/planos',
-  '/cadastro-pro',
-]
-
-// ----------------------------------------------------------------
-// INSTALL — salva os arquivos essenciais no cache
-// ----------------------------------------------------------------
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => {
-      return cache.addAll(ARQUIVOS_ESSENCIAIS)
-    })
-  )
-  self.skipWaiting()
-})
-
-// ----------------------------------------------------------------
-// ACTIVATE — limpa caches antigos
-// ----------------------------------------------------------------
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((nomes) =>
-      Promise.all(
-        nomes
-          .filter((nome) => nome !== CACHE_VERSION)
-          .map((nome) => caches.delete(nome))
-      )
-    )
+    caches.keys()
+      .then((nomes) => Promise.all(nomes.map((nome) => caches.delete(nome))))
+      .then(() => self.clients.claim())
   )
-  self.clients.claim()
 })
 
-// ----------------------------------------------------------------
-// FETCH — estratégia "Network first, cache fallback"
-// Tenta buscar da rede; se falhar (offline), usa o cache.
-// ----------------------------------------------------------------
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições que não sejam GET
-  if (event.request.method !== 'GET') return
-
-  // Ignora requisições ao Supabase (sempre precisam de rede)
-  if (event.request.url.includes('supabase.co')) return
-
-  event.respondWith(
-    fetch(event.request)
-      .then((resposta) => {
-        // Se a resposta for válida, salva no cache e retorna
-        if (resposta && resposta.status === 200) {
-          const respostaClone = resposta.clone()
-          caches.open(CACHE_VERSION).then((cache) => {
-            cache.put(event.request, respostaClone)
-          })
-        }
-        return resposta
-      })
-      .catch(() => {
-        // Sem rede — tenta o cache
-        return caches.match(event.request).then((respostaCache) => {
-          if (respostaCache) return respostaCache
-          // Se nem no cache tiver, retorna a página inicial offline
-          return caches.match('/')
-        })
-      })
-  )
+  event.respondWith(fetch(event.request))
 })
 
-// ----------------------------------------------------------------
-// PUSH — notificações push (para quando implementar no backend)
-// ----------------------------------------------------------------
+// PUSH — api/enviar-push.js manda { titulo, corpo, url }; aceita também
+// "mensagem" por compatibilidade com payloads antigos.
 self.addEventListener('push', (event) => {
   const dados = event.data?.json() ?? {}
   const titulo = dados.titulo || 'Prestador'
   const opcoes = {
-    body: dados.mensagem || 'Você tem uma nova mensagem.',
+    body: dados.corpo || dados.mensagem || 'Você tem uma nova mensagem.',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-72.png',
     data: { url: dados.url || '/' },
@@ -93,18 +32,19 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(titulo, opcoes))
 })
 
-// ----------------------------------------------------------------
-// NOTIFICATION CLICK — abre o app na url correta ao clicar
-// ----------------------------------------------------------------
+// NOTIFICATION CLICK — foca a aba já aberta do app (ou abre uma nova) na
+// url certa. A url vem relativa ("/chat/123"), então compara pelo caminho
+// e não pela url absoluta.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url || '/'
+  const destino = new URL(event.notification.data?.url || '/', self.location.origin)
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === url && 'focus' in client) return client.focus()
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+      for (const janela of janelas) {
+        if (new URL(janela.url).pathname === destino.pathname && 'focus' in janela) return janela.focus()
       }
-      if (clients.openWindow) return clients.openWindow(url)
+      return clients.openWindow ? clients.openWindow(destino.href) : undefined
     })
   )
 })

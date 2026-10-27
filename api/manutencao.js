@@ -67,8 +67,25 @@ export async function verificarInadimplencia(supabase) {
     .not('recorrente', 'is', true)
 
   let suspensos = 0
+  const hoje = new Date().toISOString().split('T')[0]
 
   for (const ass of (vencidas || [])) {
+    // Se o prestador já renovou (existe outra assinatura vigente), a linha
+    // antiga é só resíduo — encerra sem suspender nem avisar ninguém.
+    const { data: outraVigente } = await supabase
+      .from('assinaturas')
+      .select('id')
+      .eq('prestador_id', ass.prestador_id)
+      .neq('id', ass.id)
+      .in('status', ['ativo', 'pago'])
+      .gte('data_vencimento', hoje)
+      .limit(1)
+
+    if (outraVigente?.length) {
+      await supabase.from('assinaturas').update({ status: 'encerrado' }).eq('id', ass.id)
+      continue
+    }
+
     await supabase.from('prestadores').update({ plano_status: 'suspenso' }).eq('id', ass.prestador_id)
     await supabase.from('assinaturas').update({
       status: 'suspenso',
