@@ -8,6 +8,10 @@ import criarCobranca from '../../api/criar-cobranca.js'
 import webhookAsaas from '../../api/webhook-asaas.js'
 import { verificarTempoResposta, verificarLiberacaoAutomatica, verificarSuporteDisputa } from '../../api/manutencao.js'
 import confirmarServicoConcluido from '../../api/confirmar-servico-concluido.js'
+import assinaturaHandler from '../../api/assinatura.js'
+import excluirConta from '../../api/excluir-conta.js'
+import { configAsaas } from '../../api/_asaas.js'
+import { buscarPrestadores } from '../../src/lib/hooks.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
 const state = {}
@@ -894,4 +898,256 @@ describe('Fluxo crítico', () => {
     },
     60000
   )
+
+  it.skipIf(!process.env.ASAAS_KEY_SANDBOX)(
+    '20. Assinatura automática — checkout recorrente aceito em todos os planos e ciclos (cartão)',
+    async () => {
+      for (const plano of ['basico', 'profissional', 'premium']) {
+        for (const ciclo of ['mensal', 'semestral', 'anual']) {
+          await admin.from('rate_limits').delete().like('chave', 'criar-cobranca:%')
+          const r = await invocarFuncao(criarCobranca, {
+            headers: {
+              authorization: `Bearer ${state.prestadorSessao.session.access_token}`,
+              origin: 'https://prestador-lyart.vercel.app',
+            },
+            body: {
+              tipo: 'mensalidade', extra: plano, ciclo, recorrente: true,
+              nomeCliente: 'Prestador de Teste', emailCliente: state.prestadorSessao.email,
+              cpfCliente: '12345678909', telefoneCliente: '11999998888', cepCliente: '01310100',
+              enderecoCliente: 'Avenida Paulista', numeroCliente: '1000', bairroCliente: 'Bela Vista',
+            },
+          })
+          expect({ plano, ciclo, status: r.statusCode, erro: r.body?.error }).toEqual({ plano, ciclo, status: 200, erro: undefined })
+          expect(r.body.link).toMatch(/^https:\/\//)
+          expect(r.body.recorrente).toBe(true)
+        }
+      }
+
+      // Fica um (e só um) registro pendente — o da última escolha.
+      const { data: pendentes } = await admin.from('assinaturas').select('plano_id, ciclo, recorrente')
+        .eq('prestador_id', state.prestadorId).eq('status', 'pendente')
+      expect(pendentes).toEqual([{ plano_id: 'premium', ciclo: 'anual', recorrente: true }])
+    },
+    90000
+  )
+
+  it.skipIf(!process.env.ASAAS_WEBHOOK_TOKEN || !process.env.ASAAS_KEY_SANDBOX)(
+    '21. Assinatura automática — primeiro pagamento, renovação e troca de plano pelo webhook',
+    async () => {
+      const { url, key } = configAsaas()
+      const cli = await fetch(url + '/customers?externalReference=' + state.prestadorUserId, { headers: { access_token: key } }).then(r => r.json())
+      const customerId = cli.data?.[0]?.id
+      expect(customerId).toBeTruthy() // o checkout recorrente do teste 20 criou o cliente
+
+      const evento = (payment) => invocarFuncao(webhookAsaas, {
+        headers: { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN },
+        body: { event: 'PAYMENT_CONFIRMED', payment: { billingType: 'CREDIT_CARD', value: 1910.4, ...payment } },
+      })
+      const ids = []
+      const novoId = (p) => { const id = 'pay_teste_' + p + '_' + Date.now(); ids.push(id); return id }
+      const subA = 'sub_teste_A_' + Date.now()
+      const subB = 'sub_teste_B_' + Date.now()
+
+      // 1) Primeiro pagamento: a Asaas NÃO repassa nosso externalReference —
+      // o usuário vem do cliente, o plano e o ciclo do registro pendente.
+      expect((await evento({ id: novoId(1), customer: customerId, subscription: subA })).statusCode).toBe(200)
+      const { data: linhas1 } = await admin.from('assinaturas').select('*').eq('prestador_id', state.prestadorId).order('pago_em')
+      const primeira = linhas1.find(l => l.asaas_subscription_id === subA)
+      expect(primeira).toMatchObject({ plano_id: 'premium', ciclo: 'anual', recorrente: true, status: 'pago' })
+      expect(linhas1.filter(l => l.status === 'pendente')).toHaveLength(0)
+
+      // 2) Renovação automática: só traz a assinatura, sem cliente nem referência.
+      expect((await evento({ id: novoId(2), subscription: subA })).statusCode).toBe(200)
+      const { data: linhas2 } = await admin.from('assinaturas').select('*').eq('prestador_id', state.prestadorId).eq('asaas_subscription_id', subA).order('pago_em')
+      expect(linhas2).toHaveLength(2)
+      expect(linhas2[0].status).toBe('encerrado')
+      expect(linhas2[1].status).toBe('pago')
+      const esperado = new Date(linhas2[0].data_vencimento)
+      esperado.setMonth(esperado.getMonth() + 12) // soma ao que sobrava, não recomeça de hoje
+      expect(linhas2[1].data_vencimento).toBe(esperado.toISOString().split('T')[0])
+
+      // 3) Troca de plano: nova assinatura (B) no lugar da antiga (A).
+      await admin.from('assinaturas').insert({ prestador_id: state.prestadorId, plano_id: 'profissional', ciclo: 'mensal', status: 'pendente', recorrente: true, valor: 99 })
+      expect((await evento({ id: novoId(3), customer: customerId, subscription: subB, value: 99 })).statusCode).toBe(200)
+      const { data: vigentes } = await admin.from('assinaturas').select('plano_id, asaas_subscription_id').eq('prestador_id', state.prestadorId).in('status', ['ativo', 'pago'])
+      expect(vigentes).toEqual([{ plano_id: 'profissional', asaas_subscription_id: subB }])
+      const { data: pr } = await admin.from('prestadores').select('plano_id').eq('id', state.prestadorId).single()
+      expect(pr.plano_id).toBe('profissional')
+
+      await admin.from('webhook_pagamentos_processados').delete().in('payment_id', ids)
+    },
+    60000
+  )
+
+  it('22. API de assinatura — status e cancelamento da renovação automática', async () => {
+    await admin.from('rate_limits').delete().like('chave', 'assinatura:%')
+    const chamar = (acao) => invocarFuncao(assinaturaHandler, {
+      headers: { authorization: 'Bearer ' + state.prestadorSessao.session.access_token },
+      body: { acao },
+    })
+
+    // Sem autenticação não passa.
+    expect((await invocarFuncao(assinaturaHandler, { body: { acao: 'status' } })).statusCode).toBe(401)
+
+    await admin.from('assinaturas').delete().eq('prestador_id', state.prestadorId)
+    await admin.from('assinaturas').insert({
+      prestador_id: state.prestadorId, plano_id: 'premium', ciclo: 'anual', status: 'pago', valor: 1910.4,
+      recorrente: true, asaas_subscription_id: 'sub_teste_api_' + Date.now(), pago_em: new Date().toISOString(),
+      data_vencimento: '2030-01-01',
+    })
+
+    const status = await chamar('status')
+    expect(status.statusCode).toBe(200)
+    expect(status.body.assinatura).toMatchObject({ plano_id: 'premium', ciclo: 'anual', recorrente: true })
+
+    const cancelar = await chamar('cancelar')
+    expect(cancelar.statusCode).toBe(200)
+    const { data: depois } = await admin.from('assinaturas').select('recorrente').eq('prestador_id', state.prestadorId)
+    expect(depois.every(l => l.recorrente === false)).toBe(true)
+
+    // Sem renovação automática ativa, cancelar de novo avisa em vez de fingir que fez algo.
+    expect((await chamar('cancelar')).statusCode).toBe(400)
+  }, 30000)
+
+  it('23. Excluir conta — bloqueia com dinheiro retido, depois apaga conta e arquivos', async () => {
+    const usuario = await criarUsuarioTeste('exclusao')
+    const caminho = 'clientes/' + usuario.userId + '/foto.jpg'
+    await admin.storage.from('midias').upload(caminho, new Blob(['x'], { type: 'image/jpeg' }), { upsert: true })
+
+    const { data: pedido } = await admin.from('pedidos_servico').insert({
+      cliente_user_id: usuario.userId, cliente_nome: 'Exclusão', titulo: 'Pedido com dinheiro retido',
+      categoria_id: state.categoriaId, cidade: 'São Paulo', estado: 'SP', status: 'em_andamento',
+      status_pagamento: 'retido', valor_acordado: 100,
+    }).select().single()
+
+    const tentar = () => invocarFuncao(excluirConta, {
+      headers: { authorization: 'Bearer ' + usuario.session.access_token },
+    })
+
+    const bloqueada = await tentar()
+    expect(bloqueada.statusCode).toBe(409)
+    expect(bloqueada.body.codigo).toBe('pagamento_em_andamento')
+    const { data: aindaExiste } = await admin.auth.admin.getUserById(usuario.userId)
+    expect(aindaExiste.user).toBeTruthy()
+
+    await admin.from('pedidos_servico').update({ status_pagamento: 'liberado' }).eq('id', pedido.id)
+    const feita = await tentar()
+    expect(feita.statusCode).toBe(200)
+
+    const { data: sumiu } = await admin.auth.admin.getUserById(usuario.userId)
+    expect(sumiu?.user).toBeFalsy()
+    const { data: arquivos } = await admin.storage.from('midias').list('clientes/' + usuario.userId)
+    expect(arquivos || []).toHaveLength(0)
+  }, 40000)
+
+  it('24. Busca — ordem por boost e plano, paginação e texto com vírgula/parênteses', async () => {
+    const marca = String(Date.now())
+    const base = { categoria_id: state.categoriaId, cidade: 'São Paulo', estado: 'SP', plano_status: 'ativo', servicos: [], disponivel: true }
+    const { data: criados } = await admin.from('prestadores').insert([
+      { ...base, nome: 'ZZ Rank ' + marca + ' Premium', plano_id: 'premium' },
+      { ...base, nome: 'ZZ Rank ' + marca + ' Boost', plano_id: 'basico' },
+      { ...base, nome: 'ZZ Rank ' + marca + ' Basico', plano_id: 'basico' },
+    ]).select()
+    const porNome = Object.fromEntries(criados.map(p => [p.nome.split(' ').pop(), p.id]))
+
+    await admin.from('boosts').insert({
+      prestador_id: porNome.Boost, plano: '7dias', valor: 20, status: 'ativo',
+      inicio_em: new Date().toISOString(), expira_em: new Date(Date.now() + 86400000).toISOString(),
+      aparece_busca: true, aparece_home: true,
+    })
+
+    try {
+      // Boost ativo > plano > resto, mesmo o do boost sendo "básico".
+      const r = await buscarPrestadores({ busca: 'ZZ Rank ' + marca })
+      expect(r.prestadores.map(p => p.id)).toEqual([porNome.Boost, porNome.Premium, porNome.Basico])
+
+      // Boost vencido deixa de valer.
+      await admin.from('boosts').update({ expira_em: new Date(Date.now() - 1000).toISOString() }).eq('prestador_id', porNome.Boost)
+      const vencido = await buscarPrestadores({ busca: 'ZZ Rank ' + marca })
+      expect(vencido.prestadores[0].id).toBe(porNome.Premium)
+
+      // Paginação: pede um a mais pra saber se há próxima página.
+      const p1 = await buscarPrestadores({ busca: 'ZZ Rank ' + marca, limite: 2 })
+      expect(p1.prestadores).toHaveLength(2)
+      expect(p1.temMais).toBe(true)
+      const p2 = await buscarPrestadores({ busca: 'ZZ Rank ' + marca, limite: 3 })
+      expect(p2.prestadores).toHaveLength(3)
+      expect(p2.temMais).toBe(false)
+
+      // Vírgula e parênteses quebravam o filtro .or() e a tela mostrava "nenhum resultado".
+      const comSintaxe = await buscarPrestadores({ busca: 'ZZ,Rank (' + marca + ')' })
+      expect(comSintaxe.prestadores.length).toBe(3)
+    } finally {
+      await admin.from('boosts').delete().in('prestador_id', Object.values(porNome))
+      await admin.from('prestadores').delete().in('id', Object.values(porNome))
+    }
+  }, 30000)
+
+
+  it('25. Suporte — chamado do usuário: criação segura, privacidade, prioridade Premium, resposta com aviso', async () => {
+    const chamado = (extra = {}) => ({
+      categoria: 'pagamento', assunto: 'Teste de suporte', mensagem: 'Mensagem de teste do suporte.', ...extra,
+    })
+
+    // Cliente abre um chamado: status/prioridade/e-mail são definidos pelo banco.
+    const { data: criado, error: erroCriar } = await state.clienteSessao.cliente
+      .from('chamados_suporte').insert({ user_id: state.clienteUserId, ...chamado() }).select().single()
+    expect(erroCriar).toBeNull()
+    expect(criado).toMatchObject({ status: 'aberto', prioridade: 'normal', email: state.clienteSessao.email })
+
+    // Não dá pra se auto-responder, se auto-priorizar ou marcar como resolvido.
+    const { error: erroStatus } = await state.clienteSessao.cliente
+      .from('chamados_suporte').insert({ user_id: state.clienteUserId, ...chamado(), status: 'resolvido' })
+    expect(erroStatus).toBeTruthy()
+    const { error: erroPrioridade } = await state.clienteSessao.cliente
+      .from('chamados_suporte').insert({ user_id: state.clienteUserId, ...chamado(), prioridade: 'alta' })
+    expect(erroPrioridade).toBeTruthy()
+    // Sem policy de update pro dono, a tentativa não dá erro: simplesmente afeta 0 linhas.
+    await state.clienteSessao.cliente
+      .from('chamados_suporte').update({ resposta: 'eu mesmo respondi', status: 'resolvido' }).eq('id', criado.id)
+    const { data: intacto } = await admin.from('chamados_suporte').select('resposta, status').eq('id', criado.id).single()
+    expect(intacto).toEqual({ resposta: null, status: 'aberto' })
+
+    // Não dá pra abrir chamado em nome de outra pessoa.
+    const { error: erroOutro } = await state.clienteSessao.cliente
+      .from('chamados_suporte').insert({ user_id: state.prestadorUserId, ...chamado() })
+    expect(erroOutro).toBeTruthy()
+
+    // Privacidade: o prestador não enxerga o chamado do cliente.
+    const { data: visto } = await state.prestadorSessao.cliente.from('chamados_suporte').select('id').eq('id', criado.id)
+    expect(visto).toHaveLength(0)
+
+    // Premium ativo ganha prioridade alta, calculada no banco.
+    await admin.from('prestadores').update({ plano_id: 'premium', plano_status: 'ativo' }).eq('id', state.prestadorId)
+    const { data: premium, error: erroPremium } = await state.prestadorSessao.cliente
+      .from('chamados_suporte').insert({ user_id: state.prestadorUserId, ...chamado({ categoria: 'assinatura' }) }).select().single()
+    expect(erroPremium).toBeNull()
+    expect(premium.prioridade).toBe('alta')
+
+    // Resposta do admin (service role aqui; no app é o e-mail do admin): carimba a data
+    // e o usuário recebe uma notificação.
+    await admin.from('chamados_suporte').update({ resposta: 'Já resolvemos isso pra você.', status: 'resolvido' }).eq('id', criado.id)
+    const { data: respondido } = await state.clienteSessao.cliente.from('chamados_suporte').select('*').eq('id', criado.id).single()
+    expect(respondido).toMatchObject({ status: 'resolvido', resposta: 'Já resolvemos isso pra você.' })
+    expect(respondido.respondido_em).not.toBeNull()
+    const { data: notificacao } = await admin.from('notificacoes').select('titulo, url')
+      .eq('user_id', state.clienteUserId).eq('titulo', 'O suporte respondeu seu chamado')
+    expect(notificacao).toHaveLength(1)
+    expect(notificacao[0].url).toBe('/suporte')
+  }, 40000)
+
+  it('26. Suporte — limite de 5 chamados por hora por usuário', async () => {
+    const { count } = await admin.from('chamados_suporte').select('*', { count: 'exact', head: true }).eq('user_id', state.clienteUserId)
+    for (let i = count; i < 5; i++) {
+      const { error } = await state.clienteSessao.cliente.from('chamados_suporte').insert({
+        user_id: state.clienteUserId, categoria: 'outro', assunto: 'Chamado ' + i, mensagem: 'Mensagem de teste do limite.',
+      })
+      expect(error).toBeNull()
+    }
+    const { error: excedeu } = await state.clienteSessao.cliente.from('chamados_suporte').insert({
+      user_id: state.clienteUserId, categoria: 'outro', assunto: 'Chamado extra', mensagem: 'Passou do limite por hora.',
+    })
+    expect(excedeu?.message).toMatch(/muitos chamados/)
+  }, 40000)
+
 })

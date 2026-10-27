@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, GitCompare } from 'lucide-react'
+import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, GitCompare, LifeBuoy } from 'lucide-react'
 
 // Cada página vira um chunk próprio em vez de tudo ir num JS só — o
 // visitante que só quer buscar um prestador não baixa o código do
@@ -27,7 +27,7 @@ const NovaSenha = lazy(() => import('./pages/NovaSenha'))
 const Pagamento = lazy(() => import('./pages/Pagamento'))
 const PagamentoRetorno = lazy(() => import('./pages/PagamentoRetorno'))
 const ZonasQuentes = lazy(() => import('./pages/ZonasQuentes'))
-const AssistentePerfil = lazy(() => import('./pages/AssistentePerfil'))
+const Suporte = lazy(() => import('./pages/Suporte'))
 const Boost = lazy(() => import('./pages/Boost'))
 const Disponibilidade = lazy(() => import('./pages/Disponibilidade'))
 const Ganhos = lazy(() => import('./pages/Ganhos'))
@@ -96,6 +96,7 @@ function Navbar() {
               { to: '/como-funciona', label: 'Como funciona' },
               { to: '/busca', label: 'Para quem é' },
               { to: '/busca', label: 'Categorias' },
+              { to: '/cadastro-pro', label: 'Oferecer meus serviços' },
             ].map(l => (
               <Link key={l.label} to={l.to}
                 style={{ color: '#6B7280', fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
@@ -155,6 +156,7 @@ function Navbar() {
                         { label: 'Mensagens', path: '/mensagens', icon: MessageCircle },
                         { label: 'Meus pedidos', path: '/pedidos', icon: ClipboardList },
                         { label: 'Indicar amigos', path: '/indicacao', icon: Gift },
+                        { label: 'Suporte', path: '/suporte', icon: LifeBuoy },
                       ].map(item => (
                         <Link key={item.path} to={item.path} onClick={() => setMenuAberto(false)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', color: '#1F2937', textDecoration: 'none', transition: 'background 0.15s' }}
@@ -242,7 +244,7 @@ export default function App() {
               <Route path="/pagamento" element={<Pagamento />} />
               <Route path="/pagamento/retorno" element={<PagamentoRetorno />} />
               <Route path="/zonas" element={<ZonasQuentes />} />
-              <Route path="/assistente" element={<AssistentePerfil />} />
+              <Route path="/suporte" element={<Suporte />} />
               <Route path="/boost" element={<Boost />} />
               <Route path="/disponibilidade" element={<Disponibilidade />} />
               <Route path="/ganhos" element={<Ganhos />} />

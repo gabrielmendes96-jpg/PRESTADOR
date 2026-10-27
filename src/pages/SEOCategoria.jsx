@@ -103,7 +103,11 @@ export default function SEOCategoria() {
         <p className="text-sm text-center py-8" style={{ color: '#9CA3AF' }}>Carregando...</p>
       ) : prestadores.length === 0 ? (
         <Card padding={24} style={{ textAlign: 'center' }}>
-          <p className="text-sm" style={{ color: colors.textSub }}>Nenhum profissional cadastrado ainda nesta categoria.</p>
+          <p className="text-sm" style={{ color: colors.textSub, marginBottom: 16 }}>Nenhum profissional cadastrado ainda nesta categoria.</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+            <Button onClick={() => navigate('/pedidos/novo')}>Pedir orçamento</Button>
+            <Button variant="secondary" onClick={() => navigate('/cadastro-pro')}>Oferecer meus serviços</Button>
+          </div>
         </Card>
       ) : (
         <div className="flex flex-col gap-3">

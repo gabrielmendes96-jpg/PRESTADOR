@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, HardHat, ClipboardList, Star, Flame, Wrench, Settings,
-  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert,
+  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert, LifeBuoy,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
@@ -20,6 +20,8 @@ export default function Admin() {
   const [zonasPendentes, setZonasPendentes] = useState([])
   const [pedidos, setPedidos] = useState([])
   const [avaliacoes, setAvaliacoes] = useState([])
+  const [chamados, setChamados] = useState([])
+  const [respostas, setRespostas] = useState({})
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export default function Admin() {
       { data: zonas },
       { data: peds },
       { data: avals },
+      { data: chs },
     ] = await Promise.all([
       supabase.from('prestadores').select('*', { count: 'exact', head: true }),
       supabase.from('conversas').select('*', { count: 'exact', head: true }),
@@ -54,6 +57,7 @@ export default function Admin() {
       supabase.from('zonas_quentes').select('*').eq('status', 'pendente'),
       supabase.from('pedidos_servico').select('*, categorias(nome, emoji)').order('criado_em', { ascending: false }),
       supabase.from('avaliacoes').select('*, prestadores(nome)').order('criado_em', { ascending: false }),
+      supabase.from('chamados_suporte').select('*').order('criado_em', { ascending: false }),
     ])
 
     setStats({ totalPrestadores, totalClientes, totalPedidos, totalConversas, totalAvaliacoes })
@@ -61,6 +65,7 @@ export default function Admin() {
     setZonasPendentes(zonas || [])
     setPedidos(peds || [])
     setAvaliacoes(avals || [])
+    setChamados(chs || [])
     setCarregando(false)
   }
 
@@ -79,12 +84,40 @@ export default function Admin() {
     carregarDados()
   }
 
+  const chamadosAbertos = chamados.filter(c => c.status !== 'resolvido').length
+
+  const responderChamado = async (id, resolver) => {
+    const texto = (respostas[id] || '').trim()
+    if (!texto) return
+    const status = resolver ? 'resolvido' : 'em_andamento'
+    const { error } = await supabase.from('chamados_suporte').update({ resposta: texto, status }).eq('id', id)
+    if (error) { alert('Não foi possível enviar a resposta: ' + error.message); return }
+    setChamados(prev => prev.map(c => c.id === id ? { ...c, resposta: texto, status, respondido_em: new Date().toISOString() } : c))
+    setRespostas(r => ({ ...r, [id]: '' }))
+  }
+
+  const resolverChamado = async (id) => {
+    const { error } = await supabase.from('chamados_suporte').update({ status: 'resolvido' }).eq('id', id)
+    if (error) { alert('Não foi possível atualizar: ' + error.message); return }
+    setChamados(prev => prev.map(c => c.id === id ? { ...c, status: 'resolvido' } : c))
+  }
+
+  // Fila: o que está aberto primeiro, Premium na frente, mais antigo antes.
+  const filaChamados = [...chamados].sort((a, b) => {
+    const abertoA = a.status === 'resolvido' ? 1 : 0
+    const abertoB = b.status === 'resolvido' ? 1 : 0
+    if (abertoA !== abertoB) return abertoA - abertoB
+    if (a.prioridade !== b.prioridade) return a.prioridade === 'alta' ? -1 : 1
+    return new Date(a.criado_em) - new Date(b.criado_em)
+  })
+
   const menuAbas = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'prestadores', label: 'Prestadores', icon: HardHat },
     { id: 'pedidos', label: 'Pedidos', icon: ClipboardList },
     { id: 'avaliacoes', label: 'Avaliações', icon: Star },
     { id: 'zonas', label: 'Zonas pendentes', icon: Flame },
+    { id: 'suporte', label: chamadosAbertos > 0 ? 'Suporte (' + chamadosAbertos + ')' : 'Suporte', icon: LifeBuoy },
   ]
 
   if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Carregando painel admin...</p>
@@ -380,6 +413,84 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUPORTE */}
+      {aba === 'suporte' && (
+        <div>
+          {filaChamados.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl" style={{ border: '0.5px solid #E4E7E4' }}>
+              <CheckCircle2 size={40} color={colors.primary} style={{ margin: '0 auto 12px' }} />
+              <p className="text-sm" style={{ color: '#6B7280' }}>Nenhum chamado por enquanto.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filaChamados.map(c => {
+                const resolvido = c.status === 'resolvido'
+                return (
+                  <div key={c.id} className="bg-white rounded-2xl p-5"
+                    style={{ border: c.prioridade === 'alta' && !resolvido ? '0.5px solid #F6C64D' : '0.5px solid #E4E7E4', opacity: resolvido ? 0.7 : 1 }}>
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <p className="text-sm font-medium" style={{ color: '#1F2937' }}>{c.assunto}</p>
+                      <div className="flex gap-1 flex-shrink-0">
+                        {c.prioridade === 'alta' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#FEF3C7', color: '#92610A' }}>Premium</span>
+                        )}
+                        <span className="text-xs px-2 py-0.5 rounded-full"
+                          style={{ background: resolvido ? '#DCFCE7' : '#E0E7FF', color: resolvido ? '#14853D' : '#3730A3' }}>
+                          {resolvido ? 'Resolvido' : c.status === 'em_andamento' ? 'Em andamento' : 'Aberto'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
+                      {c.nome || 'Usuário'} · {c.email} · {c.categoria} · {new Date(c.criado_em).toLocaleString('pt-BR')}
+                    </p>
+                    <p className="text-sm mb-3" style={{ color: '#1F2937', whiteSpace: 'pre-wrap' }}>{c.mensagem}</p>
+
+                    {c.resposta && (
+                      <div className="mb-3 p-3 rounded-xl" style={{ background: '#F0FDF4' }}>
+                        <p className="text-xs font-medium mb-1" style={{ color: '#14853D' }}>Sua resposta</p>
+                        <p className="text-sm" style={{ color: '#1F2937', whiteSpace: 'pre-wrap' }}>{c.resposta}</p>
+                      </div>
+                    )}
+
+                    {!resolvido && (
+                      <>
+                        <textarea
+                          rows={3}
+                          value={respostas[c.id] || ''}
+                          onChange={e => setRespostas(r => ({ ...r, [c.id]: e.target.value }))}
+                          placeholder="Escreva a resposta (o usuário recebe uma notificação)"
+                          className="w-full p-3 text-sm rounded-xl mb-2"
+                          style={{ border: '1px solid #E4E7E4', fontFamily: 'inherit', resize: 'vertical' }}
+                        />
+                        <div className="flex gap-2 flex-wrap">
+                          <button onClick={() => responderChamado(c.id, false)}
+                            disabled={!(respostas[c.id] || '').trim()}
+                            className="flex-1 py-2 text-sm rounded-xl disabled:opacity-50"
+                            style={{ border: '0.5px solid #E4E7E4', color: '#1F2937' }}>
+                            Responder e manter aberto
+                          </button>
+                          <button onClick={() => responderChamado(c.id, true)}
+                            disabled={!(respostas[c.id] || '').trim()}
+                            className="flex-1 py-2 text-white text-sm font-medium rounded-xl disabled:opacity-50"
+                            style={{ background: '#16A34A' }}>
+                            Responder e resolver
+                          </button>
+                          <button onClick={() => resolverChamado(c.id)}
+                            className="py-2 px-4 text-sm rounded-xl"
+                            style={{ border: '0.5px solid #E4E7E4', color: '#6B7280' }}>
+                            Só resolver
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

@@ -481,7 +481,12 @@ export default function DetalhePedido() {
           )}
 
           {candidaturas.length === 0 ? (
-            <p style={{ fontSize: 14, textAlign: 'center', padding: '32px 0', color: colors.textSub }}>Nenhuma candidatura ainda. Aguarde os prestadores se candidatarem!</p>
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <p style={{ fontSize: 14, color: colors.textSub, margin: '0 0 16px' }}>Nenhuma candidatura ainda. Enquanto os prestadores respondem, que tal chamar alguém direto?</p>
+              <Button variant="secondary" onClick={() => navigate(`/busca?categoria=${pedido.categoria_id}&ordem=distancia`)}>
+                Ver profissionais perto de mim
+              </Button>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.card }}>
               {candidaturas.map(c => (

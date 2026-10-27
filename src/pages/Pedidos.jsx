@@ -90,7 +90,7 @@ export default function Pedidos() {
           <p style={{ fontSize: 13, color: colors.textSub, marginTop: 4 }}>Seja o primeiro a postar um pedido de serviço!</p>
           {usuario && (
             <Button onClick={() => navigate('/pedidos/novo')} style={{ margin: '16px auto 0' }}>
-              Postar pedido
+              Pedir orçamento
             </Button>
           )}
         </Card>

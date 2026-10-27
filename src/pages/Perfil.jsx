@@ -196,10 +196,10 @@ export default function Perfil() {
         {/* CTAs principais */}
         <div className="flex flex-col sm:flex-row" style={{ gap: 10, marginBottom: 10 }}>
           <Button variant="secondary" icon={<MessageCircle size={17} />} fullWidth onClick={iniciarConversa} disabled={iniciandoChat}>
-            Chat
+            Conversar com o prestador
           </Button>
           <Button variant="dark" icon={<FileText size={17} />} fullWidth onClick={iniciarConversa} disabled={iniciandoChat}>
-            {iniciandoChat ? 'Abrindo...' : 'Solicitar orçamento'}
+            {iniciandoChat ? 'Abrindo...' : 'Pedir orçamento'}
           </Button>
         </div>
 

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors, spacing, type as typeScale } from '../lib/design'
 import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
 import Avatar from '../components/ui/Avatar'
 
 export default function Conversas() {
@@ -79,10 +80,15 @@ export default function Conversas() {
         <Card padding={48} style={{ textAlign: 'center' }}>
           <MessageCircle size={48} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
           <p style={{ fontSize: 14, color: colors.textSub }}>Nenhuma conversa ainda.</p>
-          {!prestadorId && (
-            <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
-              Acesse o perfil de um profissional e clique em "Conversar" para iniciar.
-            </p>
+          <p style={{ fontSize: 12, color: '#9CA3AF', margin: '4px 0 20px' }}>
+            {prestadorId
+              ? 'Quando um cliente falar com você, a conversa aparece aqui.'
+              : 'Escolha um profissional e converse direto com ele pra combinar o serviço.'}
+          </p>
+          {prestadorId ? (
+            <Button onClick={() => navigate('/pedidos')}>Ver pedidos de clientes</Button>
+          ) : (
+            <Button onClick={() => navigate('/busca?ordem=distancia')}>Encontrar profissional perto de mim</Button>
           )}
         </Card>
       ) : (

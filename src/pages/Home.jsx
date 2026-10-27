@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight } from 'lucide-react'
+import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight, Navigation } from 'lucide-react'
 import { usePrestadores, useCategorias } from '../lib/hooks'
 import { calcularDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
 import { useAuth } from '../lib/AuthContext'
@@ -76,14 +76,23 @@ export default function Home() {
     navigate(`/busca${busca.trim() ? `?q=${encodeURIComponent(busca)}` : ''}`)
   }
 
-  const pedirLocalizacao = async () => {
-    setLocStatus('pedindo')
-    try {
-      const loc = await pegarLocalizacao()
-      salvarLocalizacao(loc.lat, loc.lng)
-      setUserLoc(loc)
-      setLocStatus('ok')
-    } catch { setLocStatus('negado') }
+  // "Perto de mim" ordena por distância; "atende no meu bairro" só mostra
+  // quem tem a minha posição dentro do raio de atendimento que cadastrou.
+  const irPerto = async (modo) => {
+    let loc = userLoc
+    if (!loc) {
+      setLocStatus('pedindo')
+      try {
+        loc = await pegarLocalizacao()
+        salvarLocalizacao(loc.lat, loc.lng)
+        setUserLoc(loc)
+        setLocStatus('ok')
+      } catch {
+        setLocStatus('negado')
+        return
+      }
+    }
+    navigate(modo === 'atende' ? '/busca?atende=1&ordem=distancia' : '/busca?ordem=distancia')
   }
 
   const nomeUsuario = usuario?.user_metadata?.nome?.split(' ')[0]
@@ -109,13 +118,16 @@ export default function Home() {
 
         <SearchBar value={busca} onChange={e => setBusca(e.target.value)} onSubmit={handleBusca} />
 
+        <div className="flex flex-col sm:flex-row" style={{ gap: 10, marginTop: 14 }}>
+          <Button fullWidth icon={<MapPin size={17} />} disabled={locStatus === 'pedindo'} onClick={() => irPerto('perto')}>
+            Encontrar profissional perto de mim
+          </Button>
+          <Button fullWidth variant="secondary" icon={<Navigation size={17} />} disabled={locStatus === 'pedindo'} onClick={() => irPerto('atende')}>
+            Ver quem atende no meu bairro
+          </Button>
+        </div>
+
         <div style={{ marginTop: 12 }}>
-          {locStatus === 'idle' && (
-            <button onClick={pedirLocalizacao} className="btn-press" style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-              <MapPin size={16} color={colors.primary} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: colors.primary }}>Usar minha localização</span>
-            </button>
-          )}
           {locStatus === 'ok' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <MapPin size={15} color={colors.primary} />
@@ -173,7 +185,11 @@ export default function Home() {
               ? (
                 <div className="md:col-span-2" style={{ textAlign: 'center', padding: '48px 0' }}>
                   <UserSearch size={44} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
-                  <p style={{ fontSize: 15, color: '#9CA3AF', fontWeight: 500 }}>Nenhum profissional encontrado.</p>
+                  <p style={{ fontSize: 15, color: '#9CA3AF', fontWeight: 500, marginBottom: 16 }}>Nenhum profissional encontrado.</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+                    <Button onClick={() => navigate('/pedidos/novo')}>Pedir orçamento</Button>
+                    <Button variant="secondary" onClick={() => navigate('/cadastro-pro')}>Oferecer meus serviços</Button>
+                  </div>
                 </div>
               )
               : proximos.map(p => (
@@ -216,12 +232,12 @@ export default function Home() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <div>
-                <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Publicar um pedido</p>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Receba propostas de profissionais próximos</p>
+                <p style={{ fontSize: 17, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Não achou o que procura?</p>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Descreva o serviço e receba propostas de profissionais próximos</p>
               </div>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ArrowRight size={22} color="#fff" />
-              </div>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 12, padding: '11px 18px', borderRadius: 999, background: '#fff', color: colors.primaryHover, fontSize: 14, fontWeight: 800 }}>
+                Pedir orçamento <ArrowRight size={16} />
+              </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 20 }}>
@@ -242,6 +258,17 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Convite pro profissional */}
+        <section style={{ marginBottom: spacing.xl }}>
+          <Card padding={24} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 200, flex: 1 }}>
+              <p style={{ fontSize: 17, fontWeight: 800, color: colors.text, margin: '0 0 4px' }}>Você é profissional?</p>
+              <p style={{ fontSize: 13, color: colors.textSub, margin: 0 }}>Apareça para clientes da sua região e responda a pedidos de orçamento.</p>
+            </div>
+            <Button variant="dark" onClick={() => navigate(usuario ? '/painel' : '/cadastro-pro')}>Oferecer meus serviços</Button>
+          </Card>
         </section>
 
       </div>

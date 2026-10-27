@@ -137,7 +137,7 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
           fullWidth
           onClick={(e) => { e.stopPropagation(); handleClick() }}
         >
-          Solicitar orçamento
+          Pedir orçamento
         </Button>
       </div>
     </Card>
