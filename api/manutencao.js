@@ -64,7 +64,9 @@ export async function verificarInadimplencia(supabase) {
     .select('*, prestadores(id, user_id, nome)')
     .eq('status', 'ativo')
     .lt('data_vencimento', dataCorte)
-    .not('recorrente', 'is', true)
+    // Assinaturas recorrentes (cartão) NÃO ficam de fora: cada renovação
+    // paga empurra data_vencimento pra frente, então se o cartão for
+    // recusado e a cobrança não entrar, a data vence e o plano suspende.
 
   let suspensos = 0
   const hoje = new Date().toISOString().split('T')[0]
@@ -191,6 +193,43 @@ export async function verificarSuporteDisputa(supabase) {
   return { ok: true, verificadas: disputas?.length || 0, penalizados }
 }
 
+// Avisa quem paga avulso (Pix) que o plano vai vencer — faltando 7, 3 e 1
+// dia. Sem isso o único aviso era o "seu plano foi suspenso", depois que a
+// pessoa já tinha sumido das buscas. Quem tem renovação automática no
+// cartão não precisa de lembrete (a cobrança sai sozinha).
+export async function avisarVencimentoProximo(supabase) {
+  const em = (dias) => {
+    const d = new Date()
+    d.setDate(d.getDate() + dias)
+    return d.toISOString().split('T')[0]
+  }
+  const faltando = { [em(1)]: 1, [em(3)]: 3, [em(7)]: 7 }
+
+  const { data: vencendo } = await supabase
+    .from('assinaturas')
+    .select('data_vencimento, prestadores(user_id)')
+    .in('status', ['ativo', 'pago'])
+    .in('data_vencimento', Object.keys(faltando))
+    .not('recorrente', 'is', true)
+
+  let avisados = 0
+  for (const ass of (vencendo || [])) {
+    const userId = ass.prestadores?.user_id
+    if (!userId) continue
+    const dias = faltando[ass.data_vencimento]
+    await supabase.from('notificacoes').insert({
+      user_id: userId,
+      titulo: dias === 1 ? 'Seu plano vence amanhã' : `Seu plano vence em ${dias} dias`,
+      corpo: 'Renove pra continuar aparecendo nas buscas. No cartão, a renovação é automática.',
+      tipo: 'pagamento',
+      url: '/planos',
+    })
+    avisados++
+  }
+
+  return { ok: true, avisados }
+}
+
 // Zera as linhas de rate_limits mais antigas que 1 dia — sem isso a
 // tabela cresceria pra sempre (ver supabase/25_rate_limit_real.sql).
 export async function limparRateLimits(supabase) {
@@ -204,6 +243,7 @@ const TAREFAS = {
   'liberacao-automatica': verificarLiberacaoAutomatica,
   'suporte-disputa': verificarSuporteDisputa,
   'limpar-rate-limits': limparRateLimits,
+  'avisar-vencimento': avisarVencimentoProximo,
 }
 
 export default async function handler(req, res) {

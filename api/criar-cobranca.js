@@ -5,6 +5,7 @@
 
 import { checkRateLimit, getClientIp } from './_rateLimit.js'
 import { verificarUsuario } from './_verificarUsuario.js'
+import { obterOuCriarClienteAsaas } from './_asaas.js'
 
 // O campo "phone" da Asaas espera 10 dígitos (DDD + 8 números), mas
 // todo celular brasileiro tem 11 (DDD + 9 + 8 números) — sem isso a
@@ -46,6 +47,13 @@ export default async function handler(req, res) {
   const CICLOS_VALIDOS = ['mensal', 'semestral', 'anual']
   const ciclo = CICLOS_VALIDOS.includes(req.body.ciclo) ? req.body.ciclo : 'mensal'
 
+  // Assinatura automática: cobrança recorrente no cartão (a Asaas só permite
+  // cartão em recorrência — Pix segue como pagamento avulso do período).
+  const recorrente = tipo === 'mensalidade' && req.body.recorrente === true
+
+  const { createClient } = await import('@supabase/supabase-js')
+  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
   // Preço vem sempre do servidor, nunca do valor enviado pelo cliente —
   // do contrário qualquer requisição poderia forjar um valor menor.
   const PRECOS_CREDITOS = { 1: 9, 5: 35, 10: 59, 20: 99 }
@@ -59,9 +67,6 @@ export default async function handler(req, res) {
     // nunca um valor fixo de tabela. Sem cartão aqui: parcelado libera
     // o dinheiro pra nossa conta aos poucos, o que não combina com
     // repassar o valor cheio ao prestador logo após o serviço.
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-
     const { data: p } = await supabase
       .from('pedidos_servico')
       .select('id, cliente_user_id, valor_acordado, status, status_pagamento, titulo')
@@ -92,9 +97,6 @@ export default async function handler(req, res) {
     // Preço por ciclo vem sempre da tabela `planos` — nunca de um mapa
     // fixo no código, pra não precisar de deploy toda vez que o preço
     // mudar, e pra nunca dessincronizar do que a tela de Planos mostra.
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-
     const { data: plano } = await supabase
       .from('planos')
       .select('nome, preco_mensal, preco_semestral, preco_anual')
@@ -112,6 +114,10 @@ export default async function handler(req, res) {
     // inteiro se passar) — o texto completo com o ciclo vai na descrição.
     itemNome = `Plano ${plano.nome}`
     itemDescricao = `Prestador App — Plano ${plano.nome} (${ciclo})`
+    // Cartão = assinatura recorrente (fluxo "recorrente"); sem ela, só Pix,
+    // pago uma vez pelo período — um cartão avulso aqui seria uma terceira
+    // opção confusa ao lado das duas que a tela oferece.
+    if (!recorrente) billingTypes = ['PIX']
   } else {
     const TABELAS_PRECO = { creditos: PRECOS_CREDITOS, boost: PRECOS_BOOST }
     const tabela = TABELAS_PRECO[tipo]
@@ -133,9 +139,33 @@ export default async function handler(req, res) {
   const origem = req.headers.origin || (req.headers.host ? `https://${req.headers.host}` : '')
 
   try {
+    let prestadorId, customerId
+    if (recorrente) {
+      const { data: prestador } = await supabase.from('prestadores').select('id').eq('user_id', userId).single()
+      if (!prestador) {
+        return res.status(400).json({ error: 'Crie seu perfil de prestador antes de assinar um plano.' })
+      }
+      prestadorId = prestador.id
+
+      // Um cliente da Asaas por usuário (externalReference = id do usuário):
+      // é por ele que o webhook reconhece as renovações automáticas.
+      const cliente = await obterOuCriarClienteAsaas({
+        userId, nome: nomeCliente || 'Cliente Prestador', email: emailCliente, cpfCnpj: cpfCliente,
+        telefone: formatarTelefoneAsaas(telefoneCliente), cep: cepCliente, endereco: enderecoCliente,
+        numero: numeroCliente, bairro: bairroCliente, complemento: complementoCliente,
+      })
+      if (!cliente.ok) return res.status(400).json({ error: cliente.motivo })
+      customerId = cliente.id
+    }
+
+    // Data de hoje no fuso de Brasília — em UTC, depois das 21h já seria
+    // "amanhã" e a primeira cobrança só sairia no dia seguinte.
+    const hojeBrasilia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+    const CICLO_ASAAS = { mensal: 'MONTHLY', semestral: 'SEMIANNUALLY', anual: 'YEARLY' }
+
     const dadosCheckout = {
-      billingTypes,
-      chargeTypes: ['DETACHED'],
+      billingTypes: recorrente ? ['CREDIT_CARD'] : billingTypes,
+      chargeTypes: recorrente ? ['RECURRENT'] : ['DETACHED'],
       minutesToExpire: 1440,
       externalReference: tipo === 'servico'
         ? `servico:${pedido.cliente_user_id}:${pedidoId}`
@@ -150,17 +180,21 @@ export default async function handler(req, res) {
       items: [
         { name: itemNome.slice(0, 30), description: itemDescricao, quantity: 1, value: valor },
       ],
-      customerData: {
-        name: nomeCliente || 'Cliente Prestador',
-        email: emailCliente,
-        cpfCnpj: cpfCliente,
-        phone: formatarTelefoneAsaas(telefoneCliente),
-        postalCode: cepCliente,
-        address: enderecoCliente,
-        addressNumber: numeroCliente,
-        province: bairroCliente,
-        complement: complementoCliente || undefined,
-      },
+      ...(recorrente
+        ? { customer: customerId, subscription: { cycle: CICLO_ASAAS[ciclo], nextDueDate: hojeBrasilia } }
+        : {
+          customerData: {
+            name: nomeCliente || 'Cliente Prestador',
+            email: emailCliente,
+            cpfCnpj: cpfCliente,
+            phone: formatarTelefoneAsaas(telefoneCliente),
+            postalCode: cepCliente,
+            address: enderecoCliente,
+            addressNumber: numeroCliente,
+            province: bairroCliente,
+            complement: complementoCliente || undefined,
+          },
+        }),
     }
 
     const resCheckout = await fetch(`${ASAAS_URL}/checkouts`, {
@@ -176,9 +210,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: checkout.errors[0]?.description || 'Erro ao criar cobrança' })
     }
 
+    if (recorrente) {
+      // Registro "pendente": guarda qual plano e ciclo a pessoa escolheu. O
+      // webhook usa isso no primeiro pagamento quando a Asaas não repassa o
+      // nosso externalReference pras cobranças da assinatura (a
+      // documentação não garante que repassa).
+      await supabase.from('assinaturas').delete().eq('prestador_id', prestadorId).eq('status', 'pendente')
+      await supabase.from('assinaturas').insert({
+        prestador_id: prestadorId, plano_id: extra, ciclo, status: 'pendente', recorrente: true, valor,
+      })
+    }
+
     return res.status(200).json({
       link: checkout.link,
       checkoutId: checkout.id,
+      recorrente,
     })
 
   } catch (error) {

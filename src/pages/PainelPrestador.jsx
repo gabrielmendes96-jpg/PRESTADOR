@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  User, Image, Tag, Bot, Rocket, Calendar, BarChart3, Trophy,
+  User, Image, Tag, Rocket, Calendar, BarChart3, Trophy,
   ClipboardList, Star, MessageCircle, Gift, CreditCard, ExternalLink,
   Wrench, CheckCircle2, Medal, Crown, TrendingUp, Home as HomeIcon, Check,
 } from 'lucide-react'
@@ -22,7 +22,6 @@ const menuItens = [
   { id: 'perfil', label: 'Meu Perfil', icon: User },
   { id: 'portfolio', label: 'Portfólio', icon: Image },
   { id: 'hashtags', label: 'Meus Serviços', icon: Tag },
-  { id: 'assistente', label: 'Assistente IA', icon: Bot },
   { id: 'boost', label: 'Impulsionar', icon: Rocket },
   { id: 'disponibilidade', label: 'Disponibilidade', icon: Calendar },
   { id: 'ganhos', label: 'Desempenho', icon: BarChart3 },
@@ -85,6 +84,9 @@ export default function PainelPrestador() {
   const [totalPedidosCategoria, setTotalPedidosCategoria] = useState(0)
   const [pedidosHoje, setPedidosHoje] = useState(0)
   const [historico, setHistorico] = useState([])
+  const [assinaturaInfo, setAssinaturaInfo] = useState(null)
+  const [cancelando, setCancelando] = useState(false)
+  const [erroAssinatura, setErroAssinatura] = useState('')
   const { categorias } = useCategorias()
 
   // Redireciona se não estiver logado (aguarda a sessão terminar de carregar)
@@ -168,6 +170,37 @@ export default function PainelPrestador() {
     }
     carregar()
   }, [usuario])
+
+  const chamarAssinatura = async (acao) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/assinatura', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ acao }),
+    })
+    const corpo = await res.json().catch(() => ({}))
+    return { ok: res.ok, corpo }
+  }
+
+  // Carrega a assinatura real (ciclo, validade, renovação) ao abrir a aba.
+  useEffect(() => {
+    if (aba !== 'assinatura' || !prestador) return
+    let cancelado = false
+    chamarAssinatura('status').then(({ ok, corpo }) => {
+      if (!cancelado && ok) setAssinaturaInfo(corpo.assinatura)
+    })
+    return () => { cancelado = true }
+  }, [aba, prestador?.id])
+
+  const cancelarRenovacao = async () => {
+    if (!window.confirm('Cancelar a renovação automática? Seu plano continua valendo até o fim do período já pago.')) return
+    setCancelando(true)
+    setErroAssinatura('')
+    const { ok, corpo } = await chamarAssinatura('cancelar')
+    setCancelando(false)
+    if (!ok) { setErroAssinatura(corpo.error || 'Não foi possível cancelar agora.'); return }
+    setAssinaturaInfo(info => (info ? { ...info, recorrente: false } : info))
+  }
 
   const salvarPerfil = async () => {
     if (!prestador) return
@@ -540,16 +573,6 @@ export default function PainelPrestador() {
           </Card>
         )}
 
-        {/* ABA: ASSISTENTE IA */}
-        {aba === 'assistente' && (
-          <Card padding={24}>
-            <TabHeader icon={Bot} title="Assistente de perfil" desc="A IA analisa seu perfil e te ajuda a melhorá-lo — bio, hashtags e dicas de fotos." />
-            <Button fullWidth icon={<Bot size={17} />} onClick={() => navigate('/assistente')}>
-              Abrir Assistente de Perfil
-            </Button>
-          </Card>
-        )}
-
         {/* ABA: PEDIDOS */}
         {aba === 'pedidos' && (
           <Card padding={24}>
@@ -728,7 +751,50 @@ export default function PainelPrestador() {
                 {prestador.plano_id === 'profissional' && 'R$99/mês — Destaque nos resultados + selo de plano Profissional'}
                 {prestador.plano_id === 'premium' && 'R$199/mês — Topo das buscas + suporte prioritário'}
               </p>
+              {assinaturaInfo && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(20,133,61,0.2)', fontSize: 14, color: colors.text }}>
+                  <p style={{ margin: '0 0 4px' }}>
+                    Ciclo {assinaturaInfo.ciclo || 'mensal'}
+                    {assinaturaInfo.valor != null && ` · R$${Number(assinaturaInfo.valor).toFixed(2).replace('.', ',')}`}
+                  </p>
+                  {assinaturaInfo.data_vencimento && (
+                    <p style={{ margin: '0 0 4px' }}>
+                      {assinaturaInfo.recorrente ? 'Próxima renovação automática: ' : 'Válido até: '}
+                      <strong>{new Date(`${assinaturaInfo.data_vencimento}T12:00:00`).toLocaleDateString('pt-BR')}</strong>
+                    </p>
+                  )}
+                  <p style={{ margin: 0 }}>
+                    {assinaturaInfo.recorrente ? 'Renovação automática no cartão: ativa' : 'Renovação manual: você paga a cada período'}
+                  </p>
+                </div>
+              )}
             </div>
+
+            {erroAssinatura && (
+              <p style={{ fontSize: 13, marginBottom: 12, padding: '10px 14px', borderRadius: 12, color: '#B91C1C', background: '#FEF2F2' }}>
+                {erroAssinatura}
+              </p>
+            )}
+            {assinaturaInfo?.recorrente && (
+              <div style={{ marginBottom: 20 }}>
+                <Button variant="secondary" fullWidth disabled={cancelando} onClick={cancelarRenovacao}>
+                  {cancelando ? 'Cancelando...' : 'Cancelar renovação automática'}
+                </Button>
+                <p style={{ fontSize: 12, color: colors.textSub, margin: '8px 0 0' }}>
+                  Seu plano continua valendo até a data acima — só deixamos de cobrar de novo.
+                </p>
+              </div>
+            )}
+            {assinaturaInfo && !assinaturaInfo.recorrente && (
+              <div style={{ marginBottom: 20 }}>
+                <Button fullWidth onClick={() => navigate('/planos')}>Renovar agora</Button>
+              </div>
+            )}
+
+            <p style={{ fontSize: 12, color: colors.textSub, margin: '0 0 20px' }}>
+              Dúvida sobre cobrança ou renovação?{' '}
+              <button onClick={() => navigate('/suporte?categoria=assinatura')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 700, color: colors.primary, textDecoration: 'underline' }}>Fale com o suporte</button>
+            </p>
 
             <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, marginBottom: 12 }}>Quer mudar de plano?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

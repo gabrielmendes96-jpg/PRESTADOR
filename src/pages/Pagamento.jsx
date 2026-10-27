@@ -5,6 +5,7 @@ import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 
 const CICLO_LABEL = { mensal: 'mensal', semestral: 'semestral', anual: 'anual' }
+const MESES_POR_CICLO = { mensal: 1, semestral: 6, anual: 12 }
 
 const formatarReais = (valor) => (valor ?? 0).toFixed(2).replace('.', ',')
 
@@ -61,6 +62,7 @@ export default function Pagamento() {
       : ITENS[tipo]?.[itemId]
 
   const [carregando, setCarregando] = useState(false)
+  const [forma, setForma] = useState('cartao') // mensalidade: 'cartao' (renovação automática) | 'pix' (avulso)
   const [erro, setErro] = useState('')
   const [cpf, setCpf] = useState('')
   const [telefone, setTelefone] = useState('')
@@ -122,6 +124,7 @@ export default function Pagamento() {
         : {
           tipo,
           ciclo: tipo === 'mensalidade' ? ciclo : undefined,
+          recorrente: tipo === 'mensalidade' ? forma === 'cartao' : undefined,
           descricao: tipo === 'creditos'
             ? `Prestador App — ${item.creditos} créditos`
             : tipo === 'mensalidade'
@@ -210,6 +213,35 @@ export default function Pagamento() {
         )}
       </div>
 
+      {/* Forma de pagamento da mensalidade: cartão renova sozinho, Pix é avulso */}
+      {tipo === 'mensalidade' && (
+        <div className="mb-5">
+          <p className="text-sm mb-2" style={{ color: '#6B7280' }}>Forma de pagamento</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'cartao', titulo: 'Cartão de crédito', desc: 'Renova sozinha' },
+              { id: 'pix', titulo: 'Pix', desc: 'Você renova a cada período' },
+            ].map(o => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => setForma(o.id)}
+                className="text-left p-3 rounded-xl"
+                style={{ border: forma === o.id ? '2px solid #16A34A' : '1px solid #E4E7E4', background: forma === o.id ? '#F0FDF4' : '#fff' }}
+              >
+                <p className="text-sm font-semibold" style={{ color: '#1F2937' }}>{o.titulo}</p>
+                <p className="text-xs" style={{ color: '#6B7280' }}>{o.desc}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs mt-2" style={{ color: '#6B7280' }}>
+            {forma === 'cartao'
+              ? `Cobramos R$${formatarReais(item.valor)} agora e de novo a cada ${MESES_POR_CICLO[ciclo] === 1 ? 'mês' : `${MESES_POR_CICLO[ciclo]} meses`}, no mesmo cartão. Você cancela a renovação quando quiser, na aba Assinatura do seu painel.`
+              : `Pagamento único de R$${formatarReais(item.valor)} pelo período. Avisamos antes de vencer pra você renovar.`}
+          </p>
+        </div>
+      )}
+
       {/* CPF */}
       <div className="mb-4">
         <label className="block text-sm mb-1" style={{ color: '#6B7280' }}>CPF</label>
@@ -296,11 +328,18 @@ export default function Pagamento() {
       <div className="flex items-start gap-2 mb-5 p-3 rounded-xl" style={{ background: '#F3F6F2' }}>
         <ShieldCheck size={16} color="#16A34A" style={{ flexShrink: 0, marginTop: 1 }} />
         <p className="text-xs" style={{ color: '#6B7280' }}>
-          Você vai continuar numa página segura da Asaas pra escolher Pix ou cartão e finalizar o pagamento.
+          {tipo === 'mensalidade'
+            ? `Você vai continuar numa página segura da Asaas pra ${forma === 'cartao' ? 'cadastrar seu cartão' : 'pagar com Pix'} e finalizar o pagamento.`
+            : 'Você vai continuar numa página segura da Asaas pra escolher Pix ou cartão e finalizar o pagamento.'}
         </p>
       </div>
 
-      {erro && <p className="text-xs mb-3 p-2 rounded-lg" style={{ color: '#B91C1C', background: '#FEF2F2' }}>{erro}</p>}
+      {erro && (
+        <p className="text-xs mb-3 p-2 rounded-lg" style={{ color: '#B91C1C', background: '#FEF2F2' }}>
+          {erro}{' '}
+          <button type="button" onClick={() => navigate('/suporte?categoria=pagamento')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 700, color: '#B91C1C', textDecoration: 'underline' }}>Falar com o suporte</button>
+        </p>
+      )}
 
       <button
         onClick={pagar}

@@ -650,13 +650,21 @@ export default function PerfilCliente() {
           <button onClick={async () => {
             if (window.confirm('Tem certeza? Todos os seus dados serão removidos permanentemente.')) {
               const { data: { session } } = await supabase.auth.getSession()
-              await fetch('/api/excluir-conta', {
+              const res = await fetch('/api/excluir-conta', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   Authorization: `Bearer ${session?.access_token}`,
                 },
               })
+              // Só sai da conta se ela foi mesmo excluída — antes o logout
+              // acontecia mesmo quando a exclusão falhava ou era bloqueada
+              // (ex: dinheiro retido), e a pessoa achava que tinha sido apagada.
+              if (!res.ok) {
+                const corpo = await res.json().catch(() => ({}))
+                window.alert(corpo.error || 'Não foi possível excluir sua conta agora. Tente novamente em instantes.')
+                return
+              }
               await sair()
             }
           }}

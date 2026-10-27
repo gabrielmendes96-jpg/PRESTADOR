@@ -127,3 +127,39 @@ arbitra o mérito; (3) reputação pública — natureza pública da nota e do
 histórico, base legal LGPD pro consentimento. Mais o reforço da cláusula
 de intermediação existente, agora que há dinheiro passando pela
 plataforma.
+
+---
+
+## 5. Assinatura com renovação automática (seção nova)
+
+**O que acontece de verdade:**
+- O prestador escolhe um plano (Básico, Profissional ou Premium) e um ciclo
+  (mensal, semestral com 15% de desconto, anual com 20%).
+- **Cartão de crédito**: a assinatura renova sozinha ao fim de cada ciclo,
+  cobrando o mesmo cartão (cadastrado na página da Asaas — o número do
+  cartão nunca passa pelo nosso servidor). O prestador cancela a
+  *renovação* quando quiser, pela aba "Assinatura" do painel; o plano
+  segue valendo até o fim do período já pago.
+- **Pix**: pagamento único pelo período, sem renovação automática (a Asaas
+  não permite Pix em cobrança recorrente). A plataforma avisa por
+  notificação 7, 3 e 1 dia antes de vencer.
+- Se a renovação não for paga, o plano é suspenso 5 dias depois do
+  vencimento e o perfil deixa de aparecer nas buscas.
+- Trocar de plano, de ciclo ou de forma de pagamento encerra a
+  renovação automática anterior (para não cobrar duas vezes).
+
+**Pontos que um advogado precisa decidir como redigir:**
+- Informação clara e prévia sobre a cobrança recorrente (valor, periodicidade,
+  como cancelar) antes do pagamento — hoje isso aparece na tela de
+  pagamento, mas precisa constar também nos termos (CDC, dever de informação).
+- Política de reembolso: hoje o app não oferece garantia de 30 dias (foi
+  retirada); os termos atuais falam em 7 dias corridos. Confirmar se isso
+  cobre o direito de arrependimento (CDC, art. 49) também para os planos
+  semestral e anual pré-pagos, e como o reembolso é pedido e processado
+  (hoje não há fluxo automatizado de estorno).
+- O que acontece com o saldo restante de um plano anual cancelado no meio
+  do período (hoje: nada é devolvido, o plano vale até o fim).
+- Exclusão de conta: o app bloqueia a exclusão enquanto houver pagamento
+  protegido retido (dinheiro aguardando conclusão de serviço) e cancela
+  a renovação automática antes de apagar os dados — isso precisa estar
+  descrito, junto com o prazo e a forma de contato do encarregado de dados.

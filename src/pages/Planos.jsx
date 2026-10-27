@@ -119,8 +119,10 @@ export default function Planos() {
       <Card padding={24} style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: spacing.xl }}>
         <ShieldCheck size={28} color={colors.primary} style={{ flexShrink: 0 }} />
         <div>
-          <p style={{ fontSize: 15, fontWeight: 700, color: colors.text, margin: 0 }}>Garantia de 30 dias</p>
-          <p style={{ fontSize: 14, color: colors.textSub, margin: 0 }}>Cancele quando quiser, sem multa. Aceitamos Pix, boleto e cartão de crédito.</p>
+          <p style={{ fontSize: 15, fontWeight: 700, color: colors.text, margin: 0 }}>Renovação automática no cartão</p>
+          <p style={{ fontSize: 14, color: colors.textSub, margin: 0 }}>No cartão de crédito, a assinatura renova sozinha no ciclo que você escolher e você cancela a renovação quando quiser, no seu painel. Também aceitamos Pix, pago a cada período.{' '}
+            <button onClick={() => navigate('/suporte?categoria=assinatura')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 700, color: colors.primary, textDecoration: 'underline' }}>Dúvidas? Fale com o suporte</button>
+          </p>
         </div>
       </Card>
 

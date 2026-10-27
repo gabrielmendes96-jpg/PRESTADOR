@@ -2,6 +2,56 @@
 // Função serverless do Vercel que recebe notificações do Asaas
 // quando um pagamento é confirmado
 
+import { cancelarAssinaturaAsaas, buscarClienteAsaas } from './_asaas.js'
+
+// Descobre de quem é o pagamento e o que ele compra. Pagamentos avulsos
+// trazem nosso externalReference ("tipo:userId:extra[:ciclo]"). Já as
+// cobranças de uma assinatura recorrente (a primeira e as renovações
+// automáticas) nem sempre repassam esse campo — a documentação da Asaas
+// não garante — então o caminho de reserva usa o que a Asaas sempre manda
+// nelas: `subscription` (a assinatura) e `customer` (o cliente, que nós
+// criamos com externalReference = id do usuário).
+async function resolverReferencia(supabase, pagamento) {
+  if (pagamento?.externalReference) {
+    const [tipo, userId, extra, cicloRaw] = pagamento.externalReference.split(':')
+    return { tipo, userId, extra, cicloRaw }
+  }
+  if (!pagamento?.subscription) return null
+
+  // Renovação: a assinatura já é conhecida.
+  const { data: conhecida } = await supabase
+    .from('assinaturas')
+    .select('plano_id, ciclo, prestadores(user_id)')
+    .eq('asaas_subscription_id', pagamento.subscription)
+    .order('criado_em', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (conhecida?.prestadores?.user_id) {
+    return { tipo: 'mensalidade', userId: conhecida.prestadores.user_id, extra: conhecida.plano_id, cicloRaw: conhecida.ciclo }
+  }
+
+  // Primeiro pagamento: o usuário vem do cliente da Asaas, e o plano e o
+  // ciclo, do registro "pendente" criado quando o checkout foi gerado.
+  const cliente = pagamento.customer ? await buscarClienteAsaas(pagamento.customer) : null
+  const userId = cliente?.externalReference
+  if (!userId) return null
+
+  const { data: prestador } = await supabase.from('prestadores').select('id').eq('user_id', userId).single()
+  if (!prestador) return null
+
+  const { data: pendente } = await supabase
+    .from('assinaturas')
+    .select('plano_id, ciclo')
+    .eq('prestador_id', prestador.id)
+    .eq('status', 'pendente')
+    .order('criado_em', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!pendente) return null
+
+  return { tipo: 'mensalidade', userId, extra: pendente.plano_id, cicloRaw: pendente.ciclo }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -21,13 +71,6 @@ export default async function handler(req, res) {
   }
 
   const pagamento = evento.payment
-  const externalReference = pagamento?.externalReference // formato: "tipo:userId:extra"
-
-  if (!externalReference) {
-    return res.status(200).json({ ok: true })
-  }
-
-  const [tipo, userId, extra, cicloRaw] = externalReference.split(':')
 
   // Importar cliente Supabase com service role (acesso total)
   const { createClient } = await import('@supabase/supabase-js')
@@ -35,6 +78,18 @@ export default async function handler(req, res) {
     process.env.VITE_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+
+  const referencia = await resolverReferencia(supabase, pagamento)
+  if (!referencia) {
+    if (pagamento?.subscription) {
+      // Cobrança de assinatura que não conseguimos ligar a nenhum usuário —
+      // responde 200 (um erro aqui faria a Asaas pausar a fila de webhooks),
+      // mas deixa o rastro pra investigar.
+      console.error('Pagamento de assinatura sem correspondência:', pagamento.id, pagamento.subscription)
+    }
+    return res.status(200).json({ ok: true })
+  }
+  const { tipo, userId, extra, cicloRaw } = referencia
 
   // Idempotência: a Asaas manda PAYMENT_CONFIRMED e depois PAYMENT_RECEIVED
   // pro mesmo pagamento de cartão, e reenvia webhooks que demoram a
@@ -75,11 +130,14 @@ export default async function handler(req, res) {
       // 2) A assinatura antiga precisa ser encerrada — senão a rotina de
       //    inadimplência (verificarInadimplencia) ainda a enxerga como
       //    vencida e suspende quem acabou de renovar.
+      // Cobranças de assinatura recorrente trazem o id da assinatura na Asaas.
+      const subscriptionId = pagamento.subscription || null
+
       const baseVencimento = new Date()
       if (prestadorAtual?.id) {
         const { data: vigentes } = await supabase
           .from('assinaturas')
-          .select('id, plano_id, data_vencimento')
+          .select('id, plano_id, data_vencimento, asaas_subscription_id')
           .eq('prestador_id', prestadorAtual.id)
           .in('status', ['ativo', 'pago'])
 
@@ -92,6 +150,20 @@ export default async function handler(req, res) {
         if (vigentes?.length) {
           await supabase.from('assinaturas').update({ status: 'encerrado' }).in('id', vigentes.map(v => v.id))
         }
+
+        // Troca de plano, ciclo ou forma de pagamento: a assinatura
+        // automática antiga precisa parar, senão o cartão continua sendo
+        // cobrado em paralelo. (Renovação da MESMA assinatura não entra
+        // aqui: o id é o mesmo.) Uma falha ao cancelar não pode desfazer o
+        // pagamento já confirmado, só fica registrada.
+        const antigas = [...new Set((vigentes || []).map(v => v.asaas_subscription_id).filter(id => id && id !== subscriptionId))]
+        for (const antiga of antigas) {
+          const r = await cancelarAssinaturaAsaas(antiga)
+          if (!r.ok) console.error(`Não foi possível cancelar a assinatura antiga ${antiga}:`, r.motivo)
+        }
+
+        // O registro "pendente" criado no checkout já cumpriu o papel.
+        await supabase.from('assinaturas').delete().eq('prestador_id', prestadorAtual.id).eq('status', 'pendente')
       }
 
       const dataVencimento = new Date(baseVencimento)
@@ -116,22 +188,31 @@ export default async function handler(req, res) {
         pago_em: new Date().toISOString(),
         ciclo,
         data_vencimento: dataVencimento.toISOString().split('T')[0],
+        proxima_cobranca: subscriptionId ? dataVencimento.toISOString().split('T')[0] : null,
+        asaas_subscription_id: subscriptionId,
+        recorrente: !!subscriptionId,
       })
 
-      // Enviar email de confirmação
+      // Enviar email de confirmação. Falha de e-mail não pode derrubar o
+      // webhook: o pagamento já foi aplicado e uma nova tentativa refaria
+      // tudo desde o começo.
       if (emailUsuario) {
-        await fetch(`${req.headers.host ? 'https://' + req.headers.host : ''}/api/enviar-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-internal-secret': process.env.INTERNAL_API_SECRET,
-          },
-          body: JSON.stringify({
-            tipo: 'pagamento_confirmado',
-            destinatario: emailUsuario,
-            dados: { nome: nomeUsuario, valor: pagamento.value, plano: planoId }
+        try {
+          await fetch(`${req.headers.host ? 'https://' + req.headers.host : ''}/api/enviar-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-secret': process.env.INTERNAL_API_SECRET,
+            },
+            body: JSON.stringify({
+              tipo: 'pagamento_confirmado',
+              destinatario: emailUsuario,
+              dados: { nome: nomeUsuario, valor: pagamento.value, plano: planoId }
+            })
           })
-        })
+        } catch (erroEmail) {
+          console.error('Falha ao enviar e-mail de confirmação:', erroEmail)
+        }
       }
 
       // Se esse pagamento é da primeira mensalidade de alguém que entrou
