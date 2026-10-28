@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { escolherUsuario } from './usuario'
 
 const AuthContext = createContext({})
 
@@ -9,12 +10,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUsuario(session?.user ?? null)
+      setUsuario(prev => escolherUsuario(prev, session?.user ?? null))
       setCarregando(false)
     })
 
+    // Renovação de token e volta de aba reemitem a sessão: só troca o usuário se ele realmente mudou.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUsuario(session?.user ?? null)
+      setUsuario(prev => escolherUsuario(prev, session?.user ?? null))
     })
 
     return () => subscription.unsubscribe()
