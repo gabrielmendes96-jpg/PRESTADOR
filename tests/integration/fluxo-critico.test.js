@@ -1249,4 +1249,17 @@ describe('Fluxo crítico', () => {
     await state.prestadorSessao.cliente.from('respostas_rapidas').delete().eq('id', criada.id)
   }, 30000)
 
+
+  it('32. Catálogo completo — toda categoria tem serviços específicos', async () => {
+    const { data: categorias } = await admin.from('categorias').select('id')
+    const contagem = {}
+    for (let de = 0; ; de += 1000) {
+      const { data } = await admin.from('servicos_catalogo').select('categoria_id').range(de, de + 999)
+      data.forEach(r => { contagem[r.categoria_id] = (contagem[r.categoria_id] || 0) + 1 })
+      if (data.length < 1000) break
+    }
+    const semServico = categorias.filter(c => !contagem[c.id]).map(c => c.id)
+    expect(semServico).toEqual([])
+  }, 30000)
+
 })

@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, HardHat, ClipboardList, Star, Flame, Wrench, Settings,
-  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert, LifeBuoy,
+  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert, LifeBuoy, ListChecks,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { colors } from '../lib/design'
 import Avatar from '../components/ui/Avatar'
+import AdminCatalogo from '../components/AdminCatalogo'
 
 const ADMIN_EMAIL = 'gabrielmendes96@gmail.com'
 
@@ -118,6 +119,7 @@ export default function Admin() {
     { id: 'avaliacoes', label: 'Avaliações', icon: Star },
     { id: 'zonas', label: 'Zonas pendentes', icon: Flame },
     { id: 'suporte', label: chamadosAbertos > 0 ? 'Suporte (' + chamadosAbertos + ')' : 'Suporte', icon: LifeBuoy },
+    { id: 'catalogo', label: 'Catálogo', icon: ListChecks },
   ]
 
   if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Carregando painel admin...</p>
@@ -417,6 +419,9 @@ export default function Admin() {
           )}
         </div>
       )}
+
+      {/* CATÁLOGO DE SERVIÇOS */}
+      {aba === 'catalogo' && <AdminCatalogo />}
 
       {/* SUPORTE */}
       {aba === 'suporte' && (
