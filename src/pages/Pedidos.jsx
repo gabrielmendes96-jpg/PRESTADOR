@@ -22,7 +22,7 @@ export default function Pedidos() {
   // continua dando pra trocar pra "Todas as categorias" manualmente.
   useEffect(() => {
     if (!usuario) return
-    supabase.from('prestadores').select('id, categoria_id').eq('user_id', usuario.id).single()
+    supabase.from('prestadores').select('id, categoria_id').eq('user_id', usuario.id).maybeSingle()
       .then(({ data }) => {
         if (!data) return
         if (data.categoria_id) setFiltroCategoria(data.categoria_id)

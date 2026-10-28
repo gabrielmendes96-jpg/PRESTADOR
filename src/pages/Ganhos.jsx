@@ -25,7 +25,7 @@ export default function Ganhos() {
   }, [usuario, authCarregando])
 
   const carregarDados = async () => {
-    const { data: p } = await supabase.from('prestadores').select('*').eq('user_id', usuario.id).single()
+    const { data: p } = await supabase.from('prestadores').select('*').eq('user_id', usuario.id).maybeSingle()
     if (!p) { setCarregando(false); return }
     setPrestador(p)
 

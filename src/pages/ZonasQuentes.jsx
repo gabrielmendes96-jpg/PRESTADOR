@@ -71,7 +71,7 @@ export default function ZonasQuentes() {
       .from('prestadores')
       .select('id')
       .eq('user_id', usuario.id)
-      .single()
+      .maybeSingle()
     setMeuPrestador(data || null)
   }
 

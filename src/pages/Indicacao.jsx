@@ -79,7 +79,7 @@ export default function Indicacao() {
       .from('prestadores')
       .select('meses_gratis_disponiveis')
       .eq('user_id', usuario.id)
-      .single()
+      .maybeSingle()
 
     setMesesGratis(prestador?.meses_gratis_disponiveis || 0)
     setCarregando(false)

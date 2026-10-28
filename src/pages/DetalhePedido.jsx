@@ -84,7 +84,7 @@ export default function DetalhePedido() {
         .from('prestadores')
         .select('id, plano_id')
         .eq('user_id', usuario.id)
-        .single()
+        .maybeSingle()
       if (foiCancelado()) return
       setMeuPrestador(prest || null)
 

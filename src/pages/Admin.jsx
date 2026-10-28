@@ -122,6 +122,9 @@ export default function Admin() {
     { id: 'catalogo', label: 'Catálogo', icon: ListChecks },
   ]
 
+  // Sessão encerrada com o painel aberto (logout em outra aba, token expirado): o efeito acima manda pro login.
+  if (!usuario) return null
+
   if (carregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Carregando painel admin...</p>
 
   return (

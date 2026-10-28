@@ -106,7 +106,7 @@ export default function PainelPrestador() {
         .from('prestadores')
         .select('*')
         .eq('user_id', usuario.id)
-        .single()
+        .maybeSingle()
       // tipo_chave_pix precisa de um valor real no estado desde o
       // início — o <select> mostra "CPF" como padrão visualmente, mas
       // sem isso aqui o valor só entra no estado se o usuário abrir o

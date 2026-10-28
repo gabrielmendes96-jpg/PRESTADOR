@@ -50,7 +50,7 @@ export default function Boost() {
       .from('prestadores')
       .select('*')
       .eq('user_id', usuario.id)
-      .single()
+      .maybeSingle()
 
     if (p) {
       setPrestador(p)

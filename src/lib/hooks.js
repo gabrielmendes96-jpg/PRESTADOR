@@ -506,7 +506,7 @@ export function useMensagensNaoLidas(usuario) {
     if (!usuario) { setNaoLidas(0); return }
 
     const buscar = async () => {
-      const { data: prest } = await supabase.from('prestadores').select('id').eq('user_id', usuario.id).single()
+      const { data: prest } = await supabase.from('prestadores').select('id').eq('user_id', usuario.id).maybeSingle()
       if (prest) {
         const { data } = await supabase.from('conversas').select('nao_lidas_prestador').eq('prestador_id', prest.id)
         setNaoLidas((data || []).reduce((a, c) => a + (c.nao_lidas_prestador || 0), 0))
