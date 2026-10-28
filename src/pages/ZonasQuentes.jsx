@@ -53,18 +53,21 @@ export default function ZonasQuentes() {
     const { data } = await query
     setZonas(data || [])
     setCarregando(false)
-
-    if (data && usuario) {
-      const { data: ints } = await supabase
-        .from('zona_interesses')
-        .select('zona_id')
-        .eq('prestador_id', meuPrestador?.id)
-
-      const map = {}
-      ;(ints || []).forEach(i => { map[i.zona_id] = true })
-      setInteresses(map)
-    }
   }
+
+  // Interesses do profissional: só buscam quando o perfil dele já existe (a lista de zonas e o perfil carregam em paralelo).
+  useEffect(() => {
+    if (!meuPrestador?.id) { setInteresses({}); return }
+    let cancelado = false
+    supabase.from('zona_interesses').select('zona_id').eq('prestador_id', meuPrestador.id)
+      .then(({ data: ints }) => {
+        if (cancelado) return
+        const map = {}
+        ;(ints || []).forEach(i => { map[i.zona_id] = true })
+        setInteresses(map)
+      })
+    return () => { cancelado = true }
+  }, [meuPrestador?.id])
 
   const buscarPrestador = async () => {
     const { data } = await supabase
