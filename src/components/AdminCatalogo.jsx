@@ -8,7 +8,8 @@ const NOME_MIN = 3
 const NOME_MAX = 80
 
 // Admin: gerencia o catálogo de serviços por categoria (adicionar, renomear, ocultar, excluir).
-// Ocultar tira o serviço das listas novas mas preserva quem já o marcou; excluir remove de vez.
+// Ocultar tira o serviço das listas, dos perfis e da busca, mas guarda a marcação dos prestadores
+// (volta ao mostrar de novo); excluir remove de vez, inclusive a marcação.
 export default function AdminCatalogo() {
   const { categorias } = useCategorias()
   const [categoriaId, setCategoriaId] = useState('')
@@ -128,8 +129,11 @@ export default function AdminCatalogo() {
             </button>
           </form>
 
-          <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
+          <p className="text-xs mb-1" style={{ color: '#6B7280' }}>
             {carregando ? 'Carregando…' : `${servicos.length} serviço(s) · ${servicos.filter(s => s.ativo).length} visível(is)`}
+          </p>
+          <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
+            Ocultar tira o serviço das listas, dos perfis e da busca, mas guarda a marcação dos prestadores (volta ao mostrar de novo). Excluir apaga de vez.
           </p>
 
           <ul className="flex flex-col" style={{ listStyle: 'none', margin: 0, padding: 0 }}>

@@ -2254,7 +2254,6 @@ select d.categoria_id, d.nome from (values
   ('limpeza_terreno', 'Nivelamento de terreno'),
   ('limpeza_terreno', 'Limpeza de lote para construção'),
   ('limpeza_terreno', 'Retirada de tocos'),
-  ('limpeza_terreno', 'Queima controlada (autorizada)'),
   ('limpeza_terreno', 'Limpeza de terreno abandonado')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
@@ -3309,7 +3308,7 @@ select d.categoria_id, d.nome from (values
   ('seguranca_evento', 'Controle de acesso e portaria'),
   ('seguranca_evento', 'Segurança para shows'),
   ('seguranca_evento', 'Segurança para formaturas'),
-  ('seguranca_evento', 'Seguranças armados e desarmados'),
+  ('seguranca_evento', 'Equipe de segurança para eventos'),
   ('seguranca_evento', 'Ronda e vigilância'),
   ('seguranca_evento', 'Segurança pessoal (escolta)'),
   ('seguranca_evento', 'Segurança para eventos esportivos'),

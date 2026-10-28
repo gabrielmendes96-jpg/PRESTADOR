@@ -570,7 +570,7 @@ export default {
   ],
   limpeza_terreno: [
     'Limpeza de terreno', 'Roçada de mato', 'Retirada de entulho', 'Capina', 'Remoção de árvores e raízes', 'Terraplenagem leve', 'Nivelamento de terreno',
-    'Limpeza de lote para construção', 'Retirada de tocos', 'Queima controlada (autorizada)', 'Limpeza de terreno abandonado',
+    'Limpeza de lote para construção', 'Retirada de tocos', 'Limpeza de terreno abandonado',
   ],
   limpeza_pos_obra: [
     'Limpeza pós-obra residencial', 'Limpeza pós-obra comercial', 'Remoção de respingos de tinta', 'Remoção de cimento e argamassa', 'Limpeza de vidros e esquadrias',
@@ -822,7 +822,7 @@ export default {
   ],
   seguranca_evento: [
     'Segurança para festa', 'Segurança para casamento', 'Segurança para eventos corporativos', 'Controle de acesso e portaria', 'Segurança para shows',
-    'Segurança para formaturas', 'Seguranças armados e desarmados', 'Ronda e vigilância', 'Segurança pessoal (escolta)', 'Segurança para eventos esportivos', 'Revista e credenciamento',
+    'Segurança para formaturas', 'Equipe de segurança para eventos','Ronda e vigilância', 'Segurança pessoal (escolta)', 'Segurança para eventos esportivos', 'Revista e credenciamento',
   ],
   serralheiro: [
     'Portões de ferro e alumínio', 'Grades de proteção', 'Estruturas metálicas', 'Corrimãos e guarda-corpos', 'Soldas e reparos', 'Portão eletrônico', 'Escadas metálicas',
