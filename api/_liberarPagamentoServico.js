@@ -4,6 +4,7 @@
 // por api/verificar-liberacao-automatica.js (cron, 3 dias de segurança) —
 // centralizado aqui pra não duplicar a chamada de transferência nos dois.
 import { registrarServicoConcluido } from './_registrarServicoConcluido.js'
+import { registrarAlerta } from './_alertas.js'
 
 const COMISSAO_PLATAFORMA = 0.15
 
@@ -48,6 +49,7 @@ export async function liberarPagamentoServico(supabase, pedidoId) {
     // pra poder tentar de novo mais tarde, em vez de travar em 'liberando'.
     await supabase.from('pedidos_servico').update({ status_pagamento: 'retido' }).eq('id', pedidoId)
     console.error(`Liberação bloqueada — prestador sem chave PIX (pedido ${pedidoId})`)
+    await registrarAlerta(supabase, 'repasse_sem_chave_pix', `Pedido ${pedidoId}: o prestador ainda não cadastrou a chave PIX, repasse parado`)
     return { ok: false, motivo: 'Prestador ainda não configurou dados de recebimento' }
   }
 
@@ -76,6 +78,7 @@ export async function liberarPagamentoServico(supabase, pedidoId) {
     if (transferencia.errors) {
       await supabase.from('pedidos_servico').update({ status_pagamento: 'retido' }).eq('id', pedidoId)
       console.error(`Erro ao transferir pagamento do pedido ${pedidoId}:`, transferencia.errors)
+      await registrarAlerta(supabase, 'repasse_falhou', `Repasse do pedido ${pedidoId} falhou no Asaas`, JSON.stringify(transferencia.errors))
       return { ok: false, motivo: transferencia.errors[0]?.description || 'Erro ao transferir' }
     }
 

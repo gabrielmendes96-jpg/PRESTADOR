@@ -1,3 +1,4 @@
+import { registrarErro } from '../lib/alertas'
 import { Component } from 'react'
 import { Wrench, RefreshCw } from 'lucide-react'
 import { colors, radius, shadow } from '../lib/design'
@@ -19,6 +20,8 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(erro, info) {
     console.error('Erro de tela:', erro, info?.componentStack)
+    // Aba desatualizada depois de um deploy não é defeito: só registra o que de fato quebrou.
+    if (!ehErroDeChunk(erro)) registrarErro(erro, { componentStack: info?.componentStack })
 
     // Aba desatualizada depois de um deploy: recarregar já resolve, então
     // tenta uma vez (com trava de 1 minuto pra nunca entrar em loop).

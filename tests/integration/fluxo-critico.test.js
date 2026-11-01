@@ -13,6 +13,7 @@ import excluirConta from '../../api/excluir-conta.js'
 import { configAsaas } from '../../api/_asaas.js'
 import { buscarPrestadores } from '../../src/lib/hooks.js'
 import { semAcento } from '../../src/lib/semAcento.js'
+import { SEO_CATEGORIAS } from '../../src/lib/seoConfig.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
 const state = {}
@@ -1507,6 +1508,54 @@ describe('Fluxo crítico', () => {
     expect(doVisitante ?? []).toHaveLength(0)
 
     await admin.from('conversas').update({ briefing: null }).eq('id', state.conversaId)
+  }, 40000)
+
+
+  it('43. Páginas do Google — toda categoria de seoConfig existe no banco (e tem texto próprio)', async () => {
+    const { data: categorias } = await admin.from('categorias').select('id, nome')
+    const ids = new Set(categorias.map(c => c.id))
+    const orfas = Object.keys(SEO_CATEGORIAS).filter(chave => !ids.has(chave))
+    expect(orfas).toEqual([])    // chave que não existe no banco = página sempre vazia (ex.: "informatica" em vez de "tecnico_informatica")
+    for (const [chave, cfg] of Object.entries(SEO_CATEGORIAS)) {
+      expect(cfg.nome?.length, chave).toBeGreaterThan(2)
+      expect(cfg.desc?.length, chave).toBeGreaterThan(10)
+    }
+    // As 27 categorias novas têm página própria.
+    for (const id of ['faz_tudo', 'assistencia_eletrodomesticos', 'baba', 'conserto_celular', 'pocos_cisternas']) expect(SEO_CATEGORIAS[id], id).toBeTruthy()
+  }, 30000)
+
+
+  it('44. Alertas do sistema — visitante registra só erro de tela, não lê nada; servidor registra o resto', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    const marca = 'teste-integracao-' + Date.now()
+    try {
+      // Erro de tela: qualquer pessoa pode registrar (é assim que o app avisa quando algo quebra).
+      const { error: ok } = await visitante.from('alertas_sistema').insert({ tipo: 'erro_tela', mensagem: marca, pagina: '/teste' })
+      expect(ok).toBeNull()
+
+      // Outros tipos (pagamento, repasse) só o servidor registra: visitante e usuário logado são recusados.
+      const { error: tipoProibido } = await visitante.from('alertas_sistema').insert({ tipo: 'repasse_falhou', mensagem: marca })
+      expect(tipoProibido).toBeTruthy()
+      const { error: logadoProibido } = await state.clienteSessao.cliente.from('alertas_sistema').insert({ tipo: 'pagamento_sem_correspondencia', mensagem: marca })
+      expect(logadoProibido).toBeTruthy()
+
+      // Tamanho fora do limite é recusado pelo banco.
+      const { error: grande } = await visitante.from('alertas_sistema').insert({ tipo: 'erro_tela', mensagem: 'x'.repeat(501) })
+      expect(grande).toBeTruthy()
+
+      // Ninguém além do admin lê os alertas (visitante e cliente comum veem lista vazia).
+      const { data: doVisitante } = await visitante.from('alertas_sistema').select('*')
+      expect(doVisitante ?? []).toHaveLength(0)
+      const { data: doCliente } = await state.clienteSessao.cliente.from('alertas_sistema').select('*')
+      expect(doCliente ?? []).toHaveLength(0)
+
+      // O registro do erro de tela chegou ao banco.
+      const { data: gravado } = await admin.from('alertas_sistema').select('tipo, mensagem, pagina').eq('mensagem', marca)
+      expect(gravado).toEqual([{ tipo: 'erro_tela', mensagem: marca, pagina: '/teste' }])
+    } finally {
+      await admin.from('alertas_sistema').delete().eq('mensagem', marca)
+    }
   }, 40000)
 
 })

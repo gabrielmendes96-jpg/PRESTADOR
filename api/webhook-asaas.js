@@ -3,6 +3,7 @@
 // quando um pagamento é confirmado
 
 import { cancelarAssinaturaAsaas, buscarClienteAsaas } from './_asaas.js'
+import { registrarAlerta } from './_alertas.js'
 
 // Descobre de quem é o pagamento e o que ele compra. Pagamentos avulsos
 // trazem nosso externalReference ("tipo:userId:extra[:ciclo]"). Já as
@@ -86,6 +87,7 @@ export default async function handler(req, res) {
       // responde 200 (um erro aqui faria a Asaas pausar a fila de webhooks),
       // mas deixa o rastro pra investigar.
       console.error('Pagamento de assinatura sem correspondência:', pagamento.id, pagamento.subscription)
+      await registrarAlerta(supabase, 'pagamento_sem_correspondencia', `Pagamento ${pagamento.id} (assinatura ${pagamento.subscription}) não foi ligado a nenhum usuário`, `cliente Asaas: ${pagamento.customer}`)
     }
     return res.status(200).json({ ok: true })
   }

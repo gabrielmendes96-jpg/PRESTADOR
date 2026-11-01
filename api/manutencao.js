@@ -232,6 +232,38 @@ export async function avisarVencimentoProximo(supabase) {
 
 // Zera as linhas de rate_limits mais antigas que 1 dia — sem isso a
 // tabela cresceria pra sempre (ver supabase/25_rate_limit_real.sql).
+// Resumo diário dos alertas das últimas 24 horas. Sai por e-mail (Resend) para o admin quando houver algo a contar;
+// usa o endereço de teste do Resend, que não exige domínio verificado e entrega na conta do dono. Se o e-mail não sair,
+// os alertas continuam na aba "Alertas" do painel admin.
+export async function enviarResumoDeAlertas(supabase) {
+  const desde = new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+  const { data: alertas } = await supabase.from('alertas_sistema').select('tipo, mensagem, pagina').gte('criado_em', desde).limit(500)
+  if (!alertas?.length) return { alertas: 0, email: 'nada a avisar' }
+
+  const grupos = {}
+  for (const a of alertas) {
+    const chave = `${a.tipo} — ${a.mensagem}${a.pagina ? ` (${a.pagina})` : ''}`
+    grupos[chave] = (grupos[chave] || 0) + 1
+  }
+  const linhas = Object.entries(grupos).sort((x, y) => y[1] - x[1]).slice(0, 25)
+  const escapar = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const html = `<div style="font-family:sans-serif;max-width:560px"><h2>${alertas.length} alerta(s) nas últimas 24h</h2><ul>${linhas.map(([texto, n]) => `<li>${n}× ${escapar(texto)}</li>`).join('')}</ul><p>Veja todos em <a href="https://prestador-lyart.vercel.app/admin">Painel Admin → Alertas</a>.</p></div>`
+
+  if (!process.env.RESEND_API_KEY) return { alertas: alertas.length, email: 'RESEND_API_KEY não configurada' }
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({ from: 'Prestador Alertas <onboarding@resend.dev>', to: 'gabrielmendes96@gmail.com', subject: `Prestador: ${alertas.length} alerta(s) nas últimas 24h`, html }),
+    })
+    if (!r.ok) console.error('Resumo de alertas não saiu por e-mail:', r.status, await r.text().catch(() => ''))
+    return { alertas: alertas.length, email: r.ok ? 'enviado' : `falhou (${r.status})` }
+  } catch (e) {
+    console.error('Resumo de alertas não saiu por e-mail:', e)
+    return { alertas: alertas.length, email: 'falhou' }
+  }
+}
+
 export async function limparRateLimits(supabase) {
   const { error } = await supabase.rpc('limpar_rate_limits_antigos')
   return { ok: !error }

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import ReputacaoBadge from '../components/ReputacaoBadge'
 import { colors } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
+import { useNomeCategoria } from '../lib/hooks'
 import { SEO_CATEGORIAS, SEO_CIDADES, SITE_URL } from '../lib/seoConfig'
 import { useSEO } from '../lib/useSEO'
 import Card from '../components/ui/Card'
@@ -16,7 +17,10 @@ export default function SEOCategoria() {
   const [prestadores, setPrestadores] = useState([])
   const [carregando, setCarregando] = useState(true)
 
-  const catConfig = SEO_CATEGORIAS[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
+  const nomeNoBanco = useNomeCategoria(categoria)
+  const catConfig = SEO_CATEGORIAS[categoria] || { nome: nomeNoBanco || categoria, desc: 'Serviços profissionais' }
+  // "plural" evita montar "faz-tudo (marido de aluguel)s"; sem ele, vale o jeito antigo (nome + s).
+  const plural = catConfig.plural || `${plural}`
   const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
 
   useEffect(() => {
@@ -25,7 +29,7 @@ export default function SEOCategoria() {
 
   useSEO({
     title: `${catConfig.nome} | Prestador — Encontre Profissionais Avaliados`,
-    description: `Encontre ${catConfig.nome.toLowerCase()}s com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`,
+    description: `Encontre ${plural} com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`,
     path: `/s/${categoria}`,
     jsonLd: {
       '@context': 'https://schema.org',
@@ -42,7 +46,7 @@ export default function SEOCategoria() {
     const { data } = await supabase
       .from('prestadores_completo')
       .select('*')
-      .ilike('categoria_id', `%${categoria}%`)
+      .eq('categoria_id', categoria)
       .eq('plano_status', 'ativo')
       .order('avaliacao_media', { ascending: false })
       .limit(20)
@@ -69,7 +73,7 @@ export default function SEOCategoria() {
           </div>
         </div>
         <p className="text-sm mb-4" style={{ color: colors.textSub }}>
-          Encontre os melhores {catConfig.nome.toLowerCase()}s do Brasil com avaliações verificadas, fotos dos serviços e atendimento por chat direto.
+          Encontre os melhores {plural} do Brasil com avaliações verificadas, fotos dos serviços e atendimento por chat direto.
         </p>
         <Button fullWidth onClick={() => navigate(`/busca?categoria=${categoria}`)}>
           Buscar {catConfig.nome.toLowerCase()} perto de mim

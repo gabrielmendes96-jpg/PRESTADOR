@@ -1,11 +1,26 @@
-// Gera dist/sitemap.xml depois do build, listando as páginas estáticas
-// e todas as combinações categoria×cidade das páginas de SEO
-// (SEOCategoria.jsx, SEOCidadeCategoria.jsx). Roda como "postbuild" —
-// não precisa de banco de dados, usa a mesma fonte de categorias/
-// cidades que as páginas em si (src/lib/seoConfig.js), então nunca
-// fica desatualizado em relação ao que as páginas realmente cobrem.
+// Gera dist/sitemap.xml depois do build ("postbuild"):
+//  - páginas estáticas;
+//  - uma página por CATEGORIA, para todas as categorias do banco (se o banco não responder no build, usa só as de seoConfig);
+//  - categoria × cidade apenas para as categorias de src/lib/seoConfig.js (as que têm texto próprio), para não
+//    encher o Google de páginas parecidas e vazias.
 import { writeFileSync } from 'fs'
+import dotenv from 'dotenv'
 import { SEO_CATEGORIAS, SEO_CIDADES, SITE_URL } from '../src/lib/seoConfig.js'
+
+dotenv.config({ quiet: true })
+dotenv.config({ path: '.env.test', quiet: true })
+
+// Todas as categorias do banco (leitura pública); falha em silêncio e cai na lista do seoConfig.
+async function categoriasDoBanco() {
+  const url = process.env.VITE_SUPABASE_URL
+  const chave = process.env.VITE_SUPABASE_ANON_KEY
+  if (!url || !chave) return []
+  try {
+    const r = await fetch(`${url}/rest/v1/categorias?select=id&order=ordem`, { headers: { apikey: chave, Authorization: `Bearer ${chave}` } })
+    if (!r.ok) return []
+    return (await r.json()).map(c => c.id).filter(id => /^[a-z0-9_]+$/.test(id))
+  } catch { return [] }
+}
 
 const paginasEstaticas = [
   { path: '/', prioridade: '1.0' },
@@ -21,10 +36,11 @@ for (const p of paginasEstaticas) {
   urls.push({ loc: `${SITE_URL}${p.path}`, prioridade: p.prioridade })
 }
 
+const todasAsCategorias = [...new Set([...Object.keys(SEO_CATEGORIAS), ...(await categoriasDoBanco())])]
+for (const categoria of todasAsCategorias) urls.push({ loc: `${SITE_URL}/s/${categoria}`, prioridade: SEO_CATEGORIAS[categoria] ? '0.8' : '0.6' })
 for (const categoria of Object.keys(SEO_CATEGORIAS)) {
-  urls.push({ loc: `${SITE_URL}/s/${categoria}`, prioridade: '0.8' })
   for (const cidade of SEO_CIDADES) {
-    const cidadeSlug = cidade.toLowerCase().replace(/ /g, '-')
+    const cidadeSlug = encodeURIComponent(cidade.toLowerCase().replace(/ /g, '-'))
     urls.push({ loc: `${SITE_URL}/s/${categoria}/${cidadeSlug}`, prioridade: '0.7' })
   }
 }

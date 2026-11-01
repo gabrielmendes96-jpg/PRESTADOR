@@ -154,6 +154,17 @@ async function nomesDasCategorias() {
   return nomesCategoriasEmCache
 }
 
+// Nome legível de uma categoria (para páginas que recebem só o código na URL).
+export function useNomeCategoria(id) {
+  const [nome, setNome] = useState(null)
+  useEffect(() => {
+    let cancelado = false
+    nomesDasCategorias().then(mapa => { if (!cancelado) setNome(mapa[id] || null) })
+    return () => { cancelado = true }
+  }, [id])
+  return nome
+}
+
 // Categorias que combinam com o texto: pelo nome OU pelos termos alternativos (supabase/43), tratando
 // hífen e espaço como iguais ("faz tudo" acha "Faz-tudo"; "ar condicionado" acha "Ar-condicionado").
 async function buscarCategoriasPorTexto(termo) {

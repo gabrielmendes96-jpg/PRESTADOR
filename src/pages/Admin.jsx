@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, HardHat, ClipboardList, Star, Flame, Wrench, Settings,
-  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert, LifeBuoy, ListChecks,
+  MapPin, TriangleAlert, CheckCircle2, Check, MessageCircle, ShieldAlert, LifeBuoy, ListChecks, BellRing,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
@@ -22,6 +22,7 @@ export default function Admin() {
   const [pedidos, setPedidos] = useState([])
   const [avaliacoes, setAvaliacoes] = useState([])
   const [chamados, setChamados] = useState([])
+  const [alertas, setAlertas] = useState([])
   const [respostas, setRespostas] = useState({})
   const [carregando, setCarregando] = useState(true)
 
@@ -48,6 +49,7 @@ export default function Admin() {
       { data: peds },
       { data: avals },
       { data: chs },
+      { data: alts },
     ] = await Promise.all([
       supabase.from('prestadores').select('*', { count: 'exact', head: true }),
       supabase.from('conversas').select('*', { count: 'exact', head: true }),
@@ -59,6 +61,7 @@ export default function Admin() {
       supabase.from('pedidos_servico').select('*, categorias(nome, emoji)').order('criado_em', { ascending: false }),
       supabase.from('avaliacoes').select('*, prestadores(nome)').order('criado_em', { ascending: false }),
       supabase.from('chamados_suporte').select('*').order('criado_em', { ascending: false }),
+      supabase.from('alertas_sistema').select('*').order('criado_em', { ascending: false }).limit(200),
     ])
 
     setStats({ totalPrestadores, totalClientes, totalPedidos, totalConversas, totalAvaliacoes })
@@ -67,6 +70,7 @@ export default function Admin() {
     setPedidos(peds || [])
     setAvaliacoes(avals || [])
     setChamados(chs || [])
+    setAlertas(alts || [])
     setCarregando(false)
   }
 
@@ -112,6 +116,8 @@ export default function Admin() {
     return new Date(a.criado_em) - new Date(b.criado_em)
   })
 
+  const alertasUltimas24h = alertas.filter(a => Date.now() - new Date(a.criado_em).getTime() < 24 * 3600 * 1000).length
+
   const menuAbas = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'prestadores', label: 'Prestadores', icon: HardHat },
@@ -120,6 +126,7 @@ export default function Admin() {
     { id: 'zonas', label: 'Zonas pendentes', icon: Flame },
     { id: 'suporte', label: chamadosAbertos > 0 ? 'Suporte (' + chamadosAbertos + ')' : 'Suporte', icon: LifeBuoy },
     { id: 'catalogo', label: 'Catálogo', icon: ListChecks },
+    { id: 'alertas', label: alertasUltimas24h > 0 ? 'Alertas (' + alertasUltimas24h + ')' : 'Alertas', icon: BellRing },
   ]
 
   // Sessão encerrada com o painel aberto (logout em outra aba, token expirado): o efeito acima manda pro login.
@@ -416,6 +423,42 @@ export default function Admin() {
                       <Check size={14} strokeWidth={3} /> Aprovar e publicar
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ALERTAS DO SISTEMA */}
+      {aba === 'alertas' && (
+        <div>
+          <p className="text-xs mb-3" style={{ color: '#6B7280' }}>
+            Erros de tela que usuários encontraram e problemas de pagamento que o servidor registrou (mais recentes primeiro). Um resumo das últimas 24 horas também sai por e-mail todo dia.
+          </p>
+          {alertas.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl" style={{ border: '0.5px solid #E4E7E4' }}>
+              <CheckCircle2 size={40} color={colors.primary} style={{ margin: '0 auto 12px' }} />
+              <p className="text-sm" style={{ color: '#6B7280' }}>Nenhum alerta. Tudo certo por enquanto.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {alertas.map(a => (
+                <div key={a.id} className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid #E4E7E4' }}>
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: a.tipo === 'erro_tela' ? '#FEF3C7' : '#FEE2E2', color: a.tipo === 'erro_tela' ? '#92610A' : '#B91C1C' }}>
+                      {a.tipo === 'erro_tela' ? 'Erro de tela' : a.tipo.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-xs" style={{ color: '#9CA3AF' }}>{new Date(a.criado_em).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <p className="text-sm" style={{ color: '#1F2937', wordBreak: 'break-word' }}>{a.mensagem}</p>
+                  {a.pagina && <p className="text-xs mt-1" style={{ color: '#6B7280' }}>Tela: {a.pagina}</p>}
+                  {a.detalhe && (
+                    <details className="mt-2">
+                      <summary className="text-xs cursor-pointer" style={{ color: '#6B7280' }}>Detalhes técnicos</summary>
+                      <pre className="text-xs mt-1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#374151' }}>{a.detalhe}</pre>
+                    </details>
+                  )}
                 </div>
               ))}
             </div>

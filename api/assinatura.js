@@ -8,6 +8,7 @@
 import { verificarUsuario } from './_verificarUsuario.js'
 import { checkRateLimit } from './_rateLimit.js'
 import { cancelarAssinaturaAsaas } from './_asaas.js'
+import { registrarAlerta } from './_alertas.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
     const r = await cancelarAssinaturaAsaas(id)
     if (!r.ok) {
       console.error(`Falha ao cancelar a assinatura ${id}:`, r.motivo)
+      await registrarAlerta(supabase, 'asaas_falha_cancelamento', `Falha ao cancelar a assinatura ${id}`, r.motivo)
       return res.status(502).json({ error: 'Não foi possível cancelar agora. Tente novamente em instantes.' })
     }
   }

@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import ReputacaoBadge from '../components/ReputacaoBadge'
 import { colors } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
+import { useNomeCategoria } from '../lib/hooks'
+import { semAcento } from '../lib/semAcento'
 import { SEO_CATEGORIAS, SITE_URL } from '../lib/seoConfig'
 import { useSEO } from '../lib/useSEO'
 import Card from '../components/ui/Card'
@@ -33,7 +35,10 @@ export default function SEOCidadeCategoria() {
   const [carregando, setCarregando] = useState(true)
 
   const cidadeFormatada = cidade?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  const catConfig = SEO_CATEGORIAS[categoria] || { nome: categoria, desc: 'Serviços profissionais' }
+  const nomeNoBanco = useNomeCategoria(categoria)
+  const catConfig = SEO_CATEGORIAS[categoria] || { nome: nomeNoBanco || categoria, desc: 'Serviços profissionais' }
+  // "plural" evita montar "faz-tudo (marido de aluguel)s"; sem ele, vale o jeito antigo (nome + s).
+  const plural = catConfig.plural || `${plural}`
   const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
   const faqs = perguntasFrequentes(catConfig.nome.toLowerCase(), cidadeFormatada)
 
@@ -75,8 +80,8 @@ export default function SEOCidadeCategoria() {
     const { data } = await supabase
       .from('prestadores_completo')
       .select('*')
-      .ilike('cidade', `%${cidadeNormal}%`)
-      .ilike('categoria_id', `%${categoria}%`)
+      .ilike('cidade_busca', `%${semAcento(cidadeNormal)}%`)
+      .eq('categoria_id', categoria)
       .eq('plano_status', 'ativo')
       .order('avaliacao_media', { ascending: false })
 
@@ -111,7 +116,7 @@ export default function SEOCidadeCategoria() {
         </div>
 
         <p className="text-sm mb-4" style={{ color: colors.textSub }}>
-          Encontre os melhores {catConfig.nome.toLowerCase()}s em {cidadeFormatada} com avaliações verificadas de clientes reais.
+          Encontre os melhores {plural} em {cidadeFormatada} com avaliações verificadas de clientes reais.
           Compare profissionais, veja fotos dos serviços e contrate com segurança.
         </p>
 
@@ -156,7 +161,7 @@ export default function SEOCidadeCategoria() {
         <Card padding={24} style={{ textAlign: 'center', marginBottom: 20 }}>
           <CatIcon size={36} color="#D1D5DB" style={{ margin: '0 auto 12px' }} />
           <p className="text-sm font-medium mb-1" style={{ color: colors.text }}>
-            Ainda sem {catConfig.nome.toLowerCase()}s cadastrados em {cidadeFormatada}
+            Ainda sem {plural} cadastrados em {cidadeFormatada}
           </p>
           <p className="text-xs mb-4" style={{ color: colors.textSub }}>
             Seja o primeiro a se cadastrar ou poste um pedido para receber propostas!
