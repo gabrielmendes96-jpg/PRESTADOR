@@ -27,7 +27,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  console.log('Validação de saque Asaas — payload recebido:', JSON.stringify(req.body))
+  // Só a estrutura: o corpo traz a chave PIX de quem recebe (CPF, telefone, e-mail), que não deve ir pro log.
+  console.log('Validação de saque Asaas — campos recebidos:', Object.keys(req.body || {}), 'transfer:', Object.keys(req.body?.transfer || {}))
 
   const valor = req.body?.value ?? req.body?.transfer?.value
   const chavePix = req.body?.pixAddressKey ?? req.body?.transfer?.pixAddressKey
