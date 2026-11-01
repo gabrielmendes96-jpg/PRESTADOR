@@ -1437,4 +1437,16 @@ describe('Fluxo crítico', () => {
     expect(await ids('zzzxxxqqq')).not.toContain(state.prestadorId)
   }, 60000)
 
+  it('40. Busca olha a descrição que o profissional escreveu', async () => {
+    const { data: antes } = await admin.from('prestadores').select('descricao').eq('id', state.prestadorId).single()
+    try {
+      await admin.from('prestadores').update({ descricao: 'Instalo rádio automotivo, insulfilm e alarme.' }).eq('id', state.prestadorId)
+      const ids = async (busca) => (await buscarPrestadores({ busca })).prestadores.map(p => p.id)
+      expect(await ids('RADIO')).toContain(state.prestadorId)
+      expect(await ids('insulfilm')).toContain(state.prestadorId)
+    } finally {
+      await admin.from('prestadores').update({ descricao: antes.descricao }).eq('id', state.prestadorId)
+    }
+  }, 40000)
+
 })
