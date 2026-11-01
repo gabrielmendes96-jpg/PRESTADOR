@@ -403,7 +403,8 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input — no celular fica fixo logo acima da barra de navegação (antes ficava coberto por ela) */}
+      <div className="sticky bottom-24 sm:static z-10">
       <Card padding={10} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea
           value={texto}
@@ -427,6 +428,7 @@ export default function Chat() {
           style={{ opacity: (!texto.trim() || enviando) ? 0.4 : 1, boxShadow: shadow.btn }}
         />
       </Card>
+      </div>
     </div>
   )
 }

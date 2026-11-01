@@ -88,12 +88,12 @@ export default function PerfilCliente() {
     ] = await Promise.all([
       supabase.from('pedidos_servico').select('*', { count: 'exact', head: true }).eq('cliente_user_id', usuario.id),
       supabase.from('conversas').select('*', { count: 'exact', head: true }).eq('cliente_user_id', usuario.id),
-      supabase.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', usuario.id).single(),
+      supabase.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', usuario.id).maybeSingle(),
       supabase.from('avaliacoes_cliente').select('*, prestadores(nome, categoria_id)').eq('cliente_user_id', usuario.id).order('criado_em', { ascending: false }),
       supabase.from('avaliacoes').select('*, prestadores(nome, categoria_id, foto_perfil)').eq('autor_user_id', usuario.id).order('criado_em', { ascending: false }),
       supabase.from('historico_servicos').select('*, prestadores(nome, categoria_id)').eq('cliente_user_id', usuario.id).order('data_servico', { ascending: false }),
       supabase.from('pedidos_servico').select('*, categorias(nome, emoji)').eq('cliente_user_id', usuario.id).order('criado_em', { ascending: false }),
-      supabase.from('perfis_cliente').select('*').eq('user_id', usuario.id).single(),
+      supabase.from('perfis_cliente').select('*').eq('user_id', usuario.id).maybeSingle(),
       supabase.from('pastas_pedidos').select('*').eq('user_id', usuario.id).order('ordem', { ascending: true }),
     ])
 

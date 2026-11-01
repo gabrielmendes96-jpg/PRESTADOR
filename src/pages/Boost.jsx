@@ -60,7 +60,9 @@ export default function Boost() {
         .eq('prestador_id', p.id)
         .eq('status', 'ativo')
         .gt('expira_em', new Date().toISOString())
-        .single()
+        .order('expira_em', { ascending: false })
+        .limit(1)
+        .maybeSingle()
       setBoostAtivo(boost || null)
     }
     setCarregando(false)

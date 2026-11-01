@@ -74,7 +74,7 @@ export default function NovoPedido() {
       .from('creditos_cliente')
       .select('creditos_disponiveis')
       .eq('user_id', usuario.id)
-      .single()
+      .maybeSingle()
     setCreditosDisponiveis(data?.creditos_disponiveis || 0)
   }
 

@@ -90,6 +90,8 @@ export default function CentralNotificacoes() {
   return (
     <div className="relative">
       <button onClick={() => setAberto(!aberto)}
+        aria-label={notificacoes.length > 0 ? `Notificações (${notificacoes.length} não lidas)` : 'Notificações'}
+        aria-expanded={aberto}
         className="relative flex items-center w-9 h-9 rounded-lg justify-center hover:opacity-80"
         style={{ color: '#6B7280' }}>
         <Bell size={20} />

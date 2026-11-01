@@ -401,6 +401,7 @@ export default function PainelPrestador() {
                 <input
                   type="text"
                   value={prestador.nome || ''}
+                  aria-label="Nome"
                   onChange={e => setPrestador({ ...prestador, nome: e.target.value })}
                   style={inputStyle}
                 />
@@ -410,6 +411,7 @@ export default function PainelPrestador() {
                 <input
                   type="text"
                   value={prestador.whatsapp || ''}
+                  aria-label="WhatsApp"
                   onChange={e => setPrestador({ ...prestador, whatsapp: e.target.value })}
                   style={inputStyle}
                   placeholder="(00) 00000-0000"
@@ -419,6 +421,7 @@ export default function PainelPrestador() {
                 <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Categoria</label>
                 <select
                   value={prestador.categoria_id || ''}
+                  aria-label="Categoria"
                   onChange={e => setPrestador({ ...prestador, categoria_id: e.target.value })}
                   style={inputStyle}
                 >
@@ -433,6 +436,7 @@ export default function PainelPrestador() {
                 <input
                   type="number"
                   value={prestador.raio_atendimento || 30}
+                  aria-label="Raio de atendimento em km"
                   onChange={e => setPrestador({ ...prestador, raio_atendimento: parseInt(e.target.value) })}
                   style={inputStyle}
                 />
@@ -442,6 +446,7 @@ export default function PainelPrestador() {
                 <input
                   type="text"
                   value={prestador.cidade || ''}
+                  aria-label="Cidade"
                   onChange={e => setPrestador({ ...prestador, cidade: e.target.value })}
                   style={inputStyle}
                 />
@@ -451,6 +456,7 @@ export default function PainelPrestador() {
                 <input
                   type="text"
                   value={prestador.estado || ''}
+                  aria-label="Estado"
                   onChange={e => setPrestador({ ...prestador, estado: e.target.value })}
                   maxLength={2}
                   style={inputStyle}
@@ -462,7 +468,8 @@ export default function PainelPrestador() {
               <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Sobre você</label>
               <textarea
                 value={prestador.descricao || ''}
-                onChange={e => setPrestador({ ...prestador, descricao: e.target.value })}
+                aria-label="Sobre você"
+                  onChange={e => setPrestador({ ...prestador, descricao: e.target.value })}
                 rows={4}
                 style={{ ...inputStyle, resize: 'none' }}
                 placeholder="Descreva sua experiência e serviços..."
@@ -474,7 +481,8 @@ export default function PainelPrestador() {
               <input
                 type="number" min={14} max={120}
                 value={prestador.idade ?? ''}
-                onChange={e => setPrestador({ ...prestador, idade: e.target.value })}
+                aria-label="Idade"
+                  onChange={e => setPrestador({ ...prestador, idade: e.target.value })}
                 style={{ ...inputStyle, maxWidth: 140 }}
               />
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 8 }}>
