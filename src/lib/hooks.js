@@ -141,6 +141,18 @@ const ORDENACOES = {
 // O texto da busca entra num filtro .or() do PostgREST, onde vírgula e
 // parênteses são sintaxe — "Silva, João" quebrava a consulta inteira (e
 // a tela mostrava "nenhum resultado"). % e _ também são curingas do ilike.
+// Categorias que combinam com o texto: pelo nome OU pelos termos alternativos (supabase/43), tratando
+// hífen e espaço como iguais ("faz tudo" acha "Faz-tudo"; "ar condicionado" acha "Ar-condicionado").
+async function buscarCategoriasPorTexto(termo) {
+  const variantes = [...new Set([termo, termo.replace(/-/g, ' '), termo.replace(/ /g, '-')])]
+  const completo = variantes.flatMap(v => [`nome_busca.ilike.%${v}%`, `termos_busca.ilike.%${v}%`]).join(',')
+  const soNome = variantes.map(v => `nome_busca.ilike.%${v}%`).join(',')
+  let r = await supabase.from('categorias').select('id').or(completo)
+  // Coluna de termos ainda não existe neste banco (supabase/43 não rodada): busca só pelo nome.
+  if (r.error) r = await supabase.from('categorias').select('id').or(soNome)
+  return r
+}
+
 // Palavras que não ajudam a achar um serviço ("troca DE resistência DO chuveiro").
 const PALAVRAS_VAZIAS = new Set(['de', 'da', 'do', 'das', 'dos', 'para', 'com', 'que', 'uma', 'um', 'por', 'nao', 'sem'])
 const limparBusca = (texto) => String(texto || '').replace(/[,()*\\"%_]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -188,7 +200,7 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
 
     const [{ data: porTag }, { data: porCategoria }, { data: porServico }, { data: servicosDoCatalogo }] = await Promise.all([
       supabase.from('servicos_prestador').select('prestador_id').ilike('tag_busca', `%${termo}%`),
-      supabase.from('categorias').select('id').ilike('nome_busca', `%${termo}%`),
+      buscarCategoriasPorTexto(termo),
       // Serviços do catálogo que o prestador marcou ("troca de chuveiro").
       supabase.from('prestador_servicos').select('prestador_id, servicos_catalogo!inner(nome)').ilike('servicos_catalogo.nome_busca', `%${termo}%`),
       consultaServicos.limit(400),

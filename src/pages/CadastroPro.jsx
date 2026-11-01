@@ -161,7 +161,7 @@ export function CadastroPro() {
               <label style={labelStyle}>Profissão</label>
               <SearchableSelect
                 options={[
-                  ...categorias.map(c => ({ value: c.id, label: c.nome })),
+                  ...categorias.map(c => ({ value: c.id, label: c.nome, busca: c.termos })),
                   { value: '__outro__', label: 'Outra profissão (digitar)' },
                 ]}
                 value={dados.categoria}

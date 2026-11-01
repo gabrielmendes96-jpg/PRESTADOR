@@ -1449,4 +1449,30 @@ describe('Fluxo crítico', () => {
     }
   }, 40000)
 
+
+  it('41. Termos alternativos — "faz tudo" também acha Marido de Aluguel, e outros sinônimos', async () => {
+    const { data: antes } = await admin.from('prestadores').select('categoria_id, plano_status').eq('id', state.prestadorId).single()
+    const ids = async (busca) => (await buscarPrestadores({ busca })).prestadores.map(p => p.id)
+    const casos = [
+      ['faz_tudo', ['faz tudo', 'FAZ-TUDO', 'Faz-tudo', 'marido de aluguel', 'MARIDO DE ALUGUEL', 'pequenos reparos']],
+      ['ar_condicionado', ['ar condicionado', 'Ar-condicionado', 'split', 'climatizacao']],
+      ['encanador', ['bombeiro hidraulico', 'Bombeiro Hidráulico']],
+      ['assistencia_eletrodomesticos', ['conserto de geladeira', 'assistência técnica', 'eletrodomestico']],
+      ['mecanico', ['oficina', 'conserto de carro']],
+      ['diarista', ['empregada domestica', 'faxina']],
+    ]
+    try {
+      await admin.from('prestadores').update({ plano_status: 'ativo' }).eq('id', state.prestadorId)
+      for (const [categoria, buscas] of casos) {
+        await admin.from('prestadores').update({ categoria_id: categoria }).eq('id', state.prestadorId)
+        for (const busca of buscas) expect(await ids(busca), categoria + ' <- "' + busca + '"').toContain(state.prestadorId)
+      }
+      // Categoria diferente da buscada não traz o profissional.
+      await admin.from('prestadores').update({ categoria_id: 'faz_tudo' }).eq('id', state.prestadorId)
+      expect(await ids('bombeiro hidraulico')).not.toContain(state.prestadorId)
+    } finally {
+      await admin.from('prestadores').update({ categoria_id: antes.categoria_id, plano_status: antes.plano_status }).eq('id', state.prestadorId)
+    }
+  }, 120000)
+
 })

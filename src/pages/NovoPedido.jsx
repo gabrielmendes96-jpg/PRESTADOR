@@ -199,7 +199,7 @@ export default function NovoPedido() {
             <div>
               <label style={labelStyle}>Categoria *</label>
               <SearchableSelect
-                options={categorias.map(c => ({ value: c.id, label: c.nome }))}
+                options={categorias.map(c => ({ value: c.id, label: c.nome, busca: c.termos }))}
                 value={dados.categoria_id}
                 onChange={mudarCategoria}
                 placeholder="Digite para buscar a categoria..."

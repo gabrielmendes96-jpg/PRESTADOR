@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { colors, radius } from '../../lib/design'
+import { filtrarOpcoes } from '../../lib/semAcento'
 
-const normalizar = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 // Combobox pesquisável: digita e filtra a lista, em vez de rolar um <select>
-// gigante. options = [{ value, label }].
+// gigante. options = [{ value, label, busca? }] — "busca" são termos alternativos que também casam
+// (ex.: "marido de aluguel" para a categoria "Faz-tudo").
 export default function SearchableSelect({
   options = [],
   value,
@@ -21,9 +22,7 @@ export default function SearchableSelect({
   const inputRef = useRef(null)
 
   const selecionado = options.find(o => o.value === value)
-  const filtradas = busca
-    ? options.filter(o => normalizar(o.label).includes(normalizar(busca)))
-    : options
+  const filtradas = filtrarOpcoes(options, busca)
 
   const abrir = () => {
     if (disabled) return

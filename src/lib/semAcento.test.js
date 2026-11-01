@@ -22,3 +22,34 @@ describe('semAcento', () => {
     expect(semAcento('troca de chuveiro')).toBe('troca de chuveiro')
   })
 })
+
+import { filtrarOpcoes } from './semAcento'
+
+describe('filtrarOpcoes', () => {
+  const opcoes = [
+    { value: 'faz_tudo', label: 'Faz-tudo (Marido de Aluguel)', busca: 'marido de aluguel, faz tudo, pequenos reparos' },
+    { value: 'ar_condicionado', label: 'Ar-condicionado', busca: 'split, climatizacao' },
+    { value: 'encanador', label: 'Encanador', busca: 'bombeiro hidraulico' },
+    { value: 'eletricista', label: 'Eletricista', busca: '' },
+  ]
+  const valores = (digitado) => filtrarOpcoes(opcoes, digitado).map(o => o.value)
+
+  it('"faz tudo" e "marido de aluguel" acham a mesma categoria', () => {
+    expect(valores('faz tudo')).toEqual(['faz_tudo'])
+    expect(valores('FAZ-TUDO')).toEqual(['faz_tudo'])
+    expect(valores('marido de aluguel')).toEqual(['faz_tudo'])
+    expect(valores('Marido de Aluguel')).toEqual(['faz_tudo'])
+  })
+  it('hífen e espaço são equivalentes', () => {
+    expect(valores('ar condicionado')).toEqual(['ar_condicionado'])
+    expect(valores('ar-condicionado')).toEqual(['ar_condicionado'])
+  })
+  it('acha por termo alternativo, sem acento e com acento', () => {
+    expect(valores('bombeiro hidráulico')).toEqual(['encanador'])
+    expect(valores('climatização')).toEqual(['ar_condicionado'])
+  })
+  it('sem texto devolve tudo; sem correspondência devolve vazio', () => {
+    expect(valores('')).toHaveLength(4)
+    expect(valores('zzzz')).toEqual([])
+  })
+})
