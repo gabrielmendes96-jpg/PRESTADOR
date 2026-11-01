@@ -6,13 +6,15 @@ import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow } from '../lib/design'
 import { estourouPrazo } from '../lib/tempoResposta'
 import { ETAPAS, etapaPorId, RESPOSTAS_PADRAO, aplicarModelo } from '../lib/espera'
+import { briefingValido, textoDoBriefing, modeloDeOrcamento } from '../lib/briefing'
+import FichaDoPedido from '../components/FichaDoPedido'
 import Card from '../components/ui/Card'
 import IconButton from '../components/ui/IconButton'
 import Avatar from '../components/ui/Avatar'
 
 export default function Chat() {
   const { conversaId } = useParams()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const { usuario, carregando: authCarregando } = useAuth()
   const navigate = useNavigate()
   const [mensagens, setMensagens] = useState([])
@@ -112,8 +114,10 @@ export default function Chat() {
     }
   }
 
-  const enviar = async () => {
-    if (!texto.trim() || enviando) return
+  const enviar = async (textoForcado) => {
+    // O botão de enviar passa o evento de clique como 1º argumento; só texto de verdade vale como mensagem pronta.
+    const corpo = (typeof textoForcado === 'string' ? textoForcado : texto).trim()
+    if (!corpo || enviando) return
     setEnviando(true)
     setErro('')
 
@@ -127,7 +131,7 @@ export default function Chat() {
         prestador_id: conversa?.prestador_id,
         cliente_user_id: conversa?.cliente_user_id,
         remetente,
-        texto: texto.trim(),
+        texto: corpo,
       })
       .select()
       .single()
@@ -143,7 +147,7 @@ export default function Chat() {
     // src/lib/tempoResposta.js e api/verificar-tempo-resposta.js)
     const agora = new Date().toISOString()
     const atualizacaoConversa = {
-      ultima_mensagem: texto.trim(),
+      ultima_mensagem: corpo,
       ultima_mensagem_em: agora,
       nao_lidas_prestador: ehPrestador ? 0 : (conversa?.nao_lidas_prestador || 0) + 1,
       nao_lidas_cliente: ehPrestador ? (conversa?.nao_lidas_cliente || 0) + 1 : 0,
@@ -180,7 +184,7 @@ export default function Chat() {
         body: JSON.stringify({
           conversaId,
           titulo: 'Nova mensagem no Prestador',
-          corpo: texto.trim().slice(0, 80),
+          corpo: corpo.slice(0, 80),
           url: `/chat/${conversaId}`,
           tipo: 'mensagem'
         })
@@ -199,11 +203,22 @@ export default function Chat() {
     if (prefillFeito.current || carregando || !conversa) return
     const servicoParam = params.get('servico')
     const ehPrest = conversa.prestadores?.user_id === usuario?.id
-    if (servicoParam && !ehPrest && mensagens.length === 0 && !texto && nomeServicoConversa) {
+    if (servicoParam && params.get('ficha') !== '1' && !ehPrest && mensagens.length === 0 && !texto && nomeServicoConversa) {
       prefillFeito.current = true
       setTexto('Olá! Gostaria de um orçamento para: ' + nomeServicoConversa + '.')
     }
   }, [carregando, conversa, mensagens.length])
+
+  // Veio da ficha de orçamento: a ficha vira a primeira mensagem do cliente (o profissional é avisado por ela).
+  const fichaJaEnviada = useRef(false)
+  useEffect(() => {
+    if (fichaJaEnviada.current || carregando || !conversa || params.get('ficha') !== '1') return
+    if (conversa.prestadores?.user_id === usuario?.id) return
+    if (!briefingValido(conversa.briefing) || conversa.briefing.length === 0) return
+    fichaJaEnviada.current = true
+    setParams({}, { replace: true }) // tira ?ficha=1 da barra: recarregar a página não reenvia
+    enviar(textoDoBriefing(conversa.briefing, nomeServicoConversa))
+  }, [carregando, conversa])
 
   const mudarEtapa = async (etapa) => {
     const anterior = conversa.etapa
@@ -321,6 +336,15 @@ export default function Chat() {
             ))}
           </div>
         </Card>
+      )}
+
+      {briefingValido(conversa?.briefing) && conversa.briefing.length > 0 && (
+        <FichaDoPedido
+          briefing={conversa.briefing}
+          assunto={nomeServicoConversa}
+          ehPrestador={ehPrestadorLogado}
+          onMontarOrcamento={() => { setTexto(modeloDeOrcamento(nomeServicoConversa)); document.querySelector('textarea')?.focus() }}
+        />
       )}
 
       {/* Mensagens */}

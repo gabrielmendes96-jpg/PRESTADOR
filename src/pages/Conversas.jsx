@@ -6,6 +6,7 @@ import { useAuth } from '../lib/AuthContext'
 import { colors, spacing, type as typeScale } from '../lib/design'
 import { estourouPrazo } from '../lib/tempoResposta'
 import { formatarEspera, etapaPorId } from '../lib/espera'
+import { briefingValido, resumoCurto } from '../lib/briefing'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Chip from '../components/ui/Chip'
@@ -103,7 +104,7 @@ export default function Conversas() {
     const fn = FILTROS.find(f => f.id === filtro)?.fn || FILTROS[0].fn
     const termo = busca.trim().toLowerCase()
     const filtradas = comoPrestador.filter(fn).filter(c => !termo || [
-      c.cliente_nome, c.assunto, c.servicos_catalogo?.nome, c.ultima_mensagem,
+      c.cliente_nome, c.assunto, c.servicos_catalogo?.nome, c.ultima_mensagem, briefingValido(c.briefing) ? resumoCurto(c.briefing, 6) : '',
     ].some(txt => (txt || '').toLowerCase().includes(termo)))
 
     // Fila de trabalho: quem espera resposta vem primeiro, o que espera há
@@ -200,6 +201,7 @@ export default function Conversas() {
                 const foto = naAbaPrestador ? conv.cliente_foto_url : conv.prestadores?.foto_perfil
                 const sub = naAbaPrestador ? '' : `${conv.prestadores?.categoria_id} · ${conv.prestadores?.cidade}`
                 const assunto = conv.servicos_catalogo?.nome || conv.assunto
+                const resumoFicha = naAbaPrestador && briefingValido(conv.briefing) ? resumoCurto(conv.briefing) : ''
                 const etapa = etapaPorId(conv.etapa)
                 const espera = naAbaPrestador && aguardando(conv)
                 const atrasado = espera && estourouPrazo(conv.cliente_aguardando_desde, agora.toISOString())
@@ -234,6 +236,10 @@ export default function Conversas() {
                             </span>
                           )}
                         </div>
+                      )}
+
+                      {resumoFicha && (
+                        <p style={{ fontSize: 12, fontWeight: 600, color: colors.text, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📋 {resumoFicha}</p>
                       )}
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

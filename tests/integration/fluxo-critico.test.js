@@ -1475,4 +1475,38 @@ describe('Fluxo crítico', () => {
     }
   }, 120000)
 
+
+  it('42. Ficha de orçamento — o cliente grava, o profissional lê, ninguém mais mexe', async () => {
+    const ficha = [{ rotulo: 'Marca e modelo do veículo', valor: 'Fiat Uno' }, { rotulo: 'Ano', valor: '2018' }, { rotulo: 'Observações', valor: 'Só posso à tarde.' }]
+
+    // O cliente grava a ficha na própria conversa.
+    const { error: erroGravar } = await state.clienteSessao.cliente.from('conversas').update({ briefing: ficha }).eq('id', state.conversaId)
+    expect(erroGravar).toBeNull()
+
+    // O profissional da conversa lê a ficha...
+    const { data: lida } = await state.prestadorSessao.cliente.from('conversas').select('briefing').eq('id', state.conversaId).single()
+    expect(lida.briefing).toEqual(ficha)
+
+    // ...mas não consegue reescrevê-la (gatilho do banco).
+    const { error: erroPrestador } = await state.prestadorSessao.cliente.from('conversas').update({ briefing: [{ rotulo: 'x', valor: 'adulterado' }] }).eq('id', state.conversaId)
+    expect(erroPrestador?.message).toMatch(/Só o cliente/)
+    const { data: intacta } = await admin.from('conversas').select('briefing').eq('id', state.conversaId).single()
+    expect(intacta.briefing).toEqual(ficha)
+
+    // Ficha enorme ou em formato errado é recusada pelo banco.
+    const enorme = Array.from({ length: 21 }, (_, i) => ({ rotulo: 'campo ' + i, valor: 'v' }))
+    const { error: erroEnorme } = await state.clienteSessao.cliente.from('conversas').update({ briefing: enorme }).eq('id', state.conversaId)
+    expect(erroEnorme).toBeTruthy()
+    const { error: erroFormato } = await state.clienteSessao.cliente.from('conversas').update({ briefing: { nao: 'e lista' } }).eq('id', state.conversaId)
+    expect(erroFormato).toBeTruthy()
+
+    // Quem não participa da conversa não enxerga nada dela.
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    const { data: doVisitante } = await visitante.from('conversas').select('briefing').eq('id', state.conversaId)
+    expect(doVisitante ?? []).toHaveLength(0)
+
+    await admin.from('conversas').update({ briefing: null }).eq('id', state.conversaId)
+  }, 40000)
+
 })

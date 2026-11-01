@@ -15,6 +15,8 @@ import Button from '../components/ui/Button'
 import IconButton from '../components/ui/IconButton'
 import Badge from '../components/ui/Badge'
 import Chip from '../components/ui/Chip'
+import FichaOrcamento from '../components/FichaOrcamento'
+import { perguntasPara } from '../lib/briefing'
 
 function iniciaisDe(nome = '') {
   return nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'P'
@@ -29,6 +31,18 @@ export default function Perfil() {
   const { prestador, loading } = usePrestador(id)
   const { servicos: servicosDoPrestador } = usePrestadorServicos(id)
   const [escolhendoServico, setEscolhendoServico] = useState(false)
+  // Ficha de orçamento: { servico } quando está aberta (servico pode ser null = "outro serviço").
+  const [ficha, setFicha] = useState(null)
+  const [topicoDoPrestador, setTopicoDoPrestador] = useState(null)
+
+  // O grupo da categoria do profissional decide quais perguntas a ficha faz (automotivo, imóvel, eventos...).
+  useEffect(() => {
+    if (!prestador?.categoria_id) return
+    let cancelado = false
+    supabase.from('categorias').select('topico_id').eq('id', prestador.categoria_id).maybeSingle()
+      .then(({ data }) => { if (!cancelado) setTopicoDoPrestador(data?.topico_id || null) })
+    return () => { cancelado = true }
+  }, [prestador?.categoria_id])
 
   // Registra uma visualização real (não dono, no máximo 1 por sessão/dia)
   useEffect(() => {
@@ -43,7 +57,7 @@ export default function Perfil() {
     supabase.from('visualizacoes_perfil').insert({ prestador_id: prestador.id }).then(() => {})
   }, [prestador, usuario])
 
-  const iniciarConversa = async (servico = null) => {
+  const iniciarConversa = async (servico = null, briefing = null) => {
     if (!usuario) { navigate('/login'); return }
     setIniciandoChat(true)
     setErroChat(false)
@@ -55,15 +69,21 @@ export default function Perfil() {
       .eq('cliente_user_id', usuario.id)
       .single()
 
-    const sufixoServico = servico ? `?servico=${servico.id}` : ''
+    const parametros = [servico ? `servico=${servico.id}` : '', briefing ? 'ficha=1' : ''].filter(Boolean)
+    const sufixoServico = parametros.length ? `?${parametros.join('&')}` : ''
 
     if (existente) {
       // A conversa já existe: o assunto passa a ser o serviço do pedido mais recente.
-      if (servico) {
-        await supabase.from('conversas').update({ servico_id: servico.id, assunto: servico.nome }).eq('id', existente.id)
+      if (servico || briefing) {
+        const { error: erroAtualizar } = await supabase.from('conversas').update({
+          ...(servico ? { servico_id: servico.id, assunto: servico.nome } : {}),
+          ...(briefing ? { briefing } : {}),
+        }).eq('id', existente.id)
+        if (erroAtualizar && briefing) { setIniciandoChat(false); setErroChat(true); return false }
       }
+      setIniciandoChat(false)
       navigate(`/chat/${existente.id}${sufixoServico}`)
-      return
+      return true
     }
 
     const { data: nova, error } = await supabase
@@ -74,6 +94,7 @@ export default function Perfil() {
         cliente_nome: usuario.user_metadata?.nome || usuario.email?.split('@')[0] || 'Cliente',
         cliente_foto_url: usuario.user_metadata?.foto_url || null,
         ...(servico ? { servico_id: servico.id, assunto: servico.nome } : {}),
+        ...(briefing ? { briefing } : {}),
       })
       .select()
       .single()
@@ -82,10 +103,23 @@ export default function Perfil() {
 
     if (error || !nova) {
       setErroChat(true)
-      return
+      return false
     }
 
     navigate(`/chat/${nova.id}${sufixoServico}`)
+    return true
+  }
+
+  // "Pedir orçamento": antes de abrir a conversa o cliente preenche a ficha.
+  const pedirOrcamento = (servico = null) => {
+    if (!usuario) { navigate('/login'); return }
+    setEscolhendoServico(false)
+    setFicha({ servico })
+  }
+
+  const enviarFicha = async (briefing) => {
+    const ok = await iniciarConversa(ficha?.servico || null, briefing)
+    if (ok === false) setFicha(null) // o aviso de erro aparece na tela do perfil
   }
 
   const compartilhar = () => {
@@ -222,7 +256,7 @@ export default function Perfil() {
           <Button variant="secondary" icon={<MessageCircle size={17} />} fullWidth onClick={() => iniciarConversa()} disabled={iniciandoChat}>
             Conversar com o prestador
           </Button>
-          <Button variant="dark" icon={<FileText size={17} />} fullWidth onClick={() => (servicosDoPrestador.length > 0 && usuario ? setEscolhendoServico(v => !v) : iniciarConversa())} disabled={iniciandoChat}>
+          <Button variant="dark" icon={<FileText size={17} />} fullWidth onClick={() => (servicosDoPrestador.length > 0 && usuario ? setEscolhendoServico(v => !v) : pedirOrcamento())} disabled={iniciandoChat}>
             {iniciandoChat ? 'Abrindo...' : 'Pedir orçamento'}
           </Button>
         </div>
@@ -232,9 +266,9 @@ export default function Perfil() {
             <p style={{ fontSize: 13, fontWeight: 700, color: colors.text, margin: '0 0 10px' }}>Qual serviço você quer orçar?</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {servicosDoPrestador.map(sv => (
-                <Chip key={sv.id} onClick={() => iniciarConversa(sv)}>{sv.nome}</Chip>
+                <Chip key={sv.id} onClick={() => pedirOrcamento(sv)}>{sv.nome}</Chip>
               ))}
-              <Chip onClick={() => iniciarConversa()}>Outro serviço</Chip>
+              <Chip onClick={() => pedirOrcamento()}>Outro serviço</Chip>
             </div>
           </div>
         )}
@@ -278,6 +312,17 @@ export default function Perfil() {
         <Avaliacoes prestador={prestador} />
       </div>
       </div>
+
+      {ficha && (
+        <FichaOrcamento
+          perguntas={perguntasPara(topicoDoPrestador, prestador.categoria_id)}
+          nomePrestador={prestador.nome}
+          servico={ficha.servico?.nome}
+          enviando={iniciandoChat}
+          onEnviar={enviarFicha}
+          onFechar={() => setFicha(null)}
+        />
+      )}
     </div>
   )
 }
