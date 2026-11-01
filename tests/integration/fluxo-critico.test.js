@@ -47,7 +47,6 @@ describe('Fluxo crítico', () => {
       .insert({
         user_id: state.prestadorUserId,
         nome: 'Prestador de Teste',
-        whatsapp: '11999999999',
         categoria_id: state.categoriaId,
         cidade: 'São Paulo',
         estado: 'SP',
@@ -1344,5 +1343,33 @@ describe('Fluxo crítico', () => {
       await admin.from('perfis_cliente').delete().eq('user_id', id)
     }
   }, 40000)
+
+
+  it('36. WhatsApp e idade privados — só o dono lê e grava; valores inválidos são recusados', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+
+    const { error: erroGravar } = await state.prestadorSessao.cliente.from('prestador_privado')
+      .upsert({ prestador_id: state.prestadorId, whatsapp: '11955554444', idade: 33 })
+    expect(erroGravar).toBeNull()
+    const { data: proprio } = await state.prestadorSessao.cliente.from('prestador_privado').select('whatsapp, idade').eq('prestador_id', state.prestadorId)
+    expect(proprio).toEqual([{ whatsapp: '11955554444', idade: 33 }])
+
+    const { data: doVisitante } = await visitante.from('prestador_privado').select('*')
+    expect(doVisitante ?? []).toHaveLength(0)
+    const { data: doOutro } = await state.clienteSessao.cliente.from('prestador_privado').select('*')
+    expect(doOutro).toHaveLength(0)
+
+    const { error: erroInvasor } = await state.clienteSessao.cliente.from('prestador_privado')
+      .upsert({ prestador_id: state.prestadorId, whatsapp: '11000000000', idade: 40 })
+    expect(erroInvasor).toBeTruthy()
+    const { data: intacto } = await admin.from('prestador_privado').select('whatsapp, idade').eq('prestador_id', state.prestadorId).single()
+    expect(intacto).toEqual({ whatsapp: '11955554444', idade: 33 })
+
+    // Idade fora de uma faixa razoável é recusada pelo banco.
+    const { error: erroIdade } = await state.prestadorSessao.cliente.from('prestador_privado')
+      .upsert({ prestador_id: state.prestadorId, whatsapp: '11955554444', idade: 5 })
+    expect(erroIdade).toBeTruthy()
+  }, 30000)
 
 })

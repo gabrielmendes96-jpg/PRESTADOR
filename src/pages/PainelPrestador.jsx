@@ -107,22 +107,29 @@ export default function PainelPrestador() {
         .select('*')
         .eq('user_id', usuario.id)
         .maybeSingle()
-      // A chave PIX fica numa tabela privada (prestador_pix), visível só pra ele.
+      // Chave PIX, WhatsApp e idade ficam em tabelas privadas (só o próprio profissional lê).
       let pix = null
+      let privado = null
       if (data) {
-        const { data: linhaPix } = await supabase
-          .from('prestador_pix')
-          .select('chave_pix, tipo_chave_pix')
-          .eq('prestador_id', data.id)
-          .maybeSingle()
+        const [{ data: linhaPix }, { data: linhaPrivado }] = await Promise.all([
+          supabase.from('prestador_pix').select('chave_pix, tipo_chave_pix').eq('prestador_id', data.id).maybeSingle(),
+          supabase.from('prestador_privado').select('whatsapp, idade').eq('prestador_id', data.id).maybeSingle(),
+        ])
         pix = linhaPix
+        privado = linhaPrivado
       }
       // tipo_chave_pix precisa de um valor real no estado desde o
       // início — o <select> mostra "CPF" como padrão visualmente, mas
       // sem isso aqui o valor só entra no estado se o usuário abrir o
       // dropdown, e salvar sem tocar nele gravava null mesmo com uma
       // chave PIX preenchida.
-      setPrestador(data ? { ...data, chave_pix: pix?.chave_pix || '', tipo_chave_pix: pix?.tipo_chave_pix || 'CPF' } : null)
+      setPrestador(data ? {
+        ...data,
+        chave_pix: pix?.chave_pix || '',
+        tipo_chave_pix: pix?.tipo_chave_pix || 'CPF',
+        whatsapp: privado?.whatsapp ?? data.whatsapp ?? '',
+        idade: privado?.idade ?? data.idade ?? '',
+      } : null)
       setCarregando(false)
 
       if (data) {
@@ -231,15 +238,27 @@ export default function PainelPrestador() {
         descricao: prestador.descricao,
         cidade: prestador.cidade,
         estado: prestador.estado,
-        whatsapp: prestador.whatsapp,
         categoria_id: prestador.categoria_id,
         raio_atendimento: prestador.raio_atendimento,
         disponivel: prestador.disponivel,
         mostrar_whatsapp: prestador.mostrar_whatsapp !== false,
+        mostrar_idade: prestador.mostrar_idade === true,
         redes_sociais: prestador.redes_sociais || {},
         geocodificado: false, // força re-geocodificação
       })
       .eq('user_id', usuario.id)
+
+    // WhatsApp e idade: tabela privada.
+    let erroPrivado = null
+    if (!error) {
+      const idadeNumero = parseInt(prestador.idade, 10)
+      ;({ error: erroPrivado } = await supabase.from('prestador_privado').upsert({
+        prestador_id: prestador.id,
+        whatsapp: (prestador.whatsapp || '').trim() || null,
+        idade: Number.isFinite(idadeNumero) ? idadeNumero : null,
+        atualizado_em: new Date().toISOString(),
+      }))
+    }
 
     // Chave PIX: tabela privada. Vazia = apaga; preenchida = grava (cria ou atualiza).
     let erroPix = null
@@ -257,7 +276,7 @@ export default function PainelPrestador() {
 
     setSalvando(false)
 
-    if (error || erroPix) {
+    if (error || erroPix || erroPrivado) {
       setErroSalvar(true)
       setTimeout(() => setErroSalvar(false), 4000)
       return
@@ -448,6 +467,24 @@ export default function PainelPrestador() {
                 style={{ ...inputStyle, resize: 'none' }}
                 placeholder="Descreva sua experiência e serviços..."
               />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }}>Idade (opcional)</label>
+              <input
+                type="number" min={14} max={120}
+                value={prestador.idade ?? ''}
+                onChange={e => setPrestador({ ...prestador, idade: e.target.value })}
+                style={{ ...inputStyle, maxWidth: 140 }}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={prestador.mostrar_idade === true}
+                  onChange={e => setPrestador({ ...prestador, mostrar_idade: e.target.checked })}
+                />
+                <span style={{ fontSize: 14, color: colors.text }}>Mostrar minha idade no perfil público</span>
+              </label>
             </div>
 
             <div style={{ marginBottom: 20 }}>

@@ -95,10 +95,9 @@ export function CadastroPro() {
     // Todo perfil novo começa no plano básico (gratuito) — planos pagos só
     // são ativados de verdade via webhook, depois de o Asaas confirmar o
     // pagamento (ver Pagamento.jsx e webhook-asaas.js).
-    const { error } = await supabase.from('prestadores').insert({
+    const { data: criado, error } = await supabase.from('prestadores').insert({
       user_id: userData?.user?.id || null,
       nome: dados.nome,
-      whatsapp: dados.whatsapp,
       categoria_id: categoriaId,
       cidade: dados.cidade,
       estado: dados.estado,
@@ -106,11 +105,18 @@ export function CadastroPro() {
       plano_id: 'basico',
       servicos: [],
       disponivel: true,
-    })
+    }).select('id').single()
+
+    // O WhatsApp fica numa tabela privada (prestador_privado); a busca só o entrega se o profissional permitir.
+    let erroPrivado = null
+    const whatsapp = (dados.whatsapp || '').trim()
+    if (!error && whatsapp) {
+      ;({ error: erroPrivado } = await supabase.from('prestador_privado').upsert({ prestador_id: criado.id, whatsapp }))
+    }
 
     setEnviando(false)
 
-    if (error) {
+    if (error || erroPrivado) {
       setErro('Não foi possível concluir o cadastro. Verifique se está logado.')
       return
     }
