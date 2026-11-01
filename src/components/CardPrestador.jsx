@@ -95,14 +95,12 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
       <Card interactive onClick={handleClick} padding={16} style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
         <Avatar prestador={p} size={56} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-            <p style={{ flex: 1, fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', minWidth: 0 }}>{p.nome}</p>
-            {p.disponivel && <Badge tone="available" style={{ flexShrink: 0 }}>Disponível</Badge>}
-          </div>
+          <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, margin: '0 0 3px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', minWidth: 0 }}>{p.nome}</p>
           <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Rating prestador={p} />
             {plano && <Badge tone="verified" icon={<plano.icon size={10} strokeWidth={3} />}>{plano.label}</Badge>}
+            {p.disponivel && <Badge tone="available">Disponível</Badge>}
           </div>
         </div>
         <BotaoComparar id={p.id} size={34} />
@@ -116,16 +114,14 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
         <Avatar prestador={p} size={58} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
-            <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere' }}>{p.nome}</p>
-            {p.disponivel && <Badge tone="available" style={{ flexShrink: 0 }}>Disponível</Badge>}
-          </div>
+          <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, margin: '0 0 3px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere' }}>{p.nome}</p>
           <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize' }}>{meta}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Rating prestador={p} />
             {plano && (
               <Badge tone="verified" icon={<plano.icon size={10} strokeWidth={3} />}>{plano.label}</Badge>
             )}
+            {p.disponivel && <Badge tone="available">Disponível</Badge>}
           </div>
         </div>
         <BotaoComparar id={p.id} size={34} />
