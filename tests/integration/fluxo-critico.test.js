@@ -12,6 +12,7 @@ import assinaturaHandler from '../../api/assinatura.js'
 import excluirConta from '../../api/excluir-conta.js'
 import { configAsaas } from '../../api/_asaas.js'
 import { buscarPrestadores } from '../../src/lib/hooks.js'
+import { semAcento } from '../../src/lib/semAcento.js'
 import { admin, criarUsuarioTeste, invocarFuncao, pegarCategoriaTeste, limpar } from './setup.js'
 
 const state = {}
@@ -1400,6 +1401,21 @@ describe('Fluxo crítico', () => {
     } finally {
       await ajustar({ plano_id: antes.plano_id, mostrar_whatsapp: antes.mostrar_whatsapp, mostrar_idade: antes.mostrar_idade })
     }
+  }, 40000)
+
+
+  it('38. Busca ignora acento e maiúsculas — categoria, cidade e nome', async () => {
+    await admin.from('prestadores').update({ plano_status: 'ativo' }).eq('id', state.prestadorId)
+    const { data: categoria } = await admin.from('categorias').select('nome').eq('id', state.categoriaId).single()
+    const ids = async (busca) => (await buscarPrestadores({ busca })).prestadores.map(p => p.id)
+
+    // Nome da categoria sem acento e em MAIÚSCULAS (como alguém digitando no celular).
+    expect(await ids(semAcento(categoria.nome).toUpperCase())).toContain(state.prestadorId)
+    // Cidade do profissional de teste é "São Paulo".
+    expect(await ids('sao paulo')).toContain(state.prestadorId)
+    expect(await ids('SÃO PAULO')).toContain(state.prestadorId)
+    // O que não existe continua sem resultado.
+    expect(await ids('zzzxxxqqq')).not.toContain(state.prestadorId)
   }, 40000)
 
 })

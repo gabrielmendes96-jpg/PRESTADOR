@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { semAcento } from './semAcento'
 
 // ------------------------------------------------------------
 // useCategorias — lista de categorias ordenadas por prioridade
@@ -174,20 +175,22 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
 
   const busca = limparBusca(filtros.busca)
   if (busca) {
+    // As colunas *_busca (supabase/41) guardam o texto sem acento e minúsculo: "mecanico" acha "Mecânico".
+    const termo = semAcento(busca)
     // Busca por nome, cidade, hashtag OU nome da profissão/categoria —
     // assim "instalador de acessórios" encontra quem está nessa
     // categoria, mesmo sem ter cadastrado essa hashtag.
     const [{ data: porTag }, { data: porCategoria }, { data: porServico }] = await Promise.all([
-      supabase.from('servicos_prestador').select('prestador_id').ilike('tag', `%${busca.toLowerCase()}%`),
-      supabase.from('categorias').select('id').ilike('nome', `%${busca}%`),
+      supabase.from('servicos_prestador').select('prestador_id').ilike('tag_busca', `%${termo}%`),
+      supabase.from('categorias').select('id').ilike('nome_busca', `%${termo}%`),
       // Serviços do catálogo que o prestador marcou ("troca de chuveiro").
-      supabase.from('prestador_servicos').select('prestador_id, servicos_catalogo!inner(nome)').ilike('servicos_catalogo.nome', `%${busca}%`),
+      supabase.from('prestador_servicos').select('prestador_id, servicos_catalogo!inner(nome)').ilike('servicos_catalogo.nome_busca', `%${termo}%`),
     ])
 
     const idsPorTag = [...new Set([...(porTag || []), ...(porServico || [])].map(t => t.prestador_id))]
     const idsPorCategoria = (porCategoria || []).map(c => c.id)
 
-    const condicoes = [`nome.ilike.%${busca}%`, `cidade.ilike.%${busca}%`]
+    const condicoes = [`nome_busca.ilike.%${termo}%`, `cidade_busca.ilike.%${termo}%`]
     if (idsPorTag.length > 0) condicoes.push(`id.in.(${idsPorTag.join(',')})`)
     if (idsPorCategoria.length > 0) condicoes.push(`categoria_id.in.(${idsPorCategoria.join(',')})`)
 
