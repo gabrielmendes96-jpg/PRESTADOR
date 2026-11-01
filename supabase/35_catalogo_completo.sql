@@ -33,7 +33,6 @@ select d.categoria_id, d.nome from (values
   ('encanador', 'Reparo de caixa de descarga'),
   ('encanador', 'Instalação de máquina de lavar'),
   ('encanador', 'Instalação de chuveiro e ducha'),
-  ('encanador', 'Instalação de filtro e purificador'),
   ('encanador', 'Desentupimento'),
   ('encanador', 'Instalação de caixa d''água'),
   ('encanador', 'Troca de tubulação'),
@@ -736,7 +735,6 @@ on conflict (categoria_id, nome) do nothing;
 
 insert into servicos_catalogo (categoria_id, nome)
 select d.categoria_id, d.nome from (values
-  ('chaveiro', 'Abertura de portas'),
   ('chaveiro', 'Abertura de carro'),
   ('chaveiro', 'Cópia de chaves'),
   ('chaveiro', 'Troca de fechadura'),
@@ -1184,7 +1182,6 @@ insert into servicos_catalogo (categoria_id, nome)
 select d.categoria_id, d.nome from (values
   ('desentupidor', 'Desentupimento de pia'),
   ('desentupidor', 'Desentupimento de vaso sanitário'),
-  ('desentupidor', 'Desentupimento de ralos'),
   ('desentupidor', 'Desentupimento de esgoto'),
   ('desentupidor', 'Limpeza de caixa de gordura'),
   ('desentupidor', 'Desentupimento com máquina'),
@@ -2746,13 +2743,10 @@ insert into servicos_catalogo (categoria_id, nome)
 select d.categoria_id, d.nome from (values
   ('pedreiro', 'Alvenaria e levantamento de paredes'),
   ('pedreiro', 'Reboco e emboço'),
-  ('pedreiro', 'Assentamento de pisos e azulejos'),
   ('pedreiro', 'Reforma de banheiro'),
   ('pedreiro', 'Reforma de cozinha'),
-  ('pedreiro', 'Construção de muros'),
   ('pedreiro', 'Contrapiso'),
   ('pedreiro', 'Pequenos reparos'),
-  ('pedreiro', 'Ampliação de cômodos'),
   ('pedreiro', 'Calçadas'),
   ('pedreiro', 'Laje')
 ) as d(categoria_id, nome)
@@ -3326,7 +3320,6 @@ select d.categoria_id, d.nome from (values
   ('serralheiro', 'Soldas e reparos'),
   ('serralheiro', 'Portão eletrônico'),
   ('serralheiro', 'Escadas metálicas'),
-  ('serralheiro', 'Coberturas metálicas'),
   ('serralheiro', 'Mezanino metálico'),
   ('serralheiro', 'Pergolados de ferro'),
   ('serralheiro', 'Fechaduras e dobradiças')

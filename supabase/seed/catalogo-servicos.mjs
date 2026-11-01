@@ -55,7 +55,7 @@ export default {
   ],
   encanador: [
     'Conserto de vazamento', 'Troca de torneira', 'Troca de registro', 'Instalação de vaso sanitário', 'Instalação de pia e cuba', 'Troca de sifão e flexível',
-    'Reparo de caixa de descarga', 'Instalação de máquina de lavar', 'Instalação de chuveiro e ducha', 'Instalação de filtro e purificador', 'Desentupimento',
+    'Reparo de caixa de descarga', 'Instalação de máquina de lavar', 'Instalação de chuveiro e ducha', 'Desentupimento',
     'Instalação de caixa d\'água', 'Troca de tubulação', 'Instalação de aquecedor',
   ],
   papel_parede: [
@@ -223,7 +223,7 @@ export default {
   cftv_seguranca: cftv,
   cftv: cftv,
   chaveiro: [
-    'Abertura de portas', 'Abertura de carro', 'Cópia de chaves', 'Troca de fechadura', 'Troca de segredo', 'Chaveiro 24 horas', 'Chave codificada de carro',
+    'Abertura de carro', 'Cópia de chaves', 'Troca de fechadura', 'Troca de segredo', 'Chaveiro 24 horas', 'Chave codificada de carro',
     'Instalação de fechadura digital', 'Conserto de fechadura', 'Chave tetra', 'Abertura de cofre',
   ],
   chef_domicilio: [
@@ -325,7 +325,7 @@ export default {
     'Depilação com linha', 'Depilação a laser', 'Depilação de sobrancelha', 'Depilação em domicílio',
   ],
   desentupidor: [
-    'Desentupimento de pia', 'Desentupimento de vaso sanitário', 'Desentupimento de ralos', 'Desentupimento de esgoto', 'Limpeza de caixa de gordura',
+    'Desentupimento de pia', 'Desentupimento de vaso sanitário', 'Desentupimento de esgoto', 'Limpeza de caixa de gordura',
     'Desentupimento com máquina', 'Desentupimento de ralo de box', 'Videoinspeção de tubulação', 'Desentupimento de caixa de inspeção', 'Desentupimento de rede pluvial',
   ],
   desenvolvimento_web: [
@@ -689,8 +689,8 @@ export default {
     'Pastilha em banheiro', 'Pastilha em cozinha', 'Reparo e troca de pastilhas', 'Pastilha adesiva', 'Rejunte de pastilhas',
   ],
   pedreiro: [
-    'Alvenaria e levantamento de paredes', 'Reboco e emboço', 'Assentamento de pisos e azulejos', 'Reforma de banheiro', 'Reforma de cozinha', 'Construção de muros',
-    'Contrapiso', 'Pequenos reparos', 'Ampliação de cômodos', 'Calçadas', 'Laje',
+    'Alvenaria e levantamento de paredes', 'Reboco e emboço', 'Reforma de banheiro', 'Reforma de cozinha', 
+    'Contrapiso', 'Pequenos reparos', 'Calçadas', 'Laje',
   ],
   penteado: [
     'Penteado para noivas', 'Penteado para madrinhas', 'Penteado para formatura', 'Penteado para 15 anos', 'Penteado para festas', 'Penteado com trança',
@@ -826,7 +826,7 @@ export default {
   ],
   serralheiro: [
     'Portões de ferro e alumínio', 'Grades de proteção', 'Estruturas metálicas', 'Corrimãos e guarda-corpos', 'Soldas e reparos', 'Portão eletrônico', 'Escadas metálicas',
-    'Coberturas metálicas', 'Mezanino metálico', 'Pergolados de ferro', 'Fechaduras e dobradiças',
+    'Mezanino metálico', 'Pergolados de ferro', 'Fechaduras e dobradiças',
   ],
   solda: [
     'Solda de estruturas metálicas', 'Solda de portões e grades', 'Solda de alumínio', 'Solda em aço inox', 'Solda de tubulação', 'Reparo de peças metálicas',
