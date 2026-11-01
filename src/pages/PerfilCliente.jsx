@@ -51,6 +51,10 @@ export default function PerfilCliente() {
   const [notifEmail, setNotifEmail] = useState(true)
   const [notifPush, setNotifPush] = useState(true)
   const [perfilPublico, setPerfilPublico] = useState(true)
+  // O que aparece pros profissionais quando o perfil é público (telefone começa escondido).
+  const [mostrarTelefone, setMostrarTelefone] = useState(false)
+  const [mostrarLocalizacao, setMostrarLocalizacao] = useState(true)
+  const [mostrarBio, setMostrarBio] = useState(true)
   const [redesSociais, setRedesSociais] = useState({})
 
   // Dados carregados
@@ -115,6 +119,9 @@ export default function PerfilCliente() {
       setNotifEmail(perfilData.notificacoes_email ?? true)
       setNotifPush(perfilData.notificacoes_push ?? true)
       setPerfilPublico(perfilData.perfil_publico ?? true)
+      setMostrarTelefone(perfilData.mostrar_telefone ?? false)
+      setMostrarLocalizacao(perfilData.mostrar_localizacao ?? true)
+      setMostrarBio(perfilData.mostrar_bio ?? true)
       setRedesSociais(perfilData.redes_sociais || {})
     }
 
@@ -148,6 +155,9 @@ export default function PerfilCliente() {
       notificacoes_email: notifEmail,
       notificacoes_push: notifPush,
       perfil_publico: perfilPublico,
+      mostrar_telefone: mostrarTelefone,
+      mostrar_localizacao: mostrarLocalizacao,
+      mostrar_bio: mostrarBio,
       redes_sociais: redesSociais,
       atualizado_em: new Date().toISOString(),
     }, { onConflict: 'user_id' })
@@ -406,6 +416,30 @@ export default function PerfilCliente() {
                   style={{ left: perfilPublico ? '22px' : '2px' }} />
               </div>
             </label>
+
+            {perfilPublico && (
+              <div className="rounded-xl p-3 space-y-2" style={{ background: '#F3F6F2' }}>
+                <p className="text-xs font-medium" style={{ color: '#6B7280' }}>O que os profissionais podem ver</p>
+                {[
+                  { label: 'Meu telefone', desc: 'Fica escondido a menos que você ligue aqui', value: mostrarTelefone, set: setMostrarTelefone },
+                  { label: 'Minha cidade e estado', desc: 'Ajuda o profissional a saber se atende na sua região', value: mostrarLocalizacao, set: setMostrarLocalizacao },
+                  { label: 'Minha bio', desc: 'O texto de apresentação do seu perfil', value: mostrarBio, set: setMostrarBio },
+                ].map(o => (
+                  <label key={o.label} className="flex items-center justify-between py-1 cursor-pointer">
+                    <div>
+                      <p className="text-sm" style={{ color: '#1F2937' }}>{o.label}</p>
+                      <p className="text-xs" style={{ color: '#6B7280' }}>{o.desc}</p>
+                    </div>
+                    <div onClick={() => o.set(!o.value)} role="switch" aria-checked={o.value} aria-label={o.label}
+                      className="w-10 h-5 rounded-full relative transition-colors flex-shrink-0"
+                      style={{ background: o.value ? '#16A34A' : '#E4E7E4' }}>
+                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all"
+                        style={{ left: o.value ? '22px' : '2px' }} />
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <button onClick={salvarPerfil} disabled={salvando}

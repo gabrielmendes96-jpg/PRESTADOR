@@ -1300,4 +1300,49 @@ describe('Fluxo crítico', () => {
     expect(Object.keys(perfil[0])).not.toContain('chave_pix')
   }, 30000)
 
+
+  it('35. Perfil do cliente — telefone e dados pessoais só aparecem se a pessoa permitir', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    const dono = state.clienteSessao.cliente
+    const outro = state.prestadorSessao.cliente   // outro usuário logado (um profissional olhando o cliente)
+    const id = state.clienteUserId
+
+    const { error } = await dono.from('perfis_cliente').upsert({
+      user_id: id, bio: 'Bio de teste', cidade: 'Cidade de Teste', estado: 'SP', telefone: '11988887777',
+      perfil_publico: true, mostrar_telefone: false, mostrar_localizacao: true, mostrar_bio: true,
+    }, { onConflict: 'user_id' })
+    expect(error).toBeNull()
+
+    try {
+      // Visitante sem login não lê a tabela nem a visão.
+      const { data: tabelaVisitante } = await visitante.from('perfis_cliente').select('*').eq('user_id', id)
+      expect(tabelaVisitante ?? []).toHaveLength(0)
+      const { data: visaoVisitante } = await visitante.from('perfis_cliente_publico').select('*').eq('user_id', id)
+      expect(visaoVisitante ?? []).toHaveLength(0)
+
+      // Outro usuário logado não lê a tabela, e na visão o telefone vem escondido (padrão).
+      const { data: tabelaOutro } = await outro.from('perfis_cliente').select('*').eq('user_id', id)
+      expect(tabelaOutro).toHaveLength(0)
+      const { data: v1 } = await outro.from('perfis_cliente_publico').select('*').eq('user_id', id)
+      expect(v1).toEqual([{ user_id: id, bio: 'Bio de teste', cidade: 'Cidade de Teste', estado: 'SP', telefone: null }])
+
+      // A pessoa liga o telefone e esconde a localização.
+      await dono.from('perfis_cliente').update({ mostrar_telefone: true, mostrar_localizacao: false }).eq('user_id', id)
+      const { data: v2 } = await outro.from('perfis_cliente_publico').select('*').eq('user_id', id)
+      expect(v2).toEqual([{ user_id: id, bio: 'Bio de teste', cidade: null, estado: null, telefone: '11988887777' }])
+
+      // Perfil privado: some inteiro da visão.
+      await dono.from('perfis_cliente').update({ perfil_publico: false }).eq('user_id', id)
+      const { data: v3 } = await outro.from('perfis_cliente_publico').select('*').eq('user_id', id)
+      expect(v3).toHaveLength(0)
+
+      // O dono continua lendo o próprio perfil completo.
+      const { data: meu } = await dono.from('perfis_cliente').select('telefone, mostrar_telefone').eq('user_id', id)
+      expect(meu).toEqual([{ telefone: '11988887777', mostrar_telefone: true }])
+    } finally {
+      await admin.from('perfis_cliente').delete().eq('user_id', id)
+    }
+  }, 40000)
+
 })
