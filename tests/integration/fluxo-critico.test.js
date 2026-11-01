@@ -491,9 +491,9 @@ describe('Fluxo crítico', () => {
   it.skipIf(!process.env.ASAAS_KEY_SANDBOX || !process.env.ASAAS_WEBHOOK_TOKEN)(
     '6c. (opcional) Pagamento protegido do serviço — retém, marca entregue, tenta liberar',
     async () => {
-      await admin.from('prestadores').update({
-        chave_pix: state.prestadorSessao.email, tipo_chave_pix: 'EMAIL',
-      }).eq('id', state.prestadorId)
+      await admin.from('prestador_pix').upsert({
+        prestador_id: state.prestadorId, chave_pix: state.prestadorSessao.email, tipo_chave_pix: 'EMAIL',
+      })
       await admin.from('pedidos_servico').update({ status: 'em_andamento', valor_acordado: 150 }).eq('id', state.pedidoId)
 
       const cobranca = await invocarFuncao(criarCobranca, {
@@ -1260,6 +1260,32 @@ describe('Fluxo crítico', () => {
     }
     const semServico = categorias.filter(c => !contagem[c.id]).map(c => c.id)
     expect(semServico).toEqual([])
+  }, 30000)
+
+
+  it('33. Chave PIX privada — só o dono lê e grava; visitante e outro usuário não enxergam', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+
+    // O dono grava e lê a própria chave.
+    const { error: erroGravar } = await state.prestadorSessao.cliente.from('prestador_pix')
+      .upsert({ prestador_id: state.prestadorId, chave_pix: 'chave-secreta-do-teste@example.com', tipo_chave_pix: 'EMAIL' })
+    expect(erroGravar).toBeNull()
+    const { data: propria } = await state.prestadorSessao.cliente.from('prestador_pix').select('chave_pix').eq('prestador_id', state.prestadorId)
+    expect(propria).toEqual([{ chave_pix: 'chave-secreta-do-teste@example.com' }])
+
+    // Visitante sem login e outro usuário logado não enxergam nada.
+    const { data: doVisitante } = await visitante.from('prestador_pix').select('*')
+    expect(doVisitante ?? []).toHaveLength(0)
+    const { data: doCliente } = await state.clienteSessao.cliente.from('prestador_pix').select('*')
+    expect(doCliente).toHaveLength(0)
+
+    // Outro usuário não consegue gravar/alterar a chave de ninguém.
+    const { error: erroInvasor } = await state.clienteSessao.cliente.from('prestador_pix')
+      .upsert({ prestador_id: state.prestadorId, chave_pix: 'invasor@example.com', tipo_chave_pix: 'EMAIL' })
+    expect(erroInvasor).toBeTruthy()
+    const { data: intacta } = await admin.from('prestador_pix').select('chave_pix').eq('prestador_id', state.prestadorId).single()
+    expect(intacta.chave_pix).toBe('chave-secreta-do-teste@example.com')
   }, 30000)
 
 })

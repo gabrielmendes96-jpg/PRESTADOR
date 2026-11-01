@@ -107,12 +107,22 @@ export default function PainelPrestador() {
         .select('*')
         .eq('user_id', usuario.id)
         .maybeSingle()
+      // A chave PIX fica numa tabela privada (prestador_pix), visível só pra ele.
+      let pix = null
+      if (data) {
+        const { data: linhaPix } = await supabase
+          .from('prestador_pix')
+          .select('chave_pix, tipo_chave_pix')
+          .eq('prestador_id', data.id)
+          .maybeSingle()
+        pix = linhaPix
+      }
       // tipo_chave_pix precisa de um valor real no estado desde o
       // início — o <select> mostra "CPF" como padrão visualmente, mas
       // sem isso aqui o valor só entra no estado se o usuário abrir o
       // dropdown, e salvar sem tocar nele gravava null mesmo com uma
       // chave PIX preenchida.
-      setPrestador(data ? { ...data, tipo_chave_pix: data.tipo_chave_pix || 'CPF' } : null)
+      setPrestador(data ? { ...data, chave_pix: pix?.chave_pix || '', tipo_chave_pix: pix?.tipo_chave_pix || 'CPF' } : null)
       setCarregando(false)
 
       if (data) {
@@ -227,15 +237,27 @@ export default function PainelPrestador() {
         disponivel: prestador.disponivel,
         mostrar_whatsapp: prestador.mostrar_whatsapp !== false,
         redes_sociais: prestador.redes_sociais || {},
-        chave_pix: prestador.chave_pix || null,
-        tipo_chave_pix: prestador.chave_pix ? prestador.tipo_chave_pix : null,
         geocodificado: false, // força re-geocodificação
       })
       .eq('user_id', usuario.id)
 
+    // Chave PIX: tabela privada. Vazia = apaga; preenchida = grava (cria ou atualiza).
+    let erroPix = null
+    if (!error) {
+      const chave = (prestador.chave_pix || '').trim()
+      ;({ error: erroPix } = chave
+        ? await supabase.from('prestador_pix').upsert({
+            prestador_id: prestador.id,
+            chave_pix: chave,
+            tipo_chave_pix: prestador.tipo_chave_pix || 'CPF',
+            atualizado_em: new Date().toISOString(),
+          })
+        : await supabase.from('prestador_pix').delete().eq('prestador_id', prestador.id))
+    }
+
     setSalvando(false)
 
-    if (error) {
+    if (error || erroPix) {
       setErroSalvar(true)
       setTimeout(() => setErroSalvar(false), 4000)
       return

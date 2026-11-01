@@ -32,12 +32,16 @@ export async function liberarPagamentoServico(supabase, pedidoId) {
 
   const { data: candidatura } = await supabase
     .from('candidaturas')
-    .select('prestador_id, prestadores(id, user_id, chave_pix, tipo_chave_pix)')
+    .select('prestador_id, prestadores(id, user_id)')
     .eq('pedido_id', pedidoId)
     .eq('status', 'aceito')
     .single()
 
-  const prestador = candidatura?.prestadores
+  // A chave PIX fica numa tabela privada (só o servidor e o próprio prestador leem).
+  const { data: pix } = candidatura?.prestadores?.id
+    ? await supabase.from('prestador_pix').select('chave_pix, tipo_chave_pix').eq('prestador_id', candidatura.prestadores.id).maybeSingle()
+    : { data: null }
+  const prestador = candidatura?.prestadores ? { ...candidatura.prestadores, ...pix } : null
 
   if (!prestador?.chave_pix || !prestador?.tipo_chave_pix) {
     // Sem chave configurada não tem pra onde mandar — volta pra 'retido'
