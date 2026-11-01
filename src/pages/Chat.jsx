@@ -410,7 +410,7 @@ export default function Chat() {
           value={texto}
           onChange={e => setTexto(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Digite sua mensagem... (Enter para enviar)"
+          placeholder="Digite sua mensagem..."
           rows={1}
           style={{
             flex: 1, padding: '10px 14px', fontSize: 14, borderRadius: radius.input,
