@@ -1372,4 +1372,34 @@ describe('Fluxo crítico', () => {
     expect(erroIdade).toBeTruthy()
   }, 30000)
 
+
+  it('37. WhatsApp e idade — a busca só entrega se o profissional permitiu (e WhatsApp só no Premium)', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    const { data: antes } = await admin.from('prestadores').select('plano_id, mostrar_whatsapp, mostrar_idade').eq('id', state.prestadorId).single()
+    const ler = async () => (await visitante.from('prestadores_completo').select('whatsapp, idade').eq('id', state.prestadorId).single()).data
+    const ajustar = (campos) => admin.from('prestadores').update(campos).eq('id', state.prestadorId)
+
+    try {
+      await admin.from('prestador_privado').upsert({ prestador_id: state.prestadorId, whatsapp: '11955554444', idade: 33 })
+
+      await ajustar({ plano_id: 'premium', mostrar_whatsapp: true, mostrar_idade: false })
+      expect(await ler()).toEqual({ whatsapp: '11955554444', idade: null })          // premium + permitiu; idade escondida (padrão)
+
+      await ajustar({ mostrar_whatsapp: false, mostrar_idade: true })
+      expect(await ler()).toEqual({ whatsapp: null, idade: 33 })                      // escondeu o WhatsApp, mostrou a idade
+
+      await ajustar({ plano_id: 'basico', mostrar_whatsapp: true })
+      expect(await ler()).toEqual({ whatsapp: null, idade: 33 })                      // WhatsApp é recurso Premium, vale no servidor
+
+      // As colunas não existem mais na tabela pública.
+      for (const coluna of ['whatsapp', 'idade']) {
+        const { error } = await visitante.from('prestadores').select(coluna).limit(1)
+        expect({ coluna, bloqueado: !!error }).toEqual({ coluna, bloqueado: true })
+      }
+    } finally {
+      await ajustar({ plano_id: antes.plano_id, mostrar_whatsapp: antes.mostrar_whatsapp, mostrar_idade: antes.mostrar_idade })
+    }
+  }, 40000)
+
 })
