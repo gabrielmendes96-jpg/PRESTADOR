@@ -134,7 +134,7 @@ export default function Perfil() {
                 {iniciaisDe(prestador.nome)}
               </div>
             )}
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, margin: 0, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: colors.text, margin: 0, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere' }}>
               {prestador.nome}
               {prestador.idade && <span style={{ fontSize: 14, fontWeight: 400, color: colors.textSub, marginLeft: 8 }}>{prestador.idade}</span>}
             </h1>
@@ -160,7 +160,7 @@ export default function Perfil() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <ReputacaoBadge nota={prestador.avaliacao} totalAvaliacoes={prestador.totalAvaliacoes} />
-          <span style={{ fontSize: 13, color: colors.textSub }}>· resp. em {prestador.tempoResposta}</span>
+          {prestador.tempoResposta && <span style={{ fontSize: 13, color: colors.textSub }}>· resp. em {prestador.tempoResposta}</span>}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: '#E0E7FF', color: '#3730A3' }}>
             <Zap size={11} strokeWidth={3} /> {prestador.pontosResposta || 0} pts de agilidade
           </span>
