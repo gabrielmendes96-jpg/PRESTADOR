@@ -26,7 +26,9 @@ async function chamar(metodo, caminho, corpo) {
 export async function cancelarAssinaturaAsaas(subscriptionId) {
   const r = await chamar('DELETE', `/subscriptions/${subscriptionId}`)
   if (r.ok || r.status === 404) return { ok: true }
-  return { ok: false, motivo: r.json.errors?.[0]?.description || `HTTP ${r.status}` }
+  // O ambiente no motivo ajuda a diagnosticar chave errada (sandbox x conta real) olhando só o log.
+  const ambiente = configAsaas().url.includes('sandbox') ? 'sandbox' : 'conta real'
+  return { ok: false, motivo: `${r.json.errors?.[0]?.description || `HTTP ${r.status}`} [${ambiente}]` }
 }
 
 export async function buscarClienteAsaas(customerId) {
