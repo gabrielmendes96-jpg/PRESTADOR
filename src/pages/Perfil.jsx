@@ -152,7 +152,7 @@ export default function Perfil() {
         )}
 
         <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: colors.textSub, textTransform: 'capitalize', margin: '0 0 2px' }}>
-          <Wrench size={14} /> {prestador.categoria} · {prestador.totalServicos} serviços realizados
+          <Wrench size={14} /> {prestador.categoriaNome || prestador.categoria} · {prestador.totalServicos} serviços realizados
         </p>
         <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: colors.textSub, margin: '0 0 12px' }}>
           <MapPin size={14} /> {prestador.cidade}, {prestador.estado} · atende até {prestador.raioAtendimento}km

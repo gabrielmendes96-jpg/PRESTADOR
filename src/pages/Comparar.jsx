@@ -79,7 +79,7 @@ export default function Comparar() {
                     )}
                   </div>
                   <p style={{ fontSize: 16, fontWeight: 700, color: colors.text, marginTop: 10, marginBottom: 2 }}>{p.nome}</p>
-                  <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>{p.categoria} · {p.cidade}</p>
+                  <p style={{ fontSize: 12, color: colors.textSub, textTransform: 'capitalize', margin: 0 }}>{p.categoriaNome || p.categoria} · {p.cidade}</p>
                 </div>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginBottom: 16 }}>

@@ -87,7 +87,7 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
   const plano = planoInfo[p.plano]
   const handleClick = onClick || (() => navigate(`/profissional/${p.id}`))
 
-  const meta = [p.categoria, p.cidade, dist].filter(Boolean).join(' · ')
+  const meta = [p.categoriaNome || p.categoria, p.cidade, dist].filter(Boolean).join(' · ')
   // "A partir de R$X" plugaria aqui quando existir uma coluna de preço em prestadores_completo
 
   if (layout === 'horizontal') {
@@ -96,7 +96,7 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
         <Avatar prestador={p} size={56} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-            <p style={{ flex: 1, fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.nome}</p>
+            <p style={{ flex: 1, fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', minWidth: 0 }}>{p.nome}</p>
             {p.disponivel && <Badge tone="available" style={{ flexShrink: 0 }}>Disponível</Badge>}
           </div>
           <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</p>
@@ -117,7 +117,7 @@ export default function CardPrestador({ prestador: p, layout = 'vertical', dista
         <Avatar prestador={p} size={58} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
-            <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</p>
+            <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere' }}>{p.nome}</p>
             {p.disponivel && <Badge tone="available" style={{ flexShrink: 0 }}>Disponível</Badge>}
           </div>
           <p style={{ fontSize: 12, color: colors.textSub, marginBottom: 6, textTransform: 'capitalize' }}>{meta}</p>

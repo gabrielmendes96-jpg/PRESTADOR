@@ -141,6 +141,19 @@ const ORDENACOES = {
 // O texto da busca entra num filtro .or() do PostgREST, onde vírgula e
 // parênteses são sintaxe — "Silva, João" quebrava a consulta inteira (e
 // a tela mostrava "nenhum resultado"). % e _ também são curingas do ilike.
+// Nome legível de cada categoria (o código interno é "mecanico"; o nome é "Mecânico"), carregado uma vez só.
+let nomesCategoriasEmCache = null
+async function nomesDasCategorias() {
+  if (!nomesCategoriasEmCache) {
+    nomesCategoriasEmCache = supabase.from('categorias').select('id, nome').then(({ data }) => {
+      const mapa = Object.fromEntries((data || []).map(c => [c.id, c.nome]))
+      if (!data?.length) nomesCategoriasEmCache = null // falhou: tenta de novo na próxima
+      return mapa
+    })
+  }
+  return nomesCategoriasEmCache
+}
+
 // Categorias que combinam com o texto: pelo nome OU pelos termos alternativos (supabase/43), tratando
 // hífen e espaço como iguais ("faz tudo" acha "Faz-tudo"; "ar condicionado" acha "Ar-condicionado").
 async function buscarCategoriasPorTexto(termo) {
@@ -282,6 +295,7 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
   }
   if (foiCancelado()) return null
 
+  const nomesCategorias = await nomesDasCategorias()
   const prestadores = data.map(p => ({
     ...p,
     fotos: fotosPorPrestador[p.id] || [],
@@ -293,6 +307,7 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
     raioAtendimento: p.raio_atendimento,
     plano: p.plano_id,
     categoria: p.categoria_id,
+    categoriaNome: nomesCategorias[p.categoria_id] || p.categoria_id,
     avaliacaoDetalhada: {
       pontualidade: p.media_pontualidade,
       qualidade: p.media_qualidade,
@@ -374,6 +389,7 @@ export function usePrestador(id) {
         .eq('prestador_id', id)
         .order('criado_em', { ascending: false })
 
+      const nomesCategorias = await nomesDasCategorias()
       if (cancelado) return
       setPrestador({
         ...p,
@@ -386,6 +402,7 @@ export function usePrestador(id) {
         raioAtendimento: p.raio_atendimento,
         plano: p.plano_id,
         categoria: p.categoria_id,
+        categoriaNome: nomesCategorias[p.categoria_id] || p.categoria_id,
         avaliacaoDetalhada: {
           pontualidade: p.media_pontualidade,
           qualidade: p.media_qualidade,
@@ -451,6 +468,7 @@ export function usePrestadoresPorIds(ids = []) {
         return
       }
 
+      const nomesCategorias = await nomesDasCategorias()
       const completos = (data || []).map(p => ({
         ...p,
         avaliacao: p.avaliacao_media,
@@ -461,6 +479,7 @@ export function usePrestadoresPorIds(ids = []) {
         raioAtendimento: p.raio_atendimento,
         plano: p.plano_id,
         categoria: p.categoria_id,
+        categoriaNome: nomesCategorias[p.categoria_id] || p.categoria_id,
         avaliacaoDetalhada: {
           pontualidade: p.media_pontualidade,
           qualidade: p.media_qualidade,

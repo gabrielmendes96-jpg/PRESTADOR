@@ -5,7 +5,7 @@ import Button from './Button'
 export default function SearchBar({
   value,
   onChange,
-  placeholder = 'Buscar profissional ou serviço',
+  placeholder = 'O que você procura?',
   onSubmit,
   showButton = true,
   actionLabel = 'Buscar',
@@ -38,6 +38,7 @@ export default function SearchBar({
         autoFocus={autoFocus}
         style={{
           flex: 1,
+          minWidth: 0,
           border: 'none',
           outline: 'none',
           background: 'transparent',
@@ -47,7 +48,7 @@ export default function SearchBar({
         }}
       />
       {showButton && (
-        <Button type="submit" size="sm" style={{ height: 48 }}>
+        <Button type="submit" size="sm" style={{ height: 48, flexShrink: 0 }}>
           {actionLabel}
         </Button>
       )}
