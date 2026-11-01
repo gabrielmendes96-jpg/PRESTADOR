@@ -17,7 +17,31 @@ select d.categoria_id, d.nome from (values
   ('eletricista', 'Instalação elétrica completa'),
   ('eletricista', 'Instalação de carregador de carro elétrico'),
   ('eletricista', 'Aterramento elétrico'),
-  ('eletricista', 'Revisão elétrica da casa')
+  ('eletricista', 'Revisão elétrica da casa'),
+  ('eletricista', 'Troca de resistência de chuveiro'),
+  ('eletricista', 'Troca de resistência de torneira elétrica'),
+  ('eletricista', 'Chuveiro queimado ou sem esquentar'),
+  ('eletricista', 'Tomada queimada ou derretida'),
+  ('eletricista', 'Cheiro de queimado na tomada ou fiação'),
+  ('eletricista', 'Disjuntor desarmando toda hora'),
+  ('eletricista', 'Troca de disjuntor'),
+  ('eletricista', 'Troca de interruptor'),
+  ('eletricista', 'Instalação de luminária de teto'),
+  ('eletricista', 'Instalação de lustre'),
+  ('eletricista', 'Instalação de sensor de presença'),
+  ('eletricista', 'Instalação de fotocélula'),
+  ('eletricista', 'Instalação de DR e DPS'),
+  ('eletricista', 'Passagem de fiação nova'),
+  ('eletricista', 'Tomada para forno elétrico ou cooktop'),
+  ('eletricista', 'Instalação de ponto de TV e antena'),
+  ('eletricista', 'Falta de luz em parte da casa'),
+  ('eletricista', 'Choque ao encostar em geladeira ou máquina de lavar'),
+  ('eletricista', 'Aterramento de geladeira e máquina de lavar'),
+  ('eletricista', 'Instalação de tomada 220V'),
+  ('eletricista', 'Troca de fiação antiga'),
+  ('eletricista', 'Instalação de refletor e LED externo'),
+  ('eletricista', 'Instalação de ar-condicionado (parte elétrica)'),
+  ('eletricista', 'Troca de lâmpada em local alto')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -36,7 +60,27 @@ select d.categoria_id, d.nome from (values
   ('encanador', 'Desentupimento'),
   ('encanador', 'Instalação de caixa d''água'),
   ('encanador', 'Troca de tubulação'),
-  ('encanador', 'Instalação de aquecedor')
+  ('encanador', 'Instalação de aquecedor'),
+  ('encanador', 'Vazamento na pia ou torneira'),
+  ('encanador', 'Troca de reparo da torneira'),
+  ('encanador', 'Troca de boia da caixa d''água'),
+  ('encanador', 'Troca de válvula de descarga'),
+  ('encanador', 'Troca de mangueira da máquina de lavar'),
+  ('encanador', 'Instalação de máquina de lavar louça'),
+  ('encanador', 'Instalação de bebedouro'),
+  ('encanador', 'Instalação de ducha higiênica'),
+  ('encanador', 'Troca de vaso sanitário'),
+  ('encanador', 'Cano estourado'),
+  ('encanador', 'Falta de pressão na água'),
+  ('encanador', 'Instalação de pressurizador'),
+  ('encanador', 'Limpeza de ralo e sifão'),
+  ('encanador', 'Instalação de chuveiro a gás'),
+  ('encanador', 'Troca de caixa acoplada'),
+  ('encanador', 'Torneira pingando'),
+  ('encanador', 'Instalação de tanque de lavanderia'),
+  ('encanador', 'Vaso sanitário entupido'),
+  ('encanador', 'Conserto de registro que não fecha'),
+  ('encanador', 'Instalação de torneira de cozinha gourmet')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -214,7 +258,12 @@ select d.categoria_id, d.nome from (values
   ('aquecedor', 'Limpeza de aquecedor'),
   ('aquecedor', 'Troca de aquecedor antigo'),
   ('aquecedor', 'Revisão de segurança do gás'),
-  ('aquecedor', 'Instalação de aquecedor de passagem')
+  ('aquecedor', 'Instalação de aquecedor de passagem'),
+  ('aquecedor', 'Troca de resistência de boiler'),
+  ('aquecedor', 'Troca de resistência de aquecedor elétrico'),
+  ('aquecedor', 'Chuveiro sem água quente'),
+  ('aquecedor', 'Aquecedor a gás não acende'),
+  ('aquecedor', 'Troca de termostato do boiler')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -230,7 +279,14 @@ select d.categoria_id, d.nome from (values
   ('ar_condicionado', 'Instalação de ar-condicionado de janela'),
   ('ar_condicionado', 'Troca de capacitor e placa'),
   ('ar_condicionado', 'Instalação de infraestrutura (tubulação)'),
-  ('ar_condicionado', 'Reparo de vazamento de água')
+  ('ar_condicionado', 'Reparo de vazamento de água'),
+  ('ar_condicionado', 'Ar-condicionado pingando água'),
+  ('ar_condicionado', 'Ar-condicionado não gela'),
+  ('ar_condicionado', 'Limpeza e higienização de ar-condicionado'),
+  ('ar_condicionado', 'Instalação de split 9000 a 12000 BTUs'),
+  ('ar_condicionado', 'Barulho no ar-condicionado'),
+  ('ar_condicionado', 'Troca de capacitor'),
+  ('ar_condicionado', 'Recarga de gás')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -744,7 +800,15 @@ select d.categoria_id, d.nome from (values
   ('chaveiro', 'Instalação de fechadura digital'),
   ('chaveiro', 'Conserto de fechadura'),
   ('chaveiro', 'Chave tetra'),
-  ('chaveiro', 'Abertura de cofre')
+  ('chaveiro', 'Abertura de cofre'),
+  ('chaveiro', 'Perdi a chave de casa'),
+  ('chaveiro', 'Chave quebrada na fechadura'),
+  ('chaveiro', 'Fechadura emperrada'),
+  ('chaveiro', 'Abertura de carro trancado'),
+  ('chaveiro', 'Cópia de chave de carro'),
+  ('chaveiro', 'Troca de segredo após perder a chave'),
+  ('chaveiro', 'Instalação de fechadura de embutir'),
+  ('chaveiro', 'Troca de miolo da fechadura')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -930,7 +994,13 @@ select d.categoria_id, d.nome from (values
   ('vazamento', 'Vazamento em tubulação de gás'),
   ('vazamento', 'Detecção de vazamento com termografia'),
   ('vazamento', 'Vazamento em chuveiro'),
-  ('vazamento', 'Vazamento em piscina')
+  ('vazamento', 'Vazamento em piscina'),
+  ('vazamento', 'Vazamento embaixo da pia'),
+  ('vazamento', 'Vazamento no teto do banheiro'),
+  ('vazamento', 'Mancha de umidade na parede'),
+  ('vazamento', 'Conta de água alta (vazamento escondido)'),
+  ('vazamento', 'Vazamento no vaso sanitário'),
+  ('vazamento', 'Vazamento no chuveiro ou box')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -1157,7 +1227,12 @@ select d.categoria_id, d.nome from (values
   ('dedetizador', 'Controle de escorpiões'),
   ('dedetizador', 'Dedetização de condomínio'),
   ('dedetizador', 'Tratamento de cupim em madeira'),
-  ('dedetizador', 'Nebulização contra mosquitos')
+  ('dedetizador', 'Nebulização contra mosquitos'),
+  ('dedetizador', 'Baratas na cozinha'),
+  ('dedetizador', 'Formigas dentro de casa'),
+  ('dedetizador', 'Cupim em móveis e portas'),
+  ('dedetizador', 'Ratos no telhado'),
+  ('dedetizador', 'Pulgas e carrapatos em casa')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -1188,7 +1263,13 @@ select d.categoria_id, d.nome from (values
   ('desentupidor', 'Desentupimento de ralo de box'),
   ('desentupidor', 'Videoinspeção de tubulação'),
   ('desentupidor', 'Desentupimento de caixa de inspeção'),
-  ('desentupidor', 'Desentupimento de rede pluvial')
+  ('desentupidor', 'Desentupimento de rede pluvial'),
+  ('desentupidor', 'Pia da cozinha entupida'),
+  ('desentupidor', 'Vaso sanitário entupido'),
+  ('desentupidor', 'Ralo do banheiro entupido'),
+  ('desentupidor', 'Esgoto voltando no ralo'),
+  ('desentupidor', 'Caixa de gordura entupida'),
+  ('desentupidor', 'Tanque de lavanderia entupido')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -1305,7 +1386,13 @@ select d.categoria_id, d.nome from (values
   ('diarista', 'Diarista semanal'),
   ('diarista', 'Diarista quinzenal'),
   ('diarista', 'Organização de armários'),
-  ('diarista', 'Limpeza de vidros')
+  ('diarista', 'Limpeza de vidros'),
+  ('diarista', 'Faxina semanal'),
+  ('diarista', 'Faxina quinzenal'),
+  ('diarista', 'Limpeza antes de mudança'),
+  ('diarista', 'Limpeza depois de mudança'),
+  ('diarista', 'Organização de armários e despensa'),
+  ('diarista', 'Limpeza de geladeira e fogão')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -1387,7 +1474,14 @@ select d.categoria_id, d.nome from (values
   ('eletrica_auto', 'Conserto de vidro elétrico'),
   ('eletrica_auto', 'Instalação de alarme'),
   ('eletrica_auto', 'Reparo em chicote elétrico'),
-  ('eletrica_auto', 'Instalação de módulo de vidros')
+  ('eletrica_auto', 'Instalação de módulo de vidros'),
+  ('eletrica_auto', 'Carro não liga (bateria ou partida)'),
+  ('eletrica_auto', 'Pane elétrica'),
+  ('eletrica_auto', 'Troca de lâmpadas e faróis'),
+  ('eletrica_auto', 'Instalação de rádio e acessórios'),
+  ('eletrica_auto', 'Vidro elétrico que não sobe'),
+  ('eletrica_auto', 'Alarme disparando sozinho'),
+  ('eletrica_auto', 'Luzes do painel acesas')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -1556,7 +1650,11 @@ select d.categoria_id, d.nome from (values
   ('faxineira', 'Limpeza de comércio'),
   ('faxineira', 'Faxina pré-festa'),
   ('faxineira', 'Limpeza de cozinha e banheiros'),
-  ('faxineira', 'Faxina semanal')
+  ('faxineira', 'Faxina semanal'),
+  ('faxineira', 'Faxina completa de casa'),
+  ('faxineira', 'Faxina pós-obra'),
+  ('faxineira', 'Limpeza de vidros e janelas'),
+  ('faxineira', 'Limpeza de apartamento pequeno')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2055,7 +2153,13 @@ select d.categoria_id, d.nome from (values
   ('instalador_acessorios_auto', 'Instalação de engate'),
   ('instalador_acessorios_auto', 'Instalação de farol de milha'),
   ('instalador_acessorios_auto', 'Instalação de trava elétrica'),
-  ('instalador_acessorios_auto', 'Instalação de vidros elétricos')
+  ('instalador_acessorios_auto', 'Instalação de vidros elétricos'),
+  ('instalador_acessorios_auto', 'Instalação de rádio e multimídia'),
+  ('instalador_acessorios_auto', 'Troca de rádio de carro'),
+  ('instalador_acessorios_auto', 'Instalação de insulfilm'),
+  ('instalador_acessorios_auto', 'Instalação de lâmpadas LED'),
+  ('instalador_acessorios_auto', 'Instalação de GPS e rastreador'),
+  ('instalador_acessorios_auto', 'Instalação de moldura de rádio')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2120,7 +2224,11 @@ select d.categoria_id, d.nome from (values
   ('jardineiro', 'Controle de pragas em plantas'),
   ('jardineiro', 'Limpeza de jardim'),
   ('jardineiro', 'Montagem de horta'),
-  ('jardineiro', 'Poda de cerca viva')
+  ('jardineiro', 'Poda de cerca viva'),
+  ('jardineiro', 'Poda de árvore pequena'),
+  ('jardineiro', 'Limpeza de quintal'),
+  ('jardineiro', 'Plantio de grama'),
+  ('jardineiro', 'Adubação de jardim')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2351,7 +2459,16 @@ select d.categoria_id, d.nome from (values
   ('marceneiro', 'Painéis para TV'),
   ('marceneiro', 'Rack e estante'),
   ('marceneiro', 'Móveis para escritório'),
-  ('marceneiro', 'Restauração de móveis')
+  ('marceneiro', 'Restauração de móveis'),
+  ('marceneiro', 'Montagem de guarda-roupa'),
+  ('marceneiro', 'Montagem de cozinha'),
+  ('marceneiro', 'Conserto de porta de armário'),
+  ('marceneiro', 'Troca de dobradiça'),
+  ('marceneiro', 'Montagem de cama e beliche'),
+  ('marceneiro', 'Conserto de gaveta emperrada'),
+  ('marceneiro', 'Montagem de móveis comprados online'),
+  ('marceneiro', 'Prateleira sob medida'),
+  ('marceneiro', 'Reparo de porta de madeira empenada')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2435,7 +2552,26 @@ select d.categoria_id, d.nome from (values
   ('mecanico', 'Conserto de ar-condicionado'),
   ('mecanico', 'Troca de bateria'),
   ('mecanico', 'Alinhamento e balanceamento'),
-  ('mecanico', 'Mecânico a domicílio')
+  ('mecanico', 'Mecânico a domicílio'),
+  ('mecanico', 'Instalação de rádio e multimídia'),
+  ('mecanico', 'Troca de rádio de carro'),
+  ('mecanico', 'Instalação de som automotivo'),
+  ('mecanico', 'Instalação de insulfilm'),
+  ('mecanico', 'Instalação de alarme automotivo'),
+  ('mecanico', 'Instalação de trava elétrica'),
+  ('mecanico', 'Instalação de vidros elétricos'),
+  ('mecanico', 'Instalação de engate de reboque'),
+  ('mecanico', 'Instalação de sensor de ré'),
+  ('mecanico', 'Instalação de câmera de ré'),
+  ('mecanico', 'Troca de lâmpadas e faróis'),
+  ('mecanico', 'Instalação de LED e xênon'),
+  ('mecanico', 'Instalação de rastreador'),
+  ('mecanico', 'Troca de pastilha de freio'),
+  ('mecanico', 'Carro não pega'),
+  ('mecanico', 'Barulho na suspensão'),
+  ('mecanico', 'Troca de pneus e balanceamento'),
+  ('mecanico', 'Revisão para viagem'),
+  ('mecanico', 'Luz de injeção acesa')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2582,7 +2718,11 @@ select d.categoria_id, d.nome from (values
   ('mudanca', 'Guarda-móveis'),
   ('mudanca', 'Mudança comercial'),
   ('mudanca', 'Içamento de móveis'),
-  ('mudanca', 'Transporte de piano e cofre')
+  ('mudanca', 'Transporte de piano e cofre'),
+  ('mudanca', 'Mudança de apartamento'),
+  ('mudanca', 'Mudança de casa'),
+  ('mudanca', 'Carreto de poucos móveis'),
+  ('mudanca', 'Mudança com montagem de móveis')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2748,7 +2888,17 @@ select d.categoria_id, d.nome from (values
   ('pedreiro', 'Contrapiso'),
   ('pedreiro', 'Pequenos reparos'),
   ('pedreiro', 'Calçadas'),
-  ('pedreiro', 'Laje')
+  ('pedreiro', 'Laje'),
+  ('pedreiro', 'Conserto de infiltração e umidade'),
+  ('pedreiro', 'Quebrar parede'),
+  ('pedreiro', 'Fechar parede ou vão'),
+  ('pedreiro', 'Assentar vaso sanitário e pia'),
+  ('pedreiro', 'Troca de piso quebrado'),
+  ('pedreiro', 'Reparo de rachadura na parede'),
+  ('pedreiro', 'Construção de edícula ou quarto nos fundos'),
+  ('pedreiro', 'Reboco de parede interna'),
+  ('pedreiro', 'Troca de azulejo quebrado'),
+  ('pedreiro', 'Instalação de ralo e caimento')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -2866,7 +3016,17 @@ select d.categoria_id, d.nome from (values
   ('pintor', 'Pintura de apartamento'),
   ('pintor', 'Pintura de móveis'),
   ('pintor', 'Pintura comercial'),
-  ('pintor', 'Verniz em madeira')
+  ('pintor', 'Verniz em madeira'),
+  ('pintor', 'Pintura de quarto'),
+  ('pintor', 'Pintura de sala'),
+  ('pintor', 'Pintura de cozinha'),
+  ('pintor', 'Retoque de pintura'),
+  ('pintor', 'Pintura de apartamento para entregar'),
+  ('pintor', 'Pintura de teto com mofo'),
+  ('pintor', 'Pintura de parede com infiltração'),
+  ('pintor', 'Pintura de portão'),
+  ('pintor', 'Pintura de muro'),
+  ('pintor', 'Pintura de móveis de madeira')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3052,7 +3212,12 @@ select d.categoria_id, d.nome from (values
   ('portao_eletrico', 'Troca de cremalheira'),
   ('portao_eletrico', 'Instalação de sensor de segurança'),
   ('portao_eletrico', 'Reprogramação de controle remoto'),
-  ('portao_eletrico', 'Instalação de portão de garagem automático')
+  ('portao_eletrico', 'Instalação de portão de garagem automático'),
+  ('portao_eletrico', 'Portão eletrônico parou de funcionar'),
+  ('portao_eletrico', 'Troca de controle remoto do portão'),
+  ('portao_eletrico', 'Portão fazendo barulho'),
+  ('portao_eletrico', 'Troca de motor de portão'),
+  ('portao_eletrico', 'Regulagem de fim de curso')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3322,7 +3487,12 @@ select d.categoria_id, d.nome from (values
   ('serralheiro', 'Escadas metálicas'),
   ('serralheiro', 'Mezanino metálico'),
   ('serralheiro', 'Pergolados de ferro'),
-  ('serralheiro', 'Fechaduras e dobradiças')
+  ('serralheiro', 'Fechaduras e dobradiças'),
+  ('serralheiro', 'Portão enroscando ou arrastando'),
+  ('serralheiro', 'Solda de portão'),
+  ('serralheiro', 'Grade de janela sob medida'),
+  ('serralheiro', 'Corrimão de escada'),
+  ('serralheiro', 'Conserto de fechadura de portão')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3356,7 +3526,12 @@ select d.categoria_id, d.nome from (values
   ('som_auto', 'Reparo de som'),
   ('som_auto', 'Instalação de caixas de som'),
   ('som_auto', 'Instalação de TV e DVD automotivo'),
-  ('som_auto', 'Projeto de som personalizado')
+  ('som_auto', 'Projeto de som personalizado'),
+  ('som_auto', 'Troca de rádio de carro'),
+  ('som_auto', 'Instalação de rádio e multimídia'),
+  ('som_auto', 'Instalação de alto-falantes nas portas'),
+  ('som_auto', 'Som do carro chiando ou falhando'),
+  ('som_auto', 'Instalação de antena de rádio')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3390,7 +3565,14 @@ select d.categoria_id, d.nome from (values
   ('tecnico_informatica', 'Montagem de computador'),
   ('tecnico_informatica', 'Suporte técnico em domicílio'),
   ('tecnico_informatica', 'Troca de tela de notebook'),
-  ('tecnico_informatica', 'Backup')
+  ('tecnico_informatica', 'Backup'),
+  ('tecnico_informatica', 'Computador lento'),
+  ('tecnico_informatica', 'Notebook não liga'),
+  ('tecnico_informatica', 'Formatação com backup'),
+  ('tecnico_informatica', 'Instalação de impressora e Wi-Fi'),
+  ('tecnico_informatica', 'Recuperação de arquivos apagados'),
+  ('tecnico_informatica', 'Troca de HD por SSD'),
+  ('tecnico_informatica', 'Montagem de computador gamer')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3407,7 +3589,12 @@ select d.categoria_id, d.nome from (values
   ('telhador', 'Telhado de fibrocimento'),
   ('telhador', 'Manutenção preventiva'),
   ('telhador', 'Reforma completa do telhado'),
-  ('telhador', 'Telha colonial')
+  ('telhador', 'Telha colonial'),
+  ('telhador', 'Goteira no telhado'),
+  ('telhador', 'Telha quebrada'),
+  ('telhador', 'Calha entupida ou vazando'),
+  ('telhador', 'Troca de rufo'),
+  ('telhador', 'Limpeza de telhado e calhas')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3541,7 +3728,12 @@ select d.categoria_id, d.nome from (values
   ('vidraceiro', 'Vitrines'),
   ('vidraceiro', 'Reparo em vidros'),
   ('vidraceiro', 'Cobertura de vidro'),
-  ('vidraceiro', 'Tampo de vidro para mesas')
+  ('vidraceiro', 'Tampo de vidro para mesas'),
+  ('vidraceiro', 'Troca de vidro quebrado'),
+  ('vidraceiro', 'Box de banheiro novo'),
+  ('vidraceiro', 'Espelho sob medida'),
+  ('vidraceiro', 'Vidro de janela trincado'),
+  ('vidraceiro', 'Porta de vidro de correr')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -3608,7 +3800,11 @@ select d.categoria_id, d.nome from (values
   ('cameras', 'Ampliação de sistema existente'),
   ('cameras', 'Projeto de monitoramento residencial'),
   ('cameras', 'Projeto de monitoramento comercial'),
-  ('cameras', 'Instalação de câmera Wi-Fi')
+  ('cameras', 'Instalação de câmera Wi-Fi'),
+  ('cameras', 'Câmera sem imagem'),
+  ('cameras', 'Ver câmeras pelo celular'),
+  ('cameras', 'Instalação de câmera externa'),
+  ('cameras', 'Troca de gravador (DVR)')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;

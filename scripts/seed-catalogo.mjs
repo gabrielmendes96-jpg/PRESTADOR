@@ -4,7 +4,12 @@
 import fs from 'node:fs'
 import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
-import catalogo from '../supabase/seed/catalogo-servicos.mjs'
+import base from '../supabase/seed/catalogo-servicos.mjs'
+import complementos from '../supabase/seed/catalogo-complementos.mjs'
+
+// Catálogo final = base + complementos (serviços do dia a dia mais específicos), por categoria.
+const catalogo = {}
+for (const cat of new Set([...Object.keys(base), ...Object.keys(complementos)])) catalogo[cat] = [...(base[cat] || []), ...(complementos[cat] || [])]
 
 dotenv.config({ path: '.env.test', quiet: true })
 const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)

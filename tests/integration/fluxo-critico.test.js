@@ -1418,4 +1418,23 @@ describe('Fluxo crítico', () => {
     expect(await ids('zzzxxxqqq')).not.toContain(state.prestadorId)
   }, 40000)
 
+
+  it('39. Busca por serviço específico acha quem atua no ofício, mesmo sem ter marcado o serviço', async () => {
+    await admin.from('prestadores').update({ plano_status: 'ativo' }).eq('id', state.prestadorId)
+    await admin.from('prestador_servicos').delete().eq('prestador_id', state.prestadorId) // ninguém marcou nada
+    const { data: servicos } = await admin.from('servicos_catalogo').select('nome').eq('categoria_id', state.categoriaId).eq('ativo', true).limit(3)
+    expect(servicos.length).toBeGreaterThan(0)
+    const ids = async (busca) => (await buscarPrestadores({ busca })).prestadores.map(p => p.id)
+
+    for (const sv of servicos) {
+      expect(await ids(semAcento(sv.nome))).toContain(state.prestadorId)             // frase completa, sem acento
+      expect(await ids(sv.nome.toUpperCase())).toContain(state.prestadorId)          // maiúsculas e com acento
+    }
+    // Palavras fora de ordem / com artigos no meio também funcionam: "troca resistencia chuveiro".
+    const palavras = semAcento(servicos[0].nome).split(' ').filter(w => w.length >= 4).reverse().join(' ')
+    expect(await ids(palavras)).toContain(state.prestadorId)
+    // Serviço de outro ofício não traz esse profissional.
+    expect(await ids('zzzxxxqqq')).not.toContain(state.prestadorId)
+  }, 60000)
+
 })

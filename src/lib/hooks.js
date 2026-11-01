@@ -141,6 +141,8 @@ const ORDENACOES = {
 // O texto da busca entra num filtro .or() do PostgREST, onde vírgula e
 // parênteses são sintaxe — "Silva, João" quebrava a consulta inteira (e
 // a tela mostrava "nenhum resultado"). % e _ também são curingas do ilike.
+// Palavras que não ajudam a achar um serviço ("troca DE resistência DO chuveiro").
+const PALAVRAS_VAZIAS = new Set(['de', 'da', 'do', 'das', 'dos', 'para', 'com', 'que', 'uma', 'um', 'por', 'nao', 'sem'])
 const limparBusca = (texto) => String(texto || '').replace(/[,()*\\"%_]/g, ' ').replace(/\s+/g, ' ').trim()
 
 // ------------------------------------------------------------
@@ -174,23 +176,35 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
   }
 
   const busca = limparBusca(filtros.busca)
+  const termo = semAcento(busca)
+  let marcados = new Set() // quem declarou o serviço (hashtag ou serviço marcado) vem antes de quem só atua no ofício
   if (busca) {
-    // As colunas *_busca (supabase/41) guardam o texto sem acento e minúsculo: "mecanico" acha "Mecânico".
-    const termo = semAcento(busca)
-    // Busca por nome, cidade, hashtag OU nome da profissão/categoria —
-    // assim "instalador de acessórios" encontra quem está nessa
-    // categoria, mesmo sem ter cadastrado essa hashtag.
-    const [{ data: porTag }, { data: porCategoria }, { data: porServico }] = await Promise.all([
+    // As colunas *_busca (supabase/41 e 42) guardam o texto sem acento e minúsculo: "mecanico" acha "Mecânico".
+    // Busca por nome, cidade, hashtag, descrição, nome da profissão OU serviço do catálogo:
+    // "troca de resistência" encontra os eletricistas, mesmo que ninguém tenha marcado exatamente esse serviço.
+    const palavras = termo.split(' ').filter(w => w.length >= 3 && !PALAVRAS_VAZIAS.has(w))
+    let consultaServicos = supabase.from('servicos_catalogo').select('categoria_id').eq('ativo', true)
+    for (const w of (palavras.length ? palavras : [termo])) consultaServicos = consultaServicos.ilike('nome_busca', `%${w}%`)
+
+    const [{ data: porTag }, { data: porCategoria }, { data: porServico }, { data: servicosDoCatalogo }] = await Promise.all([
       supabase.from('servicos_prestador').select('prestador_id').ilike('tag_busca', `%${termo}%`),
       supabase.from('categorias').select('id').ilike('nome_busca', `%${termo}%`),
       // Serviços do catálogo que o prestador marcou ("troca de chuveiro").
       supabase.from('prestador_servicos').select('prestador_id, servicos_catalogo!inner(nome)').ilike('servicos_catalogo.nome_busca', `%${termo}%`),
+      consultaServicos.limit(400),
     ])
 
     const idsPorTag = [...new Set([...(porTag || []), ...(porServico || [])].map(t => t.prestador_id))]
-    const idsPorCategoria = (porCategoria || []).map(c => c.id)
+    marcados = new Set(idsPorTag)
+
+    // Ofícios que fazem o serviço digitado: os mais relevantes (com mais serviços parecidos) primeiro, no máximo 6.
+    const contagem = {}
+    for (const sv of servicosDoCatalogo || []) contagem[sv.categoria_id] = (contagem[sv.categoria_id] || 0) + 1
+    const idsPorServicoDoCatalogo = Object.entries(contagem).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id]) => id)
+    const idsPorCategoria = [...new Set([...(porCategoria || []).map(c => c.id), ...idsPorServicoDoCatalogo])]
 
     const condicoes = [`nome_busca.ilike.%${termo}%`, `cidade_busca.ilike.%${termo}%`]
+    if (!filtros.semDescricao) condicoes.push(`descricao_busca.ilike.%${termo}%`)
     if (idsPorTag.length > 0) condicoes.push(`id.in.(${idsPorTag.join(',')})`)
     if (idsPorCategoria.length > 0) condicoes.push(`categoria_id.in.(${idsPorCategoria.join(',')})`)
 
@@ -220,12 +234,23 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
     if (!filtros.semRanking && /boost_ativo|plano_rank/.test(error.message || '')) {
       return buscarPrestadores({ ...filtros, semRanking: true }, foiCancelado)
     }
+    // Idem para a descrição (supabase/42 ainda não rodada neste banco).
+    if (!filtros.semDescricao && /descricao_busca/.test(error.message || '')) {
+      return buscarPrestadores({ ...filtros, semDescricao: true }, foiCancelado)
+    }
     console.error('Erro ao buscar prestadores:', error)
     return { prestadores: [], temMais: false }
   }
 
   const temMais = !!filtros.limite && (linhas || []).length > filtros.limite
   const data = temMais ? linhas.slice(0, filtros.limite) : (linhas || [])
+
+  // Em "relevância", quem declarou o serviço (hashtag, serviço marcado, nome ou descrição) vem antes
+  // de quem só atua no ofício. A ordenação é estável: dentro de cada grupo vale a ordem do servidor.
+  if (busca && (!filtros.ordenar || filtros.ordenar === 'relevancia')) {
+    const declarou = p => marcados.has(p.id) || (p.nome_busca || '').includes(termo) || (p.descricao_busca || '').includes(termo)
+    data.sort((a, b) => Number(declarou(b)) - Number(declarou(a)))
+  }
 
   // Buscar fotos de cada prestador
   const ids = data.map(p => p.id)
