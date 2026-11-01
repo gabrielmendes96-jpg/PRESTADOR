@@ -1288,4 +1288,16 @@ describe('Fluxo crítico', () => {
     expect(intacta.chave_pix).toBe('chave-secreta-do-teste@example.com')
   }, 30000)
 
+
+  it('34. Dados do profissional — chave PIX e e-mail não são legíveis por visitantes', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    for (const [tabela, coluna] of [['prestadores', 'chave_pix'], ['prestadores', 'tipo_chave_pix'], ['prestadores_completo', 'chave_pix']]) {
+      const { error } = await visitante.from(tabela).select(coluna).limit(1)
+      expect({ tabela, coluna, bloqueado: !!error }).toEqual({ tabela, coluna, bloqueado: true })
+    }
+    const { data: perfil } = await visitante.from('prestadores').select('*').limit(1)
+    expect(Object.keys(perfil[0])).not.toContain('chave_pix')
+  }, 30000)
+
 })

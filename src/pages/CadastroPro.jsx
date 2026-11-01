@@ -23,7 +23,7 @@ const labelStyle = { display: 'block', fontSize: 13, color: colors.textSub, marg
 export function CadastroPro() {
   const [etapa, setEtapa] = useState(1)
   const [dados, setDados] = useState({
-    nome: '', email: '', whatsapp: '', cidade: '', estado: '',
+    nome: '', whatsapp: '', cidade: '', estado: '',
     categoria: '', categoriaCustom: '', topicos: [], descricao: '', plano: ''
   })
   const [enviando, setEnviando] = useState(false)
@@ -98,7 +98,6 @@ export function CadastroPro() {
     const { error } = await supabase.from('prestadores').insert({
       user_id: userData?.user?.id || null,
       nome: dados.nome,
-      email: dados.email,
       whatsapp: dados.whatsapp,
       categoria_id: categoriaId,
       cidade: dados.cidade,
@@ -141,10 +140,6 @@ export function CadastroPro() {
             <div>
               <label style={labelStyle}>Nome completo</label>
               <input type="text" value={dados.nome} onChange={e => atualizar('nome', e.target.value)} style={inputStyle} placeholder="Seu nome" />
-            </div>
-            <div>
-              <label style={labelStyle}>E-mail</label>
-              <input type="email" value={dados.email} onChange={e => atualizar('email', e.target.value)} style={inputStyle} placeholder="seu@email.com" />
             </div>
             <div>
               <label style={labelStyle}>WhatsApp</label>
