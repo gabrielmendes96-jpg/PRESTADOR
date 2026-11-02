@@ -10,7 +10,7 @@ const passos = [
   {
     icon: Hand,
     titulo: 'Bem-vindo ao Prestador!',
-    desc: 'A plataforma que conecta você a mais clientes na sua região. Vamos configurar seu perfil em 3 passos simples.',
+    desc: 'A plataforma que conecta você a mais clientes na sua região. Vamos configurar seu perfil em poucos passos simples.',
   },
   {
     icon: Camera,

@@ -195,9 +195,11 @@ export default function Perfil() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <ReputacaoBadge nota={prestador.avaliacao} totalAvaliacoes={prestador.totalAvaliacoes} />
           {prestador.tempoResposta && <span style={{ fontSize: 13, color: colors.textSub }}>· resp. em {prestador.tempoResposta}</span>}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: '#E0E7FF', color: '#3730A3' }}>
-            <Zap size={11} strokeWidth={3} /> {prestador.pontosResposta || 0} pts de agilidade
-          </span>
+          {prestador.pontosResposta > 0 && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, padding: '3px 9px', borderRadius: 999, background: '#E0E7FF', color: '#3730A3' }}>
+              <Zap size={11} strokeWidth={3} /> {prestador.pontosResposta} pts de agilidade
+            </span>
+          )}
         </div>
 
         <p style={{ fontSize: 14, lineHeight: 1.6, color: colors.textSub, marginBottom: 16 }}>{prestador.descricao}</p>
@@ -290,7 +292,7 @@ export default function Perfil() {
 
       <div className="lg:flex-1" style={{ minWidth: 0 }}>
         {/* Avaliações detalhadas */}
-        <Card padding={20} style={{ marginBottom: 16 }}>
+        <Card padding={20} style={{ marginBottom: 16, display: prestador.totalAvaliacoes > 0 ? undefined : 'none' }}>
           <h2 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: colors.textSub, marginBottom: 16 }}>Avaliação por critério</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {Object.entries(prestador.avaliacaoDetalhada).map(([key, val]) => {

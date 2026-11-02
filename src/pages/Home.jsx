@@ -167,7 +167,7 @@ export default function Home() {
                   </div>
                   <span style={{ fontSize: 12, fontWeight: 700, color: colors.text, whiteSpace: 'nowrap' }}>{cat.nome}</span>
                   {count > 0 && (
-                    <span style={{ fontSize: 10, color: colors.textSub, fontWeight: 500 }}>{count} profissionais</span>
+                    <span style={{ fontSize: 10, color: colors.textSub, fontWeight: 500 }}>{count} {count === 1 ? 'profissional' : 'profissionais'}</span>
                   )}
                 </Card>
               )

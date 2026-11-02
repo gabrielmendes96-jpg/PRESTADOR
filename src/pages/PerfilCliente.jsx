@@ -641,7 +641,7 @@ export default function PerfilCliente() {
                   </div>
                   <div onClick={() => navigate(`/pedidos/${p.id}`)} className="flex-1 min-w-0 cursor-pointer">
                     <p className="text-sm font-medium truncate" style={{ color: '#1F2937' }}>{p.titulo}</p>
-                    <p className="text-xs" style={{ color: '#6B7280' }}>{p.cidade}, {p.estado} · {new Date(p.criado_em).toLocaleDateString('pt-BR')}</p>
+                    <p className="text-xs" style={{ color: '#6B7280' }}>{[p.cidade, p.estado].filter(Boolean).join(', ')} · {new Date(p.criado_em).toLocaleDateString('pt-BR')}</p>
                   </div>
                   {pastas.length > 0 && (
                     <select
