@@ -267,7 +267,7 @@ export default function Avaliacoes({ prestador }) {
         <h2 className="text-sm font-medium uppercase tracking-wider" style={{ color: colors.textSub }}>
           Avaliações ({reviews.length})
         </h2>
-        {!showForm && (
+        {!showForm && usuario?.id !== prestador.user_id && (
           <button
             onClick={verificarPermissao}
             disabled={verificando}

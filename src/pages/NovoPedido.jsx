@@ -37,6 +37,7 @@ export default function NovoPedido() {
   const { categorias } = useCategorias()
   const [etapa, setEtapa] = useState(1) // 1: form, 2: créditos
   const [creditosDisponiveis, setCreditosDisponiveis] = useState(0)
+  const [ganhouBoasVindas, setGanhouBoasVindas] = useState(0)
   const [pacoteSelecionado, setPacoteSelecionado] = useState(null)
   const [enviando, setEnviando] = useState(false)
   const [dados, setDados] = useState({
@@ -76,11 +77,14 @@ export default function NovoPedido() {
   }, [dados.estado])
 
   const buscarCreditos = async () => {
-    const { data } = await supabase
-      .from('creditos_cliente')
-      .select('creditos_disponiveis')
-      .eq('user_id', usuario.id)
-      .maybeSingle()
+    const ler = () => supabase.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', usuario.id).maybeSingle()
+    let { data } = await ler()
+    // Cliente novo (sem registro de créditos) ganha os pedidos de boas-vindas, uma única vez.
+    // Se a função ainda não existir no banco, o erro é ignorado e segue como antes.
+    if (!data) {
+      const { data: ganhou } = await supabase.rpc('dar_creditos_de_boas_vindas')
+      if (ganhou > 0) { setGanhouBoasVindas(ganhou); ({ data } = await ler()) }
+    }
     setCreditosDisponiveis(data?.creditos_disponiveis || 0)
   }
 
@@ -214,6 +218,11 @@ export default function NovoPedido() {
             Você tem <strong style={{ color: colors.primary }}>{creditosDisponiveis} crédito{creditosDisponiveis !== 1 ? 's' : ''}</strong> disponíve{creditosDisponiveis !== 1 ? 'is' : 'l'}.
             {creditosDisponiveis === 0 && ' Será necessário comprar créditos para publicar.'}
           </p>
+          {ganhouBoasVindas > 0 && (
+            <p role="status" style={{ fontSize: 14, margin: '-8px 0 20px', padding: '10px 14px', borderRadius: 12, background: '#F0FDF4', border: '1px solid #BBF7D0', color: colors.text }}>
+              <strong>Boas-vindas!</strong> Você ganhou {ganhouBoasVindas} pedidos grátis para começar. Cada pedido publicado usa 1 crédito.
+            </p>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
@@ -274,12 +283,12 @@ export default function NovoPedido() {
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Orçamento mínimo (R$)</label>
+                <label style={labelStyle}>Valor mínimo (R$)</label>
                 <input type="number" value={dados.orcamento_min} onChange={e => atualizar('orcamento_min', e.target.value)}
                   style={inputStyle} placeholder="0" />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Orçamento máximo (R$)</label>
+                <label style={labelStyle}>Valor máximo (R$)</label>
                 <input type="number" value={dados.orcamento_max} onChange={e => atualizar('orcamento_max', e.target.value)}
                   style={inputStyle} placeholder="0" />
               </div>
@@ -339,7 +348,7 @@ export default function NovoPedido() {
               disabled={!dados.titulo || !dados.categoria_id || !dados.cidade || enviando || preparando}
               onClick={publicarPedido}
             >
-              {enviando ? 'Publicando...' : creditosDisponiveis > 0 ? 'Publicar (1 crédito)' : 'Continuar'}
+              {enviando ? 'Publicando...' : creditosDisponiveis > 0 ? 'Publicar pedido' : 'Continuar'}
             </Button>
           </div>
         </Card>

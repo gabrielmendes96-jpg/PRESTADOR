@@ -12,6 +12,7 @@ import { colors, radius, shadow, spacing } from '../lib/design'
 import Portfolio from '../components/Portfolio'
 import HashtagsInput from '../components/HashtagsInput'
 import ServicosDoPrestador from '../components/ServicosDoPrestador'
+import OpcoesDeCategoria from '../components/OpcoesDeCategoria'
 import FotoPerfilUpload from '../components/FotoPerfilUpload'
 import RedesSociaisForm from '../components/RedesSociaisForm'
 import BannerIndicacao from '../components/BannerIndicacao'
@@ -24,13 +25,13 @@ const menuItens = [
   { id: 'portfolio', label: 'Portfólio', icon: Image },
   { id: 'hashtags', label: 'Meus Serviços', icon: Tag },
   { id: 'boost', label: 'Impulsionar', icon: Rocket },
-  { id: 'disponibilidade', label: 'Disponibilidade', icon: Calendar },
-  { id: 'ganhos', label: 'Desempenho', icon: BarChart3 },
+  { id: 'disponibilidade', label: 'Disponibilidade', icon: Calendar, rota: '/disponibilidade' },
+  { id: 'ganhos', label: 'Desempenho', icon: BarChart3, rota: '/ganhos' },
   { id: 'niveis', label: 'Meu Nível', icon: Trophy },
   { id: 'pedidos', label: 'Pedidos', icon: ClipboardList },
   { id: 'historico', label: 'Histórico', icon: Wrench },
   { id: 'avaliacoes', label: 'Avaliações', icon: Star },
-  { id: 'mensagens', label: 'Mensagens', icon: MessageCircle },
+  { id: 'mensagens', label: 'Mensagens', icon: MessageCircle, rota: '/mensagens' },
   { id: 'indicacao', label: 'Indique e Ganhe', icon: Gift },
   { id: 'assinatura', label: 'Assinatura', icon: CreditCard },
 ]
@@ -336,7 +337,7 @@ export default function PainelPrestador() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setAba(item.id)}
+                  onClick={() => (item.rota ? navigate(item.rota) : setAba(item.id))}
                   className="btn-press flex-shrink-0 w-auto lg:w-full whitespace-nowrap"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
@@ -424,9 +425,7 @@ export default function PainelPrestador() {
                   style={inputStyle}
                 >
                   <option value="">Selecione</option>
-                  {categorias.map(c => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
+                  <OpcoesDeCategoria categorias={categorias} />
                 </select>
               </div>
               <div>
@@ -581,7 +580,7 @@ export default function PainelPrestador() {
         {aba === 'portfolio' && (
           <Card padding={24}>
             <TabHeader icon={Image} title="Meu portfólio" desc="Adicione fotos e vídeos dos serviços que você já realizou. Perfis com fotos recebem 3x mais contatos!" />
-            <Portfolio prestadorId={prestador.id} />
+            <Portfolio prestadorId={prestador.id} planoId={prestador.plano_id} planoStatus={prestador.plano_status} />
           </Card>
         )}
 
@@ -740,7 +739,7 @@ export default function PainelPrestador() {
         {aba === 'hashtags' && (
           <Card padding={24}>
             <TabHeader icon={Tag} title="Meus serviços" desc="Diga o que você faz: o cliente escolhe esses serviços ao pedir orçamento e encontra você pelas buscas." />
-            <ServicosDoPrestador prestadorId={prestador.id} categoriaId={prestador.categoria_id} />
+            <ServicosDoPrestador prestadorId={prestador.id} categoriaId={prestador.categoria_id} planoId={prestador.plano_id} planoStatus={prestador.plano_status} />
             <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: '0 0 4px' }}>Hashtags</p>
             <p style={{ fontSize: 13, color: colors.textSub, margin: '0 0 12px' }}>
               Palavras extras pra descrever o que você faz (ex: #pintura #reboco #reforma).

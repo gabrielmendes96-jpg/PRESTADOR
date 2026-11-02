@@ -7,6 +7,7 @@ import { useCategorias } from '../lib/hooks'
 import { colors, spacing, type as typeScale } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import OpcoesDeCategoria from '../components/OpcoesDeCategoria'
 
 export default function Pedidos() {
   const { usuario } = useAuth()
@@ -83,7 +84,7 @@ export default function Pedidos() {
       <Card padding={16} style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: spacing.xl }}>
         <select value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} style={inputStyle}>
           <option value="">Todas as categorias</option>
-          {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          <OpcoesDeCategoria categorias={categorias} />
         </select>
         <input
           type="text"

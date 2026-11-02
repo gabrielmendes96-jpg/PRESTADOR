@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Wallet, Clock, Crown, Check, Send, Calendar } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
+import { rotuloDoStatusDoPedido } from '../lib/pedidoStatus'
 import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -247,7 +248,7 @@ export default function DetalhePedido() {
             background: pedido.status === 'aberto' ? '#DCFCE7' : '#FEF3C7',
             color: pedido.status === 'aberto' ? colors.primaryHover : '#92610A',
           }}>
-            {pedido.status}
+            {rotuloDoStatusDoPedido(pedido.status)}
           </span>
         </div>
 

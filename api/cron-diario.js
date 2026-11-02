@@ -3,7 +3,7 @@
 // dia (e no máximo 2 crons no total) — por isso as três varreduras de
 // manutenção (api/manutencao.js) rodam juntas aqui, uma vez por dia,
 // em vez de cada uma ter seu próprio agendamento.
-import { verificarTempoResposta, verificarInadimplencia, verificarLiberacaoAutomatica, verificarSuporteDisputa, limparRateLimits, avisarVencimentoProximo, enviarResumoDeAlertas } from './manutencao.js'
+import { verificarTempoResposta, verificarInadimplencia, verificarLiberacaoAutomatica, verificarSuporteDisputa, limparRateLimits, avisarVencimentoProximo, enviarResumoDeAlertas, expirarPedidosAntigos } from './manutencao.js'
 
 function autorizado(req) {
   const auth = req.headers['authorization'] || ''
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const [tempoResposta, inadimplencia, liberacaoAutomatica, suporteDisputa, rateLimits, vencimento, resumoAlertas] = await Promise.all([
+  const [tempoResposta, inadimplencia, liberacaoAutomatica, suporteDisputa, rateLimits, vencimento, resumoAlertas, pedidosAntigos] = await Promise.all([
     verificarTempoResposta(supabase),
     verificarInadimplencia(supabase),
     verificarLiberacaoAutomatica(supabase),
@@ -32,7 +32,8 @@ export default async function handler(req, res) {
     limparRateLimits(supabase),
     avisarVencimentoProximo(supabase),
     enviarResumoDeAlertas(supabase),
+    expirarPedidosAntigos(supabase),
   ])
 
-  return res.status(200).json({ ok: true, tempoResposta, inadimplencia, liberacaoAutomatica, suporteDisputa, rateLimits, vencimento, resumoAlertas })
+  return res.status(200).json({ ok: true, tempoResposta, inadimplencia, liberacaoAutomatica, suporteDisputa, rateLimits, vencimento, resumoAlertas, pedidosAntigos })
 }

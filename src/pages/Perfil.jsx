@@ -253,7 +253,15 @@ export default function Perfil() {
           </p>
         )}
 
+        {/* O próprio prestador vendo seu perfil: não faz sentido conversar, orçar ou avaliar a si mesmo */}
+        {usuario?.id === prestador.user_id && (
+          <p style={{ fontSize: 14, margin: '0 0 10px', padding: '10px 14px', borderRadius: 12, background: colors.bg, color: colors.textSub }}>
+            É assim que os clientes veem o seu perfil.
+          </p>
+        )}
+
         {/* CTAs principais */}
+        {usuario?.id !== prestador.user_id && (
         <div className="flex flex-col sm:flex-row" style={{ gap: 10, marginBottom: 10 }}>
           <Button variant="secondary" icon={<MessageCircle size={17} />} fullWidth onClick={() => iniciarConversa()} disabled={iniciandoChat}>
             Conversar com o prestador
@@ -262,6 +270,7 @@ export default function Perfil() {
             {iniciandoChat ? 'Abrindo...' : 'Pedir orçamento'}
           </Button>
         </div>
+        )}
 
         {escolhendoServico && (
           <div style={{ padding: 14, borderRadius: 14, background: colors.bg, marginBottom: 10 }}>

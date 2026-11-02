@@ -11,6 +11,7 @@ import FichaDoPedido from '../components/FichaDoPedido'
 import Card from '../components/ui/Card'
 import IconButton from '../components/ui/IconButton'
 import Avatar from '../components/ui/Avatar'
+import { mesmoDia, rotuloDoDia } from '../lib/datas'
 
 export default function Chat() {
   const { conversaId } = useParams()
@@ -361,10 +362,16 @@ export default function Chat() {
             {mensagens.map((msg, i) => {
               const minha = ehMinha(msg)
               const anterior = mensagens[i - 1]
-              const mostrarNome = !anterior || ehMinha(anterior) !== minha
+              const novoDia = !anterior || !mesmoDia(anterior.criado_em, msg.criado_em)
+              const mostrarNome = novoDia || ehMinha(anterior) !== minha
 
               return (
                 <div key={msg.id || i} style={{ display: 'flex', flexDirection: 'column', alignItems: minha ? 'flex-end' : 'flex-start' }}>
+                  {novoDia && (
+                    <p style={{ alignSelf: 'center', margin: '6px 0 10px', padding: '3px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: colors.border, color: colors.textSub }}>
+                      {rotuloDoDia(msg.criado_em)}
+                    </p>
+                  )}
                   {mostrarNome && (
                     <p style={{ fontSize: 11, fontWeight: 700, margin: '0 4px 3px', color: colors.textSub }}>
                       {minha ? 'Você' : nomeContato}

@@ -28,7 +28,7 @@ const passosCliente = [
 ]
 
 const perguntas = [
-  { q: 'O Prestador é gratuito para clientes?', r: 'Sim! Clientes podem buscar e conversar com profissionais gratuitamente. Apenas a postagem de pedidos de serviço tem um pequeno custo (R$9 por pedido).' },
+  { q: 'O Prestador é gratuito para clientes?', r: 'Sim! Clientes podem buscar e conversar com profissionais gratuitamente. Quem está começando ganha 2 pedidos grátis; depois, a postagem de pedidos de serviço tem um pequeno custo (R$9 por pedido).' },
   { q: 'Como funciona para os prestadores?', r: 'Prestadores pagam uma mensalidade a partir de R$49/mês para aparecer na plataforma. Os primeiros 30 dias são gratuitos para novos cadastros.' },
   { q: 'As avaliações são reais?', r: 'Sim! Só pode avaliar quem teve uma conversa real ou contratou o profissional pelo app. Isso garante que todas as avaliações são de clientes reais.' },
   { q: 'O app está disponível em quais cidades?', r: 'Estamos começando por Araraquara e cidades da região. Em breve expandindo para todo o Brasil.' },

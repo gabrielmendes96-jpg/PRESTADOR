@@ -15,6 +15,7 @@ import RedesSociais from '../components/RedesSociais'
 import Destaques from '../components/Destaques'
 import Chip from '../components/ui/Chip'
 import SeletorDeFotos from '../components/SeletorDeFotos'
+import { rotuloDoStatusDoPedido } from '../lib/pedidoStatus'
 import { prepararArquivo, enviarParaStorage } from '../lib/midia'
 import { useErroDeEnvio } from '../lib/useErroDeEnvio'
 
@@ -385,7 +386,7 @@ export default function PerfilCliente() {
       {aba === 'preferencias' && (
         <div className="bg-white rounded-2xl p-5" style={{ border: '0.5px solid #E4E7E4' }}>
           <p className="text-sm font-medium mb-2" style={{ color: '#1F2937' }}>Serviços de interesse</p>
-          <p className="text-xs mb-4" style={{ color: '#6B7280' }}>Selecione os tipos de serviço que você mais contrata. Usamos isso para personalizar sua experiência.</p>
+          <p className="text-xs mb-4" style={{ color: '#6B7280' }}>Selecione os tipos de serviço que você mais contrata. Em breve vamos usar isso para sugerir profissionais para você.</p>
 
           <div className="grid grid-cols-3 gap-2 mb-5">
             {servicosDisponiveis.map(s => (
@@ -659,7 +660,7 @@ export default function PerfilCliente() {
                   )}
                   <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 capitalize"
                     style={p.status === 'aberto' ? { background: '#DCFCE7', color: '#14853D' } : { background: '#F3F6F2', color: '#6B7280' }}>
-                    {p.status}
+                    {rotuloDoStatusDoPedido(p.status)}
                   </span>
                 </div>
               ))}

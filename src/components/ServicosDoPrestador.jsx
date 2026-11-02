@@ -3,12 +3,16 @@ import { Check } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useCategorias, useServicosCatalogo } from '../lib/hooks'
 import { colors } from '../lib/design'
+import { limitesDoPlano, nomeDoPlano } from '../lib/limitesDoPlano'
 import Chip from './ui/Chip'
+import OpcoesDeCategoria from './OpcoesDeCategoria'
 
 // Editor dos serviços que o prestador faz. O que ele marca aqui é o que o
 // cliente enxerga no perfil, o que aparece como opção quando alguém pede
 // orçamento ("combina com seus serviços") e o que a busca encontra.
-export default function ServicosDoPrestador({ prestadorId, categoriaId }) {
+export default function ServicosDoPrestador({ prestadorId, categoriaId, planoId, planoStatus }) {
+  const limiteCategorias = limitesDoPlano(planoId, planoStatus).categorias
+  const [categoriaDeCada, setCategoriaDeCada] = useState(new Map()) // servicoId -> categoriaId dos serviços já marcados
   const { categorias } = useCategorias()
   const [categoriaVista, setCategoriaVista] = useState(categoriaId)
   const { servicos, loading } = useServicosCatalogo(categoriaVista)
@@ -21,10 +25,11 @@ export default function ServicosDoPrestador({ prestadorId, categoriaId }) {
   useEffect(() => {
     if (!prestadorId) return
     let cancelado = false
-    supabase.from('prestador_servicos').select('servico_id').eq('prestador_id', prestadorId)
+    supabase.from('prestador_servicos').select('servico_id, servicos_catalogo(categoria_id)').eq('prestador_id', prestadorId)
       .then(({ data }) => {
         if (cancelado) return
         setMarcados(new Set((data || []).map(r => r.servico_id)))
+        setCategoriaDeCada(new Map((data || []).map(r => [r.servico_id, r.servicos_catalogo?.categoria_id])))
         setCarregado(true)
       })
     return () => { cancelado = true }
@@ -33,6 +38,13 @@ export default function ServicosDoPrestador({ prestadorId, categoriaId }) {
   const alternar = async (servicoId) => {
     setErro('')
     const estava = marcados.has(servicoId)
+    if (!estava) {
+      const emUso = new Set([...marcados].map(id => categoriaDeCada.get(id)).filter(Boolean))
+      if (Number.isFinite(limiteCategorias) && !emUso.has(categoriaVista) && emUso.size >= limiteCategorias) {
+        setErro(`O plano ${nomeDoPlano(planoId)} permite serviços em até ${limiteCategorias} categorias. Para marcar em outra, desmarque uma categoria inteira ou mude de plano.`)
+        return
+      }
+    }
     // Atualiza na hora; se o banco recusar, desfaz.
     setMarcados(prev => {
       const novo = new Set(prev)
@@ -43,6 +55,14 @@ export default function ServicosDoPrestador({ prestadorId, categoriaId }) {
     const { error } = estava
       ? await supabase.from('prestador_servicos').delete().eq('prestador_id', prestadorId).eq('servico_id', servicoId)
       : await supabase.from('prestador_servicos').insert({ prestador_id: prestadorId, servico_id: servicoId })
+
+    if (!error) {
+      setCategoriaDeCada(prev => {
+        const novo = new Map(prev)
+        estava ? novo.delete(servicoId) : novo.set(servicoId, categoriaVista)
+        return novo
+      })
+    }
 
     if (error) {
       setErro('Não foi possível salvar essa alteração. Tente de novo.')
@@ -68,9 +88,7 @@ export default function ServicosDoPrestador({ prestadorId, categoriaId }) {
         onChange={e => setCategoriaVista(e.target.value)}
         style={{ width: '100%', padding: '9px 12px', fontSize: 13, borderRadius: 10, border: `1px solid ${colors.border}`, background: '#fff', marginBottom: 12 }}
       >
-        {categorias.map(c => (
-          <option key={c.id} value={c.id}>{c.nome}{c.id === categoriaId ? ' (sua categoria)' : ''}</option>
-        ))}
+        <OpcoesDeCategoria categorias={categorias} rotulo={c => `${c.nome}${c.id === categoriaId ? ' (sua categoria)' : ''}`} />
       </select>
 
       {erro && (

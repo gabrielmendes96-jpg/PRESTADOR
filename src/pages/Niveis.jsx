@@ -9,10 +9,16 @@ import Button from '../components/ui/Button'
 
 const niveis = [
   {
+    id: 'iniciante', nome: 'Iniciante', icon: Medal,
+    cor: '#475569', bg: '#F1F5F9',
+    requisitos: { avaliacoes: 0, notaMin: 0, mesesAtivo: 0 },
+    beneficios: ['Perfil visível na plataforma', 'Pode receber avaliações', 'Acesso ao chat'],
+  },
+  {
     id: 'bronze', nome: 'Bronze', icon: Medal,
     cor: '#B45309', bg: '#FEF3C7',
     requisitos: { avaliacoes: 1, notaMin: 6.0, mesesAtivo: 0 },
-    beneficios: ['Perfil visível na plataforma', 'Pode receber avaliações', 'Acesso ao chat'],
+    beneficios: ['Tudo do Iniciante', 'Badge Bronze no perfil'],
   },
   {
     id: 'prata', nome: 'Prata', icon: Medal,

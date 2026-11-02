@@ -230,6 +230,61 @@ export async function avisarVencimentoProximo(supabase) {
   return { ok: true, avisados }
 }
 
+// Pedido aberto há muito tempo sem ninguém contratado vira vitrine vazia. Avisa o cliente aos 23 dias
+// ("ainda precisa?") e fecha como "expirado" aos 30. Só mexe em pedidos abertos; os com serviço em
+// andamento, concluídos ou cancelados ficam como estão.
+export async function expirarPedidosAntigos(supabase) {
+  const DIA = 24 * 3600 * 1000
+  const antes = (dias) => new Date(Date.now() - dias * DIA).toISOString()
+
+  const { data: paraExpirar } = await supabase
+    .from('pedidos_servico')
+    .select('id, titulo, cliente_user_id')
+    .eq('status', 'aberto')
+    .lt('criado_em', antes(30))
+    .limit(500)
+
+  let expirados = 0
+  for (const p of (paraExpirar || [])) {
+    const { error } = await supabase.from('pedidos_servico').update({ status: 'expirado' }).eq('id', p.id).eq('status', 'aberto')
+    if (error) continue
+    expirados++
+    if (p.cliente_user_id) {
+      await supabase.from('notificacoes').insert({
+        user_id: p.cliente_user_id,
+        titulo: 'Seu pedido foi encerrado',
+        corpo: `"${p.titulo}" ficou 30 dias sem contratação e foi encerrado. Se ainda precisa, é só publicar de novo.`,
+        tipo: 'pedido',
+        url: '/pedidos/novo',
+      })
+    }
+  }
+
+  // Aviso um dia só (entre 23 e 24 dias): o cron roda 1x por dia, então ninguém recebe duas vezes.
+  const { data: paraAvisar } = await supabase
+    .from('pedidos_servico')
+    .select('id, titulo, cliente_user_id')
+    .eq('status', 'aberto')
+    .lt('criado_em', antes(23))
+    .gte('criado_em', antes(24))
+    .limit(500)
+
+  let avisados = 0
+  for (const p of (paraAvisar || [])) {
+    if (!p.cliente_user_id) continue
+    await supabase.from('notificacoes').insert({
+      user_id: p.cliente_user_id,
+      titulo: 'Você ainda precisa deste serviço?',
+      corpo: `"${p.titulo}" será encerrado em 7 dias se ninguém for contratado. Veja as propostas ou converse com os profissionais.`,
+      tipo: 'pedido',
+      url: `/pedidos/${p.id}`,
+    })
+    avisados++
+  }
+
+  return { ok: true, expirados, avisados }
+}
+
 // Zera as linhas de rate_limits mais antigas que 1 dia — sem isso a
 // tabela cresceria pra sempre (ver supabase/25_rate_limit_real.sql).
 // Resumo diário dos alertas das últimas 24 horas. Sai por e-mail (Resend) para o admin quando houver algo a contar;

@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Image, Play, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { colors } from '../lib/design'
-import { prepararArquivo, enviarParaStorage } from '../lib/midia'
+import { prepararArquivo, enviarParaStorage, ErroDeMidia } from '../lib/midia'
 import { useErroDeEnvio } from '../lib/useErroDeEnvio'
+import { limitesDoPlano, nomeDoPlano } from '../lib/limitesDoPlano'
 import SeletorDeFotos from './SeletorDeFotos'
 
-export default function Portfolio({ prestadorId }) {
+export default function Portfolio({ prestadorId, planoId, planoStatus }) {
+  const limiteFotos = limitesDoPlano(planoId, planoStatus).fotos
   const [midias, setMidias] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
@@ -27,8 +30,15 @@ export default function Portfolio({ prestadorId }) {
   }, [prestadorId])
 
   const enviarArquivos = async (arquivos) => {
-    setEnviando(true)
     envio.limpar()
+    const vagas = limiteFotos - midias.length
+    if (vagas <= 0) {
+      envio.falhou(new ErroDeMidia(`O plano ${nomeDoPlano(planoId)} permite até ${limiteFotos} fotos no portfólio, e você já chegou nesse limite. Remova alguma foto ou mude de plano.`))
+      return
+    }
+    const excedeu = arquivos.length > vagas
+    arquivos = arquivos.slice(0, vagas)
+    setEnviando(true)
     let ordem = midias.length
     let falhas = 0
     let ultimoErro = null
@@ -52,6 +62,7 @@ export default function Portfolio({ prestadorId }) {
     }
 
     if (falhas) envio.falhou(ultimoErro)
+    else if (excedeu) envio.falhou(new ErroDeMidia(`O plano ${nomeDoPlano(planoId)} permite até ${limiteFotos} fotos. Só as primeiras foram adicionadas.`))
     else envio.deuCerto()
     setProgresso('')
     setEnviando(false)
@@ -115,7 +126,10 @@ export default function Portfolio({ prestadorId }) {
       )}
 
       <p className="text-xs mt-3" style={{ color: colors.textSub }}>
-        {midias.length} {midias.length === 1 ? 'item' : 'itens'} no portfólio · Toque no X da foto para remover
+        {Number.isFinite(limiteFotos) ? `${midias.length} de ${limiteFotos} fotos no portfólio` : `${midias.length} ${midias.length === 1 ? 'item' : 'itens'} no portfólio`} · Toque no X da foto para remover
+        {Number.isFinite(limiteFotos) && midias.length >= limiteFotos && (
+          <> · <Link to="/planos" style={{ color: colors.primaryHover, fontWeight: 700 }}>Ver planos com fotos ilimitadas</Link></>
+        )}
       </p>
     </div>
   )
