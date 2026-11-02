@@ -59,7 +59,7 @@ export default function SeletorDeFotos({ onArquivos, enviando = false, progresso
         )}
       </div>
 
-      <AjudaEnvioFotos erro={erro} tentativas={tentativas} aceitaVideo={aceitaVideo} />
+      <AjudaEnvioFotos erro={erro} tentativas={tentativas} aceitaVideo={aceitaVideo} podeFotografar={podeFotografar} />
     </div>
   )
 }

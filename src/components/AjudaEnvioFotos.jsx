@@ -6,7 +6,7 @@ import { LIMITE_VIDEO_MB } from '../lib/midia'
 
 // Ajuda para quem tem pouca prática: sempre à mão ("Como enviar fotos?") e aberta sozinha quando um envio dá erro.
 // Depois de 2 erros seguidos oferece falar com o suporte, já com o assunto preenchido.
-export default function AjudaEnvioFotos({ erro, tentativas = 0, aceitaVideo = true, className = '' }) {
+export default function AjudaEnvioFotos({ erro, tentativas = 0, aceitaVideo = true, podeFotografar = true, className = '' }) {
   const [aberta, setAberta] = useState(Boolean(erro))
   useEffect(() => { if (erro) setAberta(true) }, [erro])
 
@@ -38,8 +38,17 @@ export default function AjudaEnvioFotos({ erro, tentativas = 0, aceitaVideo = tr
         <div style={{ marginTop: 6, padding: 16, borderRadius: radius.input, background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
           <p style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 700, color: colors.text }}>É simples, em 3 passos</p>
           <ol style={{ margin: 0, paddingLeft: 22, fontSize: 15, lineHeight: 1.55, color: colors.text, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <li>Toque em <strong>“Tirar foto agora”</strong> para fotografar na hora, ou em <strong>“Escolher da galeria”</strong> para usar uma foto que já está no seu celular.</li>
-            <li>Se escolher da galeria, toque na foto{aceitaVideo ? ' (ou no vídeo)' : ''}. Dá para marcar várias de uma vez. Depois confirme.</li>
+            {podeFotografar ? (
+              <>
+                <li>Toque em <strong>“Tirar foto agora”</strong> para fotografar na hora, ou em <strong>“Escolher da galeria”</strong> para usar uma foto que já está no seu celular.</li>
+                <li>Se escolher da galeria, toque na foto{aceitaVideo ? ' (ou no vídeo)' : ''}. Dá para marcar várias de uma vez. Depois confirme.</li>
+              </>
+            ) : (
+              <>
+                <li>Clique em <strong>“Escolher foto do computador”</strong>.</li>
+                <li>Na janela que abrir, clique na foto{aceitaVideo ? ' (ou no vídeo)' : ''} e depois em <strong>“Abrir”</strong>. Para várias de uma vez, segure a tecla Ctrl enquanto clica.</li>
+              </>
+            )}
             <li>Espere uns segundos. A foto aparece aqui na tela quando termina de enviar.</li>
           </ol>
 
