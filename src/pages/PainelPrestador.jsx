@@ -383,16 +383,14 @@ export default function PainelPrestador() {
             <TabHeader icon={User} title="Editar perfil" />
 
             {/* Foto de perfil */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, borderRadius: 16, background: colors.bg }}>
+            <div style={{ marginBottom: 24, padding: 16, borderRadius: 16, background: colors.bg }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Foto de perfil</p>
+              <p style={{ fontSize: 13, color: colors.textSub, margin: '0 0 14px' }}>Profissionais com foto recebem 3x mais contatos.</p>
               <FotoPerfilUpload
                 prestadorId={prestador.id}
                 fotoAtual={prestador.foto_perfil}
                 onAtualizar={(url) => setPrestador({ ...prestador, foto_perfil: url })}
               />
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Foto de perfil</p>
-                <p style={{ fontSize: 12, color: colors.textSub, margin: 0 }}>Clique na foto para alterar. Profissionais com foto recebem 3x mais contatos.</p>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 16, marginBottom: 16 }}>
@@ -778,7 +776,7 @@ export default function PainelPrestador() {
         {/* ABA: AVALIAÇÕES */}
         {aba === 'avaliacoes' && (
           <Card padding={24}>
-            <TabHeader icon={Star} title="Minhas avaliações" desc={`${avaliacoes.length} avaliação${avaliacoes.length !== 1 ? 'ões' : ''} recebida${avaliacoes.length !== 1 ? 's' : ''}`} />
+            <TabHeader icon={Star} title="Minhas avaliações" desc={`${avaliacoes.length} ${avaliacoes.length === 1 ? 'avaliação recebida' : 'avaliações recebidas'}`} />
 
             {avaliacoes.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>

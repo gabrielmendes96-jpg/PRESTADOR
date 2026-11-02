@@ -115,7 +115,7 @@ export default function Portfolio({ prestadorId }) {
       )}
 
       <p className="text-xs mt-3" style={{ color: colors.textSub }}>
-        {midias.length} item{midias.length !== 1 ? 's' : ''} no portfólio · Toque no X da foto para remover
+        {midias.length} {midias.length === 1 ? 'item' : 'itens'} no portfólio · Toque no X da foto para remover
       </p>
     </div>
   )
