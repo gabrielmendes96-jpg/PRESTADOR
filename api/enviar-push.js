@@ -3,6 +3,7 @@
 
 import { verificarUsuario } from './_verificarUsuario.js'
 import { checkRateLimit } from './_rateLimit.js'
+import { EMAIL_CONTATO } from '../src/lib/contato.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
 
     const webpush = await import('web-push')
     webpush.default.setVapidDetails(
-      'mailto:contato@prestador.app',
+      `mailto:${EMAIL_CONTATO}`,
       VAPID_PUBLIC,
       VAPID_PRIVATE
     )

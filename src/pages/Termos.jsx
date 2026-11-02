@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react'
 import { colors } from '../lib/design'
 import Card from '../components/ui/Card'
 import IconButton from '../components/ui/IconButton'
+import { EMAIL_CONTATO } from '../lib/contato'
 
 export default function Termos() {
   const navigate = useNavigate()
@@ -33,7 +34,7 @@ export default function Termos() {
         <div>
           <h2 className="text-base font-semibold mb-2" style={{ color: colors.text }}>3. Coleta e uso de dados (LGPD)</h2>
           <p className="text-sm leading-relaxed" style={{ color: colors.textSub }}>
-            Coletamos nome, e-mail, telefone, localização e dados de uso para operar a plataforma, melhorar nossos serviços e enviar comunicações relevantes. Seus dados nunca serão vendidos a terceiros. Você pode solicitar a exclusão da sua conta e dados a qualquer momento pelo e-mail contato@prestador.app.
+            Coletamos nome, e-mail, telefone, localização e dados de uso para operar a plataforma, melhorar nossos serviços e enviar comunicações relevantes. Seus dados nunca serão vendidos a terceiros. Você pode solicitar a exclusão da sua conta e dados a qualquer momento pelo e-mail {EMAIL_CONTATO}.
           </p>
         </div>
 
@@ -61,7 +62,7 @@ export default function Termos() {
         <div>
           <h2 className="text-base font-semibold mb-2" style={{ color: colors.text }}>7. Contato</h2>
           <p className="text-sm leading-relaxed" style={{ color: colors.textSub }}>
-            Dúvidas sobre privacidade ou estes termos: contato@prestador.app
+            Dúvidas sobre privacidade ou estes termos: {EMAIL_CONTATO}
           </p>
         </div>
       </Card>

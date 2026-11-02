@@ -4,6 +4,7 @@
 
 import { checkRateLimit, getClientIp } from './_rateLimit.js'
 import { verificarAdmin } from './_verificarAdmin.js'
+import { EMAIL_CONTATO } from '../src/lib/contato.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`
 
         const resp = await fetch(url, {
-          headers: { 'User-Agent': 'PrestadorApp/1.0 contato@prestador.app' }
+          headers: { 'User-Agent': `PrestadorApp/1.0 ${EMAIL_CONTATO}` }
         })
         const data = await resp.json()
 

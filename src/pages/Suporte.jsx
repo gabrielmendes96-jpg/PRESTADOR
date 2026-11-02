@@ -6,6 +6,7 @@ import { useAuth } from '../lib/AuthContext'
 import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import { EMAIL_CONTATO } from '../lib/contato'
 
 const CATEGORIAS = [
   { id: 'pagamento', label: 'Pagamento ou cobrança' },
@@ -72,7 +73,7 @@ export default function Suporte() {
     if (error) {
       setErro(error.message?.includes('muitos chamados')
         ? error.message
-        : 'Não foi possível enviar agora. Tente de novo em instantes ou escreva para contato@prestador.app.')
+        : `Não foi possível enviar agora. Tente de novo em instantes ou escreva para ${EMAIL_CONTATO}.`)
       return
     }
 
@@ -97,7 +98,7 @@ export default function Suporte() {
           </p>
           <Button fullWidth onClick={() => navigate('/login')}>Entrar para pedir ajuda</Button>
           <p style={{ fontSize: 12, color: colors.textSub, margin: '16px 0 0' }}>
-            Não consegue entrar? Escreva para <strong>contato@prestador.app</strong>
+            Não consegue entrar? Escreva para <strong>{EMAIL_CONTATO}</strong>
           </p>
         </Card>
       </div>
@@ -156,7 +157,7 @@ export default function Suporte() {
           {enviando ? 'Enviando...' : 'Enviar chamado'}
         </Button>
         <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: colors.textSub, margin: 0 }}>
-          <Mail size={13} /> Prefere e-mail? contato@prestador.app
+          <Mail size={13} /> Prefere e-mail? {EMAIL_CONTATO}
         </p>
       </Card>
 
