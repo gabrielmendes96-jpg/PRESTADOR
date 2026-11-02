@@ -245,15 +245,27 @@ export async function expirarPedidosAntigos(supabase) {
     .limit(500)
 
   let expirados = 0
+  let creditosDevolvidos = 0
   for (const p of (paraExpirar || [])) {
-    const { error } = await supabase.from('pedidos_servico').update({ status: 'expirado' }).eq('id', p.id).eq('status', 'aberto')
-    if (error) continue
+    // A função do banco fecha o pedido e, se ninguém se candidatou, devolve o crédito, tudo de uma vez e uma única vez.
+    let { data: resultado, error } = await supabase.rpc('expirar_pedido', { p_pedido_id: p.id })
+    if (error) {
+      // Função ainda não instalada no banco: ao menos fecha o pedido (sem devolver crédito).
+      const { error: erroUpdate } = await supabase.from('pedidos_servico').update({ status: 'expirado' }).eq('id', p.id).eq('status', 'aberto')
+      if (erroUpdate) continue
+      resultado = 'expirado'
+    }
+    if (resultado === 'ignorado') continue
     expirados++
+    const devolveu = resultado === 'expirado_com_credito'
+    if (devolveu) creditosDevolvidos++
     if (p.cliente_user_id) {
       await supabase.from('notificacoes').insert({
         user_id: p.cliente_user_id,
         titulo: 'Seu pedido foi encerrado',
-        corpo: `"${p.titulo}" ficou 30 dias sem contratação e foi encerrado. Se ainda precisa, é só publicar de novo.`,
+        corpo: devolveu
+          ? `"${p.titulo}" ficou 30 dias sem nenhuma resposta e foi encerrado. Devolvemos 1 crédito para você publicar de novo.`
+          : `"${p.titulo}" ficou 30 dias sem contratação e foi encerrado. Se ainda precisa, é só publicar de novo.`,
         tipo: 'pedido',
         url: '/pedidos/novo',
       })
@@ -282,7 +294,7 @@ export async function expirarPedidosAntigos(supabase) {
     avisados++
   }
 
-  return { ok: true, expirados, avisados }
+  return { ok: true, expirados, creditosDevolvidos, avisados }
 }
 
 // Zera as linhas de rate_limits mais antigas que 1 dia — sem isso a

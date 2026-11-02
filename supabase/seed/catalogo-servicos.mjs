@@ -72,7 +72,6 @@ export default {
     'Plotagem de vitrine', 'Adesivo de parede infantil', 'Adesivo personalizado com frase', 'Remoção de adesivos',
     'Aplicação de película decorativa', 'Adesivo para azulejo',
   ],
-  petisco: adestramento,
   adestrador: adestramento,
   ajuste_roupa: [
     'Barra de calça', 'Barra de saia e vestido', 'Ajuste de cintura', 'Ajuste de manga', 'Troca de zíper', 'Conserto de rasgos e furos',
@@ -133,7 +132,6 @@ export default {
     'Espanhol básico', 'Espanhol intermediário e avançado', 'Conversação em espanhol', 'Espanhol para viagem', 'Espanhol para negócios',
     'Preparação para DELE', 'Espanhol para crianças', 'Aula online', 'Reforço escolar de espanhol', 'Aula particular em domicílio',
   ],
-  aula_informatica: informatica,
   aula_informatica_edu: informatica,
   aula_ingles: [
     'Inglês básico', 'Inglês intermediário e avançado', 'Inglês para crianças', 'Preparação para TOEFL e IELTS', 'Inglês para entrevistas de emprego',
@@ -220,7 +218,6 @@ export default {
     'Cerimonial de casamento', 'Assessoria de casamento (dia do evento)', 'Cerimonial de formatura', 'Cerimonial de 15 anos', 'Assessoria completa de evento',
     'Cerimonial corporativo', 'Cerimonial de aniversário', 'Cerimonial de batizado', 'Planejamento de cerimônia', 'Cerimonial de bodas',
   ],
-  cftv_seguranca: cftv,
   cftv: cftv,
   chaveiro: [
     'Abertura de carro', 'Cópia de chaves', 'Troca de fechadura', 'Troca de segredo', 'Chaveiro 24 horas', 'Chave codificada de carro',
@@ -258,7 +255,6 @@ export default {
     'Laje de concreto', 'Contrapiso', 'Piso de concreto', 'Concretagem de sapata e viga', 'Concreto usinado (fornecimento)', 'Concretagem de calçada',
     'Concreto polido', 'Concretagem de pilares', 'Bombeamento de concreto', 'Reparo estrutural em concreto',
   ],
-  confeiteiro_ali: confeitaria,
   confeiteiro: confeitaria,
   vazamento: [
     'Caça-vazamento', 'Conserto de vazamento em parede', 'Conserto de vazamento em laje', 'Reparo de cano estourado', 'Vazamento em torneira e registro',
@@ -436,7 +432,6 @@ export default {
     'Limpeza de fossa', 'Desentupimento de fossa', 'Construção de fossa séptica', 'Instalação de sumidouro', 'Limpeza de caixa de gordura', 'Manutenção de esgoto',
     'Caminhão limpa-fossa', 'Instalação de biodigestor', 'Reparo de tubulação de esgoto', 'Limpeza de caixas de inspeção',
   ],
-  fotografo: fotografoGeral,
   fotografia: fotografoGeral,
   fotografo_eventos: [
     'Fotografia de aniversário', 'Fotografia de casamento', 'Fotografia de evento corporativo', 'Fotografia de formatura', 'Fotografia de festa infantil',

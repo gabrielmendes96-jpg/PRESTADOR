@@ -1558,4 +1558,97 @@ describe('Fluxo crítico', () => {
     }
   }, 40000)
 
+  it('45. Plano Básico — o banco recusa a 11ª foto do portfólio; plano ativo maior não tem limite', async () => {
+    const dono = state.prestadorSessao.cliente
+    const foto = (i) => ({ prestador_id: state.prestadorId, url: `https://exemplo.com/teste-${i}.jpg`, tipo: 'foto', ordem: i })
+    try {
+      await admin.from('prestadores').update({ plano_id: 'basico', plano_status: 'ativo' }).eq('id', state.prestadorId)
+      for (let i = 0; i < 10; i++) {
+        const { error } = await dono.from('portfolio_prestador').insert(foto(i))
+        expect(error).toBeNull()
+      }
+      const { error: onze } = await dono.from('portfolio_prestador').insert(foto(10))
+      expect(onze?.message).toMatch(/até 10 fotos/)
+
+      // Plano pago mas não ativo continua valendo como Básico.
+      await admin.from('prestadores').update({ plano_id: 'profissional', plano_status: 'suspenso' }).eq('id', state.prestadorId)
+      const { error: suspenso } = await dono.from('portfolio_prestador').insert(foto(10))
+      expect(suspenso?.message).toMatch(/até 10 fotos/)
+
+      // Profissional ativo: sem limite.
+      await admin.from('prestadores').update({ plano_id: 'profissional', plano_status: 'ativo' }).eq('id', state.prestadorId)
+      const { error: liberado } = await dono.from('portfolio_prestador').insert(foto(10))
+      expect(liberado).toBeNull()
+    } finally {
+      await admin.from('portfolio_prestador').delete().eq('prestador_id', state.prestadorId)
+      await admin.from('prestadores').update({ plano_id: 'basico' }).eq('id', state.prestadorId)
+    }
+  }, 60000)
+
+  it('46. Boas-vindas — cliente novo ganha 2 pedidos grátis uma única vez; quem já tinha créditos não ganha', async () => {
+    const novo = await criarUsuarioTeste('boasvindas')
+    try {
+      const { data: primeira, error } = await novo.cliente.rpc('dar_creditos_de_boas_vindas')
+      expect(error).toBeNull()
+      expect(primeira).toBe(2)
+      const { data: segunda } = await novo.cliente.rpc('dar_creditos_de_boas_vindas')
+      expect(segunda).toBe(0)
+      const { data: saldo } = await admin.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', novo.userId).single()
+      expect(saldo.creditos_disponiveis).toBe(2)
+
+      // O cliente das etapas anteriores já tem registro de créditos: não ganha de novo.
+      const { data: jaTinha } = await state.clienteSessao.cliente.rpc('dar_creditos_de_boas_vindas')
+      expect(jaTinha).toBe(0)
+    } finally {
+      await admin.from('creditos_cliente').delete().eq('user_id', novo.userId)
+      await admin.from('notificacoes').delete().eq('user_id', novo.userId)
+      await admin.auth.admin.deleteUser(novo.userId)
+    }
+  }, 40000)
+
+  it('47. Pedido expira sem resposta — devolve o crédito uma única vez; com candidatura não devolve; ninguém além do servidor chama', async () => {
+    const criados = []
+    const saldo = async () => (await admin.from('creditos_cliente').select('creditos_disponiveis').eq('user_id', state.clienteUserId).single()).data.creditos_disponiveis
+    const novoPedido = async () => {
+      const { data } = await admin.from('pedidos_servico').insert({
+        cliente_user_id: state.clienteUserId, cliente_nome: 'Cliente de Teste', titulo: 'Pedido para expirar',
+        categoria_id: state.categoriaId, cidade: 'São Paulo', estado: 'SP', valor_pago: 9, pago: true, status: 'aberto',
+      }).select().single()
+      criados.push(data.id)
+      return data.id
+    }
+    try {
+      await admin.from('creditos_cliente').update({ creditos_disponiveis: 5 }).eq('user_id', state.clienteUserId)
+
+      // Sem nenhuma resposta: volta 1 crédito, e só uma vez.
+      const semResposta = await novoPedido()
+      expect((await admin.rpc('expirar_pedido', { p_pedido_id: semResposta })).data).toBe('expirado_com_credito')
+      expect(await saldo()).toBe(6)
+      expect((await admin.rpc('expirar_pedido', { p_pedido_id: semResposta })).data).toBe('ignorado')
+      expect(await saldo()).toBe(6)
+      const { data: p } = await admin.from('pedidos_servico').select('status').eq('id', semResposta).single()
+      expect(p.status).toBe('expirado')
+
+      // Com candidatura (houve resposta): fecha, mas não devolve.
+      const comResposta = await novoPedido()
+      await admin.from('candidaturas').insert({ pedido_id: comResposta, prestador_id: state.prestadorId, mensagem: 'Posso fazer.' })
+      expect((await admin.rpc('expirar_pedido', { p_pedido_id: comResposta })).data).toBe('expirado')
+      expect(await saldo()).toBe(6)
+
+      // Pedido que já não está aberto é ignorado.
+      const emAndamento = await novoPedido()
+      await admin.from('pedidos_servico').update({ status: 'em_andamento' }).eq('id', emAndamento)
+      expect((await admin.rpc('expirar_pedido', { p_pedido_id: emAndamento })).data).toBe('ignorado')
+
+      // Cliente comum não consegue chamar a função (senão geraria crédito de graça).
+      const { error: recusado } = await state.clienteSessao.cliente.rpc('expirar_pedido', { p_pedido_id: await novoPedido() })
+      expect(recusado).toBeTruthy()
+      expect(await saldo()).toBe(6)
+    } finally {
+      for (const id of criados) {
+        await admin.from('candidaturas').delete().eq('pedido_id', id)
+        await admin.from('pedidos_servico').delete().eq('id', id)
+      }
+    }
+  }, 60000)
 })

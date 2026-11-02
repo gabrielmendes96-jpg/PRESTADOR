@@ -135,22 +135,6 @@ on conflict (categoria_id, nome) do nothing;
 
 insert into servicos_catalogo (categoria_id, nome)
 select d.categoria_id, d.nome from (values
-  ('petisco', 'Adestramento básico (senta, deita, fica)'),
-  ('petisco', 'Adestramento de filhote'),
-  ('petisco', 'Correção de latido excessivo'),
-  ('petisco', 'Correção de agressividade e medo'),
-  ('petisco', 'Adestramento para passeio com guia'),
-  ('petisco', 'Treino de ficar sozinho em casa'),
-  ('petisco', 'Adestramento em domicílio'),
-  ('petisco', 'Pacote de aulas mensais'),
-  ('petisco', 'Socialização de cães'),
-  ('petisco', 'Orientação para tutores')
-) as d(categoria_id, nome)
-where exists (select 1 from categorias c where c.id = d.categoria_id)
-on conflict (categoria_id, nome) do nothing;
-
-insert into servicos_catalogo (categoria_id, nome)
-select d.categoria_id, d.nome from (values
   ('adestrador', 'Adestramento básico (senta, deita, fica)'),
   ('adestrador', 'Adestramento de filhote'),
   ('adestrador', 'Correção de latido excessivo'),
@@ -386,22 +370,6 @@ select d.categoria_id, d.nome from (values
   ('aula_espanhol', 'Aula online'),
   ('aula_espanhol', 'Reforço escolar de espanhol'),
   ('aula_espanhol', 'Aula particular em domicílio')
-) as d(categoria_id, nome)
-where exists (select 1 from categorias c where c.id = d.categoria_id)
-on conflict (categoria_id, nome) do nothing;
-
-insert into servicos_catalogo (categoria_id, nome)
-select d.categoria_id, d.nome from (values
-  ('aula_informatica', 'Aula de informática básica'),
-  ('aula_informatica', 'Aula de Word e Excel'),
-  ('aula_informatica', 'Aula de internet e e-mail'),
-  ('aula_informatica', 'Aula de celular para idosos'),
-  ('aula_informatica', 'Aula de Excel avançado'),
-  ('aula_informatica', 'Aula de PowerPoint e apresentações'),
-  ('aula_informatica', 'Aula de edição de fotos e vídeos'),
-  ('aula_informatica', 'Aula particular em domicílio'),
-  ('aula_informatica', 'Aula online'),
-  ('aula_informatica', 'Informática para concursos')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -759,22 +727,6 @@ on conflict (categoria_id, nome) do nothing;
 
 insert into servicos_catalogo (categoria_id, nome)
 select d.categoria_id, d.nome from (values
-  ('cftv_seguranca', 'Instalação de câmeras de segurança'),
-  ('cftv_seguranca', 'Central de monitoramento 24h'),
-  ('cftv_seguranca', 'Monitoramento remoto de imóvel'),
-  ('cftv_seguranca', 'Projeto de CFTV'),
-  ('cftv_seguranca', 'Manutenção preventiva de CFTV'),
-  ('cftv_seguranca', 'Instalação de DVR/NVR'),
-  ('cftv_seguranca', 'Câmeras com leitura de placa'),
-  ('cftv_seguranca', 'Acesso remoto pelo celular'),
-  ('cftv_seguranca', 'Cerca virtual e análise de vídeo'),
-  ('cftv_seguranca', 'Ampliação de sistema existente')
-) as d(categoria_id, nome)
-where exists (select 1 from categorias c where c.id = d.categoria_id)
-on conflict (categoria_id, nome) do nothing;
-
-insert into servicos_catalogo (categoria_id, nome)
-select d.categoria_id, d.nome from (values
   ('cftv', 'Instalação de câmeras de segurança'),
   ('cftv', 'Central de monitoramento 24h'),
   ('cftv', 'Monitoramento remoto de imóvel'),
@@ -939,26 +891,6 @@ select d.categoria_id, d.nome from (values
   ('concreto', 'Concretagem de pilares'),
   ('concreto', 'Bombeamento de concreto'),
   ('concreto', 'Reparo estrutural em concreto')
-) as d(categoria_id, nome)
-where exists (select 1 from categorias c where c.id = d.categoria_id)
-on conflict (categoria_id, nome) do nothing;
-
-insert into servicos_catalogo (categoria_id, nome)
-select d.categoria_id, d.nome from (values
-  ('confeiteiro_ali', 'Bolo de aniversário'),
-  ('confeiteiro_ali', 'Bolo de casamento'),
-  ('confeiteiro_ali', 'Bolo personalizado (tema)'),
-  ('confeiteiro_ali', 'Doces finos para festa'),
-  ('confeiteiro_ali', 'Brigadeiros gourmet'),
-  ('confeiteiro_ali', 'Cupcakes e mini bolos'),
-  ('confeiteiro_ali', 'Torta doce'),
-  ('confeiteiro_ali', 'Bolo no pote'),
-  ('confeiteiro_ali', 'Naked cake'),
-  ('confeiteiro_ali', 'Cento de docinhos'),
-  ('confeiteiro_ali', 'Pão de mel recheado'),
-  ('confeiteiro_ali', 'Sobremesas para eventos'),
-  ('confeiteiro_ali', 'Bolo sem glúten ou sem lactose'),
-  ('confeiteiro_ali', 'Ovos de Páscoa artesanais')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;
@@ -1738,24 +1670,6 @@ select d.categoria_id, d.nome from (values
   ('fossa', 'Instalação de biodigestor'),
   ('fossa', 'Reparo de tubulação de esgoto'),
   ('fossa', 'Limpeza de caixas de inspeção')
-) as d(categoria_id, nome)
-where exists (select 1 from categorias c where c.id = d.categoria_id)
-on conflict (categoria_id, nome) do nothing;
-
-insert into servicos_catalogo (categoria_id, nome)
-select d.categoria_id, d.nome from (values
-  ('fotografo', 'Ensaio fotográfico individual'),
-  ('fotografo', 'Ensaio de casal'),
-  ('fotografo', 'Ensaio de família'),
-  ('fotografo', 'Ensaio gestante'),
-  ('fotografo', 'Book profissional'),
-  ('fotografo', 'Fotos para redes sociais e perfil'),
-  ('fotografo', 'Fotografia de produtos'),
-  ('fotografo', 'Fotografia de formatura'),
-  ('fotografo', 'Fotografia de aniversário'),
-  ('fotografo', 'Fotografia de casamento'),
-  ('fotografo', 'Tratamento e edição de fotos'),
-  ('fotografo', 'Fotos newborn (recém-nascido)')
 ) as d(categoria_id, nome)
 where exists (select 1 from categorias c where c.id = d.categoria_id)
 on conflict (categoria_id, nome) do nothing;

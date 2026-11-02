@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { expirarPedidosAntigos } from './manutencao.js'
 
 // Supabase de mentira: cada consulta devolve o que foi combinado e registra o que foi gravado.
-function bancoFalso({ pedidos }) {
-  const gravado = { updates: [], notificacoes: [] }
+function bancoFalso({ pedidos, resultadoRpc = 'expirado', rpcFalha = false }) {
+  const gravado = { updates: [], notificacoes: [], rpc: [] }
   const consulta = (tabela) => {
     const filtros = {}
     const q = {
@@ -18,18 +18,38 @@ function bancoFalso({ pedidos }) {
     }
     return q
   }
-  return { gravado, from: consulta }
+  const rpc = (nome, args) => { gravado.rpc.push({ nome, args }); return Promise.resolve(rpcFalha ? { data: null, error: { message: 'function does not exist' } } : { data: resultadoRpc, error: null }) }
+  return { gravado, from: consulta, rpc }
 }
 
 describe('expirarPedidosAntigos', () => {
   it('fecha os pedidos com mais de 30 dias e avisa o cliente', async () => {
     const banco = bancoFalso({ pedidos: { expirar: [{ id: 'p1', titulo: 'Trocar chuveiro', cliente_user_id: 'u1' }], avisar: [] } })
     const r = await expirarPedidosAntigos(banco)
-    expect(r).toMatchObject({ ok: true, expirados: 1, avisados: 0 })
-    expect(banco.gravado.updates[0].dados).toEqual({ status: 'expirado' })
-    expect(banco.gravado.updates[0].filtros.status).toBe('aberto') // nunca fecha pedido que já está em andamento
+    expect(r).toMatchObject({ ok: true, expirados: 1, creditosDevolvidos: 0, avisados: 0 })
+    expect(banco.gravado.rpc[0]).toEqual({ nome: 'expirar_pedido', args: { p_pedido_id: 'p1' } })
     expect(banco.gravado.notificacoes[0].user_id).toBe('u1')
     expect(banco.gravado.notificacoes[0].corpo).toContain('Trocar chuveiro')
+    expect(banco.gravado.notificacoes[0].corpo).not.toMatch(/Devolvemos/)
+  })
+  it('pedido sem nenhuma resposta devolve o crédito e o cliente é avisado', async () => {
+    const banco = bancoFalso({ resultadoRpc: 'expirado_com_credito', pedidos: { expirar: [{ id: 'p1', titulo: 'Trocar chuveiro', cliente_user_id: 'u1' }], avisar: [] } })
+    const r = await expirarPedidosAntigos(banco)
+    expect(r).toMatchObject({ expirados: 1, creditosDevolvidos: 1 })
+    expect(banco.gravado.notificacoes[0].corpo).toMatch(/Devolvemos 1 crédito/)
+  })
+  it('pedido que o banco ignora (já não estava aberto) não conta nem avisa', async () => {
+    const banco = bancoFalso({ resultadoRpc: 'ignorado', pedidos: { expirar: [{ id: 'p1', titulo: 'x', cliente_user_id: 'u1' }], avisar: [] } })
+    const r = await expirarPedidosAntigos(banco)
+    expect(r).toMatchObject({ expirados: 0, creditosDevolvidos: 0 })
+    expect(banco.gravado.notificacoes).toHaveLength(0)
+  })
+  it('se a função do banco ainda não existe, fecha o pedido sem devolver crédito', async () => {
+    const banco = bancoFalso({ rpcFalha: true, pedidos: { expirar: [{ id: 'p1', titulo: 'x', cliente_user_id: 'u1' }], avisar: [] } })
+    const r = await expirarPedidosAntigos(banco)
+    expect(r).toMatchObject({ expirados: 1, creditosDevolvidos: 0 })
+    expect(banco.gravado.updates[0].dados).toEqual({ status: 'expirado' })
+    expect(banco.gravado.updates[0].filtros.status).toBe('aberto') // nunca fecha pedido que já está em andamento
   })
   it('avisa aos 23 dias sem fechar o pedido', async () => {
     const banco = bancoFalso({ pedidos: { expirar: [], avisar: [{ id: 'p2', titulo: 'Pintar sala', cliente_user_id: 'u2' }] } })
