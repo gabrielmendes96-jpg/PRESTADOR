@@ -4,6 +4,11 @@ import { useAuth } from '../lib/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Star, Trophy, DollarSign, Clock, Sparkles, MessageCircle, Calendar, Check, X, Info, Play } from 'lucide-react'
 import { colors } from '../lib/design'
+import { prepararArquivo, enviarParaStorage, ErroDeMidia } from '../lib/midia'
+import { useErroDeEnvio } from '../lib/useErroDeEnvio'
+import SeletorDeFotos from './SeletorDeFotos'
+
+const MAX_MIDIAS = 6
 
 // Critérios unificados — antes o formulário gravava em
 // preco_avaliacao/tempo_servico/higiene, mas a média pública só lia
@@ -68,27 +73,36 @@ function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
   const { usuario } = useAuth()
   const [notas, setNotas] = useState({ nota: null, qualidade: null, preco: null, limpeza: null, comunicacao: null, pontualidade: null })
   const [comentario, setComentario] = useState('')
-  const [midias, setMidias] = useState([])
-  const [previews, setPreviews] = useState([])
+  const [midias, setMidias] = useState([]) // [{ preparado, url, tipo }] — já conferidas e encolhidas
+  const [preparando, setPreparando] = useState(false)
+  const envioMidia = useErroDeEnvio()
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [erro, setErro] = useState('')
 
-  const handleArquivos = (e) => {
-    const arquivos = Array.from(e.target.files)
-    const novoPreviews = arquivos.map(f => ({
-      url: URL.createObjectURL(f),
-      tipo: f.type.startsWith('video') ? 'video' : 'foto',
-      file: f,
-    }))
-    setMidias([...midias, ...arquivos])
-    setPreviews([...previews, ...novoPreviews])
+  const handleArquivos = async (arquivos) => {
+    envioMidia.limpar()
+    const vagas = MAX_MIDIAS - midias.length
+    if (vagas <= 0) { envioMidia.falhou(new ErroDeMidia(`O máximo é ${MAX_MIDIAS} fotos por avaliação. Remova alguma para colocar outra.`)); return }
+    setPreparando(true)
+    const novas = []
+    let ultimoErro = null
+    for (const f of arquivos.slice(0, vagas)) {
+      try {
+        const preparado = await prepararArquivo(f)
+        novas.push({ preparado, url: URL.createObjectURL(preparado.arquivo), tipo: preparado.tipo })
+      } catch (e) {
+        ultimoErro = e
+      }
+    }
+    if (novas.length) setMidias(prev => [...prev, ...novas])
+    if (ultimoErro) envioMidia.falhou(ultimoErro)
+    else if (arquivos.length > vagas) envioMidia.falhou(new ErroDeMidia(`O máximo é ${MAX_MIDIAS} fotos por avaliação. Só as primeiras foram adicionadas.`))
+    else envioMidia.deuCerto()
+    setPreparando(false)
   }
 
-  const removerMidia = (idx) => {
-    setMidias(midias.filter((_, i) => i !== idx))
-    setPreviews(previews.filter((_, i) => i !== idx))
-  }
+  const removerMidia = (idx) => setMidias(midias.filter((_, i) => i !== idx))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -113,23 +127,18 @@ function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
 
       if (error) throw error
 
-      // Upload de mídias
-      for (const arquivo of midias) {
-        const ext = arquivo.name.split('.').pop()
-        const caminho = `avaliacoes/${avaliacao.id}/${Date.now()}.${ext}`
-        const { data: upload } = await supabase.storage
-          .from('midias')
-          .upload(caminho, arquivo)
-
-        if (upload) {
-          const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
-          await supabase.from('midias_avaliacao').insert({
-            avaliacao_id: avaliacao.id,
-            url: urlData.publicUrl,
-            tipo: arquivo.type.startsWith('video') ? 'video' : 'foto',
-          })
+      // Upload de mídias (a avaliação já existe; o que falhar não a derruba)
+      let naoSubiram = 0
+      for (const [i, m] of midias.entries()) {
+        try {
+          const { url, tipo } = await enviarParaStorage(supabase, 'midias', `avaliacoes/${avaliacao.id}/${Date.now()}-${i}`, m.preparado)
+          const { error: erroMidia } = await supabase.from('midias_avaliacao').insert({ avaliacao_id: avaliacao.id, url, tipo })
+          if (erroMidia) throw erroMidia
+        } catch {
+          naoSubiram++
         }
       }
+      if (naoSubiram) alert(`Sua avaliação foi publicada, mas ${naoSubiram === 1 ? '1 foto não foi enviada' : `${naoSubiram} fotos não foram enviadas`}.`)
 
       onPublicar({
         autor: usuario?.user_metadata?.nome || 'Você',
@@ -137,7 +146,7 @@ function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
         nota: notas.nota,
         texto: comentario || 'Ótimo serviço!',
         data: 'agora mesmo',
-        midias: previews,
+        midias: midias.map(({ url, tipo }) => ({ url, tipo })),
         notas,
       })
       setEnviado(true)
@@ -187,34 +196,31 @@ function FormAvaliacao({ prestador, conversaId, candidaturaId, onPublicar }) {
         />
 
         <div className="mb-4">
-          <p className="text-xs mb-2" style={{ color: colors.textSub }}>Adicione fotos ou vídeos do serviço</p>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {previews.map((p, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden" style={{ border: `0.5px solid ${colors.border}` }}>
-                {p.tipo === 'video' ? (
-                  <video src={p.url} className="w-full h-full object-cover" />
-                ) : (
-                  <img src={p.url} alt="preview" className="w-full h-full object-cover" />
-                )}
-                <button type="button" onClick={() => removerMidia(i)}
-                  className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full flex items-center justify-center text-white"
-                  style={{ background: 'rgba(0,0,0,0.6)' }}>
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
-            <label className="w-20 h-20 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:opacity-80"
-              style={{ border: `2px dashed ${colors.border}`, color: '#9CA3AF' }}>
-              <span className="text-xl">+</span>
-              <span className="text-xs mt-0.5">Foto/Vídeo</span>
-              <input type="file" accept="image/*,video/*" multiple onChange={handleArquivos} className="hidden" />
-            </label>
-          </div>
+          <p className="text-sm mb-2" style={{ color: colors.textSub }}>Adicione fotos ou vídeos do serviço (opcional, até {MAX_MIDIAS})</p>
+          {midias.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {midias.map((p, i) => (
+                <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden" style={{ border: `0.5px solid ${colors.border}` }}>
+                  {p.tipo === 'video' ? (
+                    <video src={p.url} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={p.url} alt="Foto anexada" className="w-full h-full object-cover" />
+                  )}
+                  <button type="button" onClick={() => removerMidia(i)} aria-label="Remover esta foto"
+                    className="absolute top-1 right-1 w-7 h-7 rounded-full flex items-center justify-center text-white"
+                    style={{ background: 'rgba(0,0,0,0.65)' }}>
+                    <X size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <SeletorDeFotos onArquivos={handleArquivos} enviando={preparando} verbo="Preparando" erro={envioMidia.erro} tentativas={envioMidia.tentativas} />
         </div>
 
         {erro && <p className="text-xs mb-3 p-2 rounded-lg" style={{ color: '#B91C1C', background: '#FEF2F2' }}>{erro}</p>}
 
-        <button type="submit" disabled={enviando}
+        <button type="submit" disabled={enviando || preparando}
           className="w-full py-2.5 text-white text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60"
           style={{ background: colors.primary }}>
           {enviando ? 'Publicando...' : 'Publicar avaliação'}

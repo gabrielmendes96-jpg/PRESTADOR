@@ -1,14 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
-import { Upload, Image, Play, X, Camera as CameraIcon } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Image, Play, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { colors } from '../lib/design'
-import { isNative, tirarFotoNativa } from '../lib/native'
+import { prepararArquivo, enviarParaStorage } from '../lib/midia'
+import { useErroDeEnvio } from '../lib/useErroDeEnvio'
+import SeletorDeFotos from './SeletorDeFotos'
 
 export default function Portfolio({ prestadorId }) {
   const [midias, setMidias] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
-  const inputRef = useRef(null)
+  const [progresso, setProgresso] = useState('')
+  const envio = useErroDeEnvio()
 
   useEffect(() => {
     if (!prestadorId) return
@@ -23,54 +26,34 @@ export default function Portfolio({ prestadorId }) {
       })
   }, [prestadorId])
 
-  const handleUpload = async (e) => {
-    const arquivos = Array.from(e.target.files)
-    if (!arquivos.length) return
-    await enviarArquivos(arquivos)
-    if (inputRef.current) inputRef.current.value = ''
-  }
-
-  const handleFotoNativa = async () => {
-    try {
-      const arquivo = await tirarFotoNativa()
-      await enviarArquivos([arquivo])
-    } catch (e) {
-      // Usuário cancelou a câmera/galeria — não é um erro de verdade.
-    }
-  }
-
   const enviarArquivos = async (arquivos) => {
     setEnviando(true)
+    envio.limpar()
+    let ordem = midias.length
+    let falhas = 0
+    let ultimoErro = null
 
-    for (const arquivo of arquivos) {
-      const ext = arquivo.name.split('.').pop()
-      const caminho = `portfolio/${prestadorId}/${Date.now()}.${ext}`
-
-      const { data: upload, error } = await supabase.storage
-        .from('midias')
-        .upload(caminho, arquivo, { upsert: true })
-
-      if (error) {
-        console.error('Erro upload:', error)
-        continue
+    for (let i = 0; i < arquivos.length; i++) {
+      setProgresso(arquivos.length > 1 ? `${i + 1} de ${arquivos.length}` : '')
+      try {
+        const preparado = await prepararArquivo(arquivos[i])
+        const { url, tipo } = await enviarParaStorage(supabase, 'midias', `portfolio/${prestadorId}/${Date.now()}-${i}`, preparado)
+        const { data: nova, error } = await supabase
+          .from('portfolio_prestador')
+          .insert({ prestador_id: prestadorId, url, tipo, ordem: ordem++ })
+          .select()
+          .single()
+        if (error) throw error
+        setMidias(prev => [...prev, nova])
+      } catch (e) {
+        falhas++
+        ultimoErro = e
       }
-
-      const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
-
-      const { data: nova } = await supabase
-        .from('portfolio_prestador')
-        .insert({
-          prestador_id: prestadorId,
-          url: urlData.publicUrl,
-          tipo: arquivo.type.startsWith('video') ? 'video' : 'foto',
-          ordem: midias.length,
-        })
-        .select()
-        .single()
-
-      if (nova) setMidias(prev => [...prev, nova])
     }
 
+    if (falhas) envio.falhou(ultimoErro)
+    else envio.deuCerto()
+    setProgresso('')
     setEnviando(false)
   }
 
@@ -85,42 +68,8 @@ export default function Portfolio({ prestadorId }) {
 
   return (
     <div>
-      {/* Botão de upload */}
       <div className="mb-4">
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          onChange={handleUpload}
-          style={{ display: 'none' }}
-          id="portfolio-upload"
-        />
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => document.getElementById('portfolio-upload').click()}
-            disabled={enviando}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
-            style={{ background: colors.primary, color: '#fff' }}
-          >
-            <Upload size={16} />
-            {enviando ? 'Enviando...' : 'Adicionar fotos ou vídeos'}
-          </button>
-          {isNative() && (
-            <button
-              onClick={handleFotoNativa}
-              disabled={enviando}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl hover:opacity-90 disabled:opacity-60 transition-opacity"
-              style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
-            >
-              <CameraIcon size={16} />
-              Usar câmera
-            </button>
-          )}
-        </div>
-        <p className="text-xs mt-1" style={{ color: colors.textSub }}>
-          Você pode selecionar múltiplos arquivos de uma vez
-        </p>
+        <SeletorDeFotos onArquivos={enviarArquivos} enviando={enviando} progresso={progresso} erro={envio.erro} tentativas={envio.tentativas} />
       </div>
 
       {/* Grade de mídias */}
@@ -153,11 +102,12 @@ export default function Portfolio({ prestadorId }) {
                 </span>
               )}
               <button
-                onClick={() => remover(m.id)}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => { if (window.confirm('Remover esta foto do seu portfólio?')) remover(m.id) }}
+                aria-label="Remover esta foto"
+                className="absolute top-1 right-1 w-8 h-8 rounded-full flex items-center justify-center text-white"
                 style={{ background: 'rgba(185,28,28,0.85)' }}
               >
-                <X size={13} />
+                <X size={16} />
               </button>
             </div>
           ))}
@@ -165,7 +115,7 @@ export default function Portfolio({ prestadorId }) {
       )}
 
       <p className="text-xs mt-3" style={{ color: colors.textSub }}>
-        {midias.length} item{midias.length !== 1 ? 's' : ''} no portfólio · Passe o mouse sobre a foto para remover
+        {midias.length} item{midias.length !== 1 ? 's' : ''} no portfólio · Toque no X da foto para remover
       </p>
     </div>
   )

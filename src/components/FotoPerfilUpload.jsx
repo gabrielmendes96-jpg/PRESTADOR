@@ -1,62 +1,68 @@
 import { useState } from 'react'
-import { Camera, Loader2 } from 'lucide-react'
+import { Camera } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { colors } from '../lib/design'
+import { prepararArquivo, enviarParaStorage } from '../lib/midia'
+import { useErroDeEnvio } from '../lib/useErroDeEnvio'
 import FotoPerfilEditor from './FotoPerfilEditor'
+import SeletorDeFotos from './SeletorDeFotos'
 
 export default function FotoPerfilUpload({ prestadorId, fotoAtual, onAtualizar }) {
   const [uploading, setUploading] = useState(false)
   const [previewSrc, setPreviewSrc] = useState(null)
+  const envio = useErroDeEnvio()
 
-  const handleSelecionar = (e) => {
-    const file = e.target.files[0]
-    e.target.value = ''
-    if (!file) return
-    setPreviewSrc(URL.createObjectURL(file))
+  // A foto é conferida e encolhida antes de abrir o ajuste, para não travar com foto gigante ou em formato estranho.
+  const handleSelecionar = async ([arquivo]) => {
+    envio.limpar()
+    try {
+      const preparado = await prepararArquivo(arquivo, { permitirVideo: false, maxLado: 2000 })
+      setPreviewSrc(URL.createObjectURL(preparado.arquivo))
+    } catch (e) {
+      envio.falhou(e)
+    }
   }
 
   const handleConfirmar = async (blob) => {
     setPreviewSrc(null)
     setUploading(true)
-
-    const caminho = `perfil/${prestadorId}/foto.jpg`
-    const { error } = await supabase.storage
-      .from('midias')
-      .upload(caminho, blob, { upsert: true, contentType: 'image/jpeg' })
-
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
-      const urlComVersao = `${urlData.publicUrl}?v=${Date.now()}`
-      await supabase.from('prestadores').update({ foto_perfil: urlComVersao }).eq('id', prestadorId)
+    try {
+      const { url } = await enviarParaStorage(supabase, 'midias', `perfil/${prestadorId}/foto`, { arquivo: blob, tipo: 'foto' }, { upsert: true })
+      const urlComVersao = `${url}?v=${Date.now()}`
+      const { error } = await supabase.from('prestadores').update({ foto_perfil: urlComVersao }).eq('id', prestadorId)
+      if (error) throw error
       onAtualizar(urlComVersao)
+      envio.deuCerto()
+    } catch (e) {
+      envio.falhou(e)
     }
     setUploading(false)
   }
 
   return (
     <>
-      <label className="cursor-pointer group">
-        <div style={{ position: 'relative', width: 80, height: 80 }}>
-          {fotoAtual ? (
-            <img src={fotoAtual} alt="Foto de perfil" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} />
-          ) : (
-            <div style={{ width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.primary }}>
-              <Camera size={26} color="#fff" strokeWidth={1.8} />
-            </div>
-          )}
-          <div style={{
-            position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: colors.primary, border: '2px solid #fff',
-          }}>
-            {uploading
-              ? <Loader2 size={14} color="#fff" className="animate-spin" />
-              : <Camera size={14} color="#fff" />
-            }
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+        {fotoAtual ? (
+          <img src={fotoAtual} alt="Foto de perfil" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 80, height: 80, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: colors.primary, flexShrink: 0 }}>
+            <Camera size={26} color="#fff" strokeWidth={1.8} />
           </div>
+        )}
+        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 600, color: colors.text }}>
+            {fotoAtual ? 'Trocar a foto do perfil' : 'Coloque uma foto sua'}
+          </p>
+          <SeletorDeFotos
+            onArquivos={handleSelecionar}
+            enviando={uploading}
+            erro={envio.erro}
+            tentativas={envio.tentativas}
+            aceitaVideo={false}
+            multiple={false}
+          />
         </div>
-        <input type="file" accept="image/*" onChange={handleSelecionar} className="hidden" disabled={uploading} />
-      </label>
+      </div>
 
       {previewSrc && (
         <FotoPerfilEditor

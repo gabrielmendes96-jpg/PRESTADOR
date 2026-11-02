@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, X, Play } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { colors } from '../lib/design'
+import { prepararArquivo, enviarParaStorage } from '../lib/midia'
+import { useErroDeEnvio } from '../lib/useErroDeEnvio'
+import SeletorDeFotos from './SeletorDeFotos'
 
 export default function Destaques({ userId }) {
   const [destaques, setDestaques] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [aberto, setAberto] = useState(null)
-  const inputRef = useRef(null)
+  const [escolhendo, setEscolhendo] = useState(false)
+  const envio = useErroDeEnvio()
 
   useEffect(() => {
     if (!userId) return
@@ -23,47 +27,27 @@ export default function Destaques({ userId }) {
       })
   }, [userId])
 
-  const handleUpload = async (e) => {
-    const arquivo = e.target.files[0]
-    if (!arquivo) return
-    const titulo = window.prompt('Nome desse destaque (ex: "Minha casa", "Meu pet")')
-    if (!titulo) {
-      if (inputRef.current) inputRef.current.value = ''
-      return
-    }
+  const handleUpload = async ([arquivo]) => {
+    envio.limpar()
+    const titulo = window.prompt('Dê um nome para esse destaque (por exemplo: "Minha casa", "Meu pet")')
+    if (!titulo || !titulo.trim()) return
     setEnviando(true)
-
-    const ext = arquivo.name.split('.').pop()
-    const caminho = `destaques/${userId}/${Date.now()}.${ext}`
-
-    const { error } = await supabase.storage
-      .from('midias')
-      .upload(caminho, arquivo, { upsert: true })
-
-    if (error) {
-      console.error('Erro upload destaque:', error)
-      setEnviando(false)
-      if (inputRef.current) inputRef.current.value = ''
-      return
+    try {
+      const preparado = await prepararArquivo(arquivo)
+      const { url, tipo } = await enviarParaStorage(supabase, 'midias', `destaques/${userId}/${Date.now()}`, preparado)
+      const { data: novo, error } = await supabase
+        .from('destaques_cliente')
+        .insert({ user_id: userId, titulo: titulo.trim(), url, tipo, ordem: destaques.length })
+        .select()
+        .single()
+      if (error) throw error
+      setDestaques(prev => [...prev, novo])
+      envio.deuCerto()
+      setEscolhendo(false)
+    } catch (e) {
+      envio.falhou(e)
     }
-
-    const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
-
-    const { data: novo } = await supabase
-      .from('destaques_cliente')
-      .insert({
-        user_id: userId,
-        titulo,
-        url: urlData.publicUrl,
-        tipo: arquivo.type.startsWith('video') ? 'video' : 'foto',
-        ordem: destaques.length,
-      })
-      .select()
-      .single()
-
-    if (novo) setDestaques(prev => [...prev, novo])
     setEnviando(false)
-    if (inputRef.current) inputRef.current.value = ''
   }
 
   const remover = async (id) => {
@@ -82,23 +66,16 @@ export default function Destaques({ userId }) {
       </p>
       <div className="flex gap-3 overflow-x-auto pb-1">
         <div className="flex flex-col items-center gap-1 flex-shrink-0">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*,video/*"
-            onChange={handleUpload}
-            style={{ display: 'none' }}
-            id="destaque-upload"
-          />
           <button
-            onClick={() => document.getElementById('destaque-upload').click()}
+            onClick={() => setEscolhendo(v => !v)}
             disabled={enviando}
+            aria-label="Adicionar um destaque"
             className="flex items-center justify-center rounded-full disabled:opacity-60"
             style={{ width: 64, height: 64, border: `1.5px dashed ${colors.border}`, background: colors.bg }}
           >
             <Plus size={22} color={colors.textSub} />
           </button>
-          <span className="text-xs" style={{ color: colors.textSub }}>{enviando ? 'Enviando...' : 'Novo'}</span>
+          <span className="text-xs" style={{ color: colors.textSub }}>{enviando ? 'Enviando...' : 'Adicionar'}</span>
         </div>
 
         {destaques.map(d => (
@@ -124,6 +101,12 @@ export default function Destaques({ userId }) {
         ))}
       </div>
 
+      {(escolhendo || envio.erro) && (
+        <div className="mt-3">
+          <SeletorDeFotos onArquivos={handleUpload} enviando={enviando} erro={envio.erro} tentativas={envio.tentativas} multiple={false} />
+        </div>
+      )}
+
       {aberto && (
         <div
           className="fixed inset-0 flex items-center justify-center p-4"
@@ -140,7 +123,7 @@ export default function Destaques({ userId }) {
               <p className="text-sm font-medium" style={{ color: '#fff' }}>{aberto.titulo}</p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => remover(aberto.id)}
+                  onClick={() => { if (window.confirm('Remover este destaque?')) remover(aberto.id) }}
                   className="text-xs px-3 py-1.5 rounded-lg"
                   style={{ background: 'rgba(185,28,28,0.85)', color: '#fff' }}
                 >

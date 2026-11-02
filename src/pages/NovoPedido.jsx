@@ -1,11 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Video, X, Upload } from 'lucide-react'
+import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useCategorias, useServicosCatalogo } from '../lib/hooks'
 import { ESTADOS, buscarMunicipios } from '../lib/localidades'
 import { colors, spacing } from '../lib/design'
+import { prepararArquivo, enviarParaStorage, ErroDeMidia } from '../lib/midia'
+import { useErroDeEnvio } from '../lib/useErroDeEnvio'
+import SeletorDeFotos from '../components/SeletorDeFotos'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -23,6 +26,8 @@ const inputStyle = {
   width: '100%', padding: '10px 14px', fontSize: 14, borderRadius: 12,
   border: `1px solid ${colors.border}`, outline: 'none', color: colors.text, fontFamily: 'inherit',
 }
+
+const MAX_MIDIAS = 10
 
 const labelStyle = { display: 'block', fontSize: 13, color: colors.textSub, marginBottom: 6 }
 
@@ -48,9 +53,10 @@ export default function NovoPedido() {
   const { servicos: catalogo } = useServicosCatalogo(dados.categoria_id)
   const [cidades, setCidades] = useState([])
   const [carregandoCidades, setCarregandoCidades] = useState(false)
-  const [midias, setMidias] = useState([]) // [{ file, url, tipo }]
+  const [midias, setMidias] = useState([]) // [{ preparado, url, tipo }] — já conferidas e encolhidas
+  const [preparando, setPreparando] = useState(false)
   const [erro, setErro] = useState('')
-  const inputMidiaRef = useRef(null)
+  const envioMidia = useErroDeEnvio()
 
   useEffect(() => {
     if (authCarregando) return
@@ -96,15 +102,27 @@ export default function NovoPedido() {
 
   const mudarEstado = (uf) => setDados(prev => ({ ...prev, estado: uf, cidade: '' }))
 
-  const handleArquivosMidia = (e) => {
-    const arquivos = Array.from(e.target.files)
-    const novas = arquivos.map(f => ({
-      file: f,
-      url: URL.createObjectURL(f),
-      tipo: f.type.startsWith('video') ? 'video' : 'foto',
-    }))
-    setMidias(prev => [...prev, ...novas])
-    e.target.value = ''
+  // Confere e encolhe cada foto assim que é escolhida: o erro aparece na hora, não só no final.
+  const handleArquivosMidia = async (arquivos) => {
+    envioMidia.limpar()
+    const vagas = MAX_MIDIAS - midias.length
+    if (vagas <= 0) { envioMidia.falhou(new ErroDeMidia(`Você já adicionou ${MAX_MIDIAS} fotos, que é o máximo. Remova alguma para colocar outra.`)); return }
+    setPreparando(true)
+    const novas = []
+    let ultimoErro = null
+    for (const f of arquivos.slice(0, vagas)) {
+      try {
+        const preparado = await prepararArquivo(f)
+        novas.push({ preparado, url: URL.createObjectURL(preparado.arquivo), tipo: preparado.tipo })
+      } catch (e) {
+        ultimoErro = e
+      }
+    }
+    if (novas.length) setMidias(prev => [...prev, ...novas])
+    if (ultimoErro) envioMidia.falhou(ultimoErro)
+    else if (arquivos.length > vagas) envioMidia.falhou(new ErroDeMidia(`O máximo é ${MAX_MIDIAS} fotos. Só as primeiras foram adicionadas.`))
+    else envioMidia.deuCerto()
+    setPreparando(false)
   }
 
   const removerMidia = (idx) => setMidias(prev => prev.filter((_, i) => i !== idx))
@@ -154,16 +172,18 @@ export default function NovoPedido() {
     }
 
     // Sobe as fotos/vídeos anexados (precisa do id do pedido pra montar o caminho)
-    if (midias.length > 0) {
-      for (const m of midias) {
-        const ext = m.file.name.split('.').pop()
-        const caminho = `pedidos/${data.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-        const { error: erroUpload } = await supabase.storage.from('midias').upload(caminho, m.file)
-        if (!erroUpload) {
-          const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
-          await supabase.from('midias_pedido').insert({ pedido_id: data.id, url: urlData.publicUrl, tipo: m.tipo })
-        }
+    let naoSubiram = 0
+    for (const [i, m] of midias.entries()) {
+      try {
+        const { url, tipo } = await enviarParaStorage(supabase, 'midias', `pedidos/${data.id}/${Date.now()}-${i}`, m.preparado)
+        const { error: erroMidia } = await supabase.from('midias_pedido').insert({ pedido_id: data.id, url, tipo })
+        if (erroMidia) throw erroMidia
+      } catch {
+        naoSubiram++
       }
+    }
+    if (naoSubiram) {
+      alert(`Seu pedido foi publicado, mas ${naoSubiram === 1 ? '1 foto não foi enviada' : `${naoSubiram} fotos não foram enviadas`}. Você pode combinar os detalhes pelo chat com o profissional.`)
     }
 
     setEnviando(false)
@@ -272,33 +292,37 @@ export default function NovoPedido() {
 
             <div>
               <label style={labelStyle}>Fotos ou vídeos (opcional)</label>
-              <p style={{ fontSize: 12, color: colors.textSub, marginTop: -2, marginBottom: 10 }}>
-                Mostre a peça quebrada, o cômodo ou o que precisa de serviço — ajuda o profissional a entender melhor.
+              <p style={{ fontSize: 14, color: colors.textSub, marginTop: -2, marginBottom: 12, lineHeight: 1.45 }}>
+                Mostre a peça quebrada, o cômodo ou o que precisa de serviço — ajuda o profissional a entender melhor. Até {MAX_MIDIAS} fotos.
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {midias.map((m, i) => (
-                  <div key={i} style={{ position: 'relative', width: 72, height: 72, borderRadius: 12, overflow: 'hidden', border: `1px solid ${colors.border}` }}>
-                    {m.tipo === 'video' ? (
-                      <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <img src={m.url} alt="Anexo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removerMidia(i)}
-                      aria-label="Remover anexo"
-                      style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-                <label style={{ width: 72, height: 72, borderRadius: 12, border: `1.5px dashed ${colors.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer', color: colors.textSub }}>
-                  <Upload size={16} />
-                  <span style={{ fontSize: 10 }}>Adicionar</span>
-                  <input ref={inputMidiaRef} type="file" accept="image/*,video/*" multiple onChange={handleArquivosMidia} style={{ display: 'none' }} />
-                </label>
-              </div>
+              {midias.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                  {midias.map((m, i) => (
+                    <div key={i} style={{ position: 'relative', width: 88, height: 88, borderRadius: 12, overflow: 'hidden', border: `1px solid ${colors.border}` }}>
+                      {m.tipo === 'video' ? (
+                        <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <img src={m.url} alt="Foto anexada" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removerMidia(i)}
+                        aria-label="Remover esta foto"
+                        style={{ position: 'absolute', top: 3, right: 3, width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <SeletorDeFotos
+                onArquivos={handleArquivosMidia}
+                enviando={preparando}
+                verbo="Preparando"
+                erro={envioMidia.erro}
+                tentativas={envioMidia.tentativas}
+              />
             </div>
           </div>
 
@@ -312,7 +336,7 @@ export default function NovoPedido() {
             <Button variant="secondary" fullWidth onClick={() => navigate('/pedidos')}>Cancelar</Button>
             <Button
               fullWidth
-              disabled={!dados.titulo || !dados.categoria_id || !dados.cidade || enviando}
+              disabled={!dados.titulo || !dados.categoria_id || !dados.cidade || enviando || preparando}
               onClick={publicarPedido}
             >
               {enviando ? 'Publicando...' : creditosDisponiveis > 0 ? 'Publicar (1 crédito)' : 'Continuar'}

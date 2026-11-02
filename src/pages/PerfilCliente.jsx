@@ -14,6 +14,9 @@ import RedesSociaisForm from '../components/RedesSociaisForm'
 import RedesSociais from '../components/RedesSociais'
 import Destaques from '../components/Destaques'
 import Chip from '../components/ui/Chip'
+import SeletorDeFotos from '../components/SeletorDeFotos'
+import { prepararArquivo, enviarParaStorage } from '../lib/midia'
+import { useErroDeEnvio } from '../lib/useErroDeEnvio'
 
 const servicosDisponiveis = [
   { id: 'eletrica', icon: Zap, nome: 'Elétrica' },
@@ -37,6 +40,8 @@ export default function PerfilCliente() {
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [uploadingFoto, setUploadingFoto] = useState(false)
+  const [trocandoFoto, setTrocandoFoto] = useState(false)
+  const envioFoto = useErroDeEnvio()
   const [fotoUrl, setFotoUrl] = useState('')
   const [salvoMsg, setSalvoMsg] = useState('')
   const [erroSalvarMsg, setErroSalvarMsg] = useState('')
@@ -173,17 +178,20 @@ export default function PerfilCliente() {
     setTimeout(() => setSalvoMsg(''), 3000)
   }
 
-  const uploadFoto = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+  const uploadFoto = async ([arquivo]) => {
     setUploadingFoto(true)
-    const ext = file.name.split('.').pop()
-    const caminho = `clientes/${usuario.id}/foto.${ext}`
-    const { error } = await supabase.storage.from('midias').upload(caminho, file, { upsert: true })
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('midias').getPublicUrl(caminho)
-      await supabase.auth.updateUser({ data: { ...usuario.user_metadata, foto_url: urlData.publicUrl } })
-      setFotoUrl(urlData.publicUrl)
+    envioFoto.limpar()
+    try {
+      const preparado = await prepararArquivo(arquivo, { permitirVideo: false, maxLado: 800 })
+      const { url } = await enviarParaStorage(supabase, 'midias', `clientes/${usuario.id}/foto`, preparado, { upsert: true })
+      const urlComVersao = `${url}?v=${Date.now()}`
+      const { error } = await supabase.auth.updateUser({ data: { ...usuario.user_metadata, foto_url: urlComVersao } })
+      if (error) throw error
+      setFotoUrl(urlComVersao)
+      envioFoto.deuCerto()
+      setTrocandoFoto(false)
+    } catch (e) {
+      envioFoto.falhou(e)
     }
     setUploadingFoto(false)
   }
@@ -225,7 +233,7 @@ export default function PerfilCliente() {
       {/* Header */}
       <div className="bg-white rounded-2xl p-6 mb-4" style={{ border: '0.5px solid #E4E7E4' }}>
         <div className="flex items-center gap-4 mb-4">
-          <label className="cursor-pointer flex-shrink-0">
+          <button type="button" onClick={() => setTrocandoFoto(v => !v)} aria-label="Trocar minha foto" className="cursor-pointer flex-shrink-0" style={{ background: 'none', border: 'none', padding: 0 }}>
             <div className="relative w-16 h-16">
               {fotoUrl ? (
                 <img src={fotoUrl} alt="Foto" className="w-16 h-16 rounded-full object-cover" style={{ border: '2px solid #16A34A' }} />
@@ -239,8 +247,7 @@ export default function PerfilCliente() {
                 {uploadingFoto ? <Loader2 size={11} color="#fff" className="animate-spin" /> : <Camera size={11} color="#fff" />}
               </div>
             </div>
-            <input type="file" accept="image/*" onChange={uploadFoto} className="hidden" disabled={uploadingFoto} />
-          </label>
+          </button>
 
           <div className="flex-1">
             <p className="text-base font-semibold mb-0.5" style={{ color: '#1F2937' }}>
@@ -248,6 +255,9 @@ export default function PerfilCliente() {
             </p>
             <p className="text-xs mb-1" style={{ color: '#6B7280' }}>{usuario.email}</p>
             <p className="text-xs" style={{ color: '#9CA3AF' }}>Membro desde {membro}</p>
+            <button type="button" onClick={() => setTrocandoFoto(v => !v)} className="text-sm font-semibold mt-1" style={{ color: '#15803D', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer' }}>
+              {fotoUrl ? 'Trocar minha foto' : 'Colocar minha foto'}
+            </button>
             {notaMedia && (
               <div className="mt-2">
                 <ReputacaoBadge nota={parseFloat(notaMedia)} totalAvaliacoes={avaliacoesRecebidas.length} size="small" />
@@ -255,6 +265,12 @@ export default function PerfilCliente() {
             )}
           </div>
         </div>
+
+        {(trocandoFoto || envioFoto.erro) && (
+          <div className="mb-4">
+            <SeletorDeFotos onArquivos={uploadFoto} enviando={uploadingFoto} erro={envioFoto.erro} tentativas={envioFoto.tentativas} aceitaVideo={false} multiple={false} />
+          </div>
+        )}
 
         {bio && (
           <p className="text-sm mb-4 p-3 rounded-xl" style={{ background: '#F3F6F2', color: '#6B7280' }}>{bio}</p>
