@@ -6,8 +6,11 @@ Hoje a Vercel roda no **ambiente de testes** do Asaas (`ASAAS_SANDBOX=true`): ni
 ## Pré-requisitos (sem isso, não ligar)
 
 - [ ] **Conta real do Asaas aprovada** para cobrar (documentos enviados e validados).
-- [ ] **Permissão de transferência por API liberada pelo suporte do Asaas.** O pagamento protegido retém o dinheiro e depois repassa ao prestador por transferência. Sem essa permissão, o cliente paga, o dinheiro fica retido e o prestador não recebe.
-  Enquanto não liberarem, **não ofereça pagamento protegido** em produção (assinaturas e créditos funcionam sem isso).
+- [ ] **Transferência por API funcionando.** O pagamento protegido retém o dinheiro e depois repassa ao prestador por transferência. Sem isso, o cliente paga, o dinheiro fica retido e o prestador não recebe.
+  Enquanto não estiver funcionando, **não ofereça pagamento protegido** em produção (assinaturas e créditos funcionam sem isso).
+  Segundo o atendimento do Asaas (04/11/2026, chat), os requisitos para transferir por API são: **conta aprovada**, **primeira TED concluída ou selfie aprovada** e **chave Pix cadastrada** na conta.
+  Para o webhook de validação: Menu do usuário → Integrações → Segurança → **desative "Validar também saques via interface"**, para que a API use o webhook e o painel/app usem token. Se mantiver a opção ligada, o endpoint precisa validar por dados bancários, chave Pix ou valor, e não só pelo ID.
+  Limites, documentos adicionais e prazos: o atendimento automático não soube informar. O pedido a um atendente humano foi enviado pelo chat da conta real em 04/11/2026.
 - [ ] **Chave de produção ativa** (a conta real "PRESTADOR APP"). O Asaas desabilita chave sem uso após 3 meses. Se estiver "Desabilitada", reabilite em Integrações → Chaves de API.
 - [ ] Limpeza dos dados de teste feita (`node scripts/limpar-dados-de-teste.mjs`).
 - [ ] Números fictícios da Home e de Planos trocados por reais ou removidos.
