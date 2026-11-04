@@ -5,7 +5,10 @@ Hoje a Vercel roda no **ambiente de testes** do Asaas (`ASAAS_SANDBOX=true`): ni
 
 ## Pré-requisitos (sem isso, não ligar)
 
-- [ ] **Conta real do Asaas aprovada** para cobrar (documentos enviados e validados).
+- [x] **Conta real do Asaas aprovada** para cobrar (dados comerciais, documentos e aprovação geral: "Aprovado", conferido em 04/11/2026).
+- [x] **Chave Pix cadastrada** na conta real (chave aleatória, criada em 04/11/2026; antes foi preciso cadastrar o navegador como dispositivo confiável em Pix → Dispositivos Pix).
+- [ ] **Validação de saque por webhook** (Integrações → Segurança): hoje está **desabilitada**. Sem ela, as transferências feitas pela API podem exigir aprovação manual por token (SMS/app). Ativar no dia do lançamento, com a URL `https://SEU-SITE/api/validar-saque-asaas` e o `ASAAS_SAQUE_WEBHOOK_TOKEN` já gravado na Vercel. A confirmação exige token no celular do dono. Deixe **desmarcado** "Validar também saques via interface".
+- [ ] **Restrição de IP da API** (Integrações → Segurança): hoje não há IP autorizado, então qualquer IP com a chave consegue chamar a API. Na Vercel os IPs mudam; por isso deixe como está e proteja a chave (nunca em código nem em conversa).
 - [ ] **Transferência por API funcionando.** O pagamento protegido retém o dinheiro e depois repassa ao prestador por transferência. Sem isso, o cliente paga, o dinheiro fica retido e o prestador não recebe.
   Enquanto não estiver funcionando, **não ofereça pagamento protegido** em produção (assinaturas e créditos funcionam sem isso).
   Segundo o atendimento do Asaas (04/11/2026, chat), os requisitos para transferir por API são: **conta aprovada**, **primeira TED concluída ou selfie aprovada** e **chave Pix cadastrada** na conta.
