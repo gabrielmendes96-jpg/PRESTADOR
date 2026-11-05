@@ -134,7 +134,7 @@ export default function HomeNova() {
               onClick={irPerto}
               disabled={locStatus === 'pedindo'}
               className="btn-press"
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 22, padding: '14px 18px', maxWidth: '100%', whiteSpace: 'nowrap', borderRadius: 999, fontSize: 14, fontWeight: 800, color: VERDE_ESCURO, background: '#fff', border: 'none', boxShadow: '0 12px 28px rgba(0,0,0,0.22)', opacity: locStatus === 'pedindo' ? 0.7 : 1 }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 22, padding: '14px 16px', maxWidth: '100%', whiteSpace: 'nowrap', borderRadius: 999, fontSize: 'clamp(12.5px, 3.3vw, 15px)', fontWeight: 800, color: VERDE_ESCURO, background: '#fff', border: 'none', boxShadow: '0 12px 28px rgba(0,0,0,0.22)', opacity: locStatus === 'pedindo' ? 0.7 : 1 }}
             >
               <MapPin size={18} style={{ flexShrink: 0 }} /> Encontrar profissional perto de mim
             </button>
