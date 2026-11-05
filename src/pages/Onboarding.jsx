@@ -15,7 +15,7 @@ const passos = [
   {
     icon: Camera,
     titulo: 'Adicione fotos dos seus trabalhos',
-    desc: 'Perfis com fotos recebem 3x mais contatos. Vá em Portfólio no seu painel e adicione pelo menos 5 fotos dos seus serviços.',
+    desc: 'Fotos dos seus trabalhos passam confiança ao cliente. Vá em Portfólio no seu painel e adicione pelo menos 5 fotos dos seus serviços.',
     dica: 'Fotos do "antes e depois" são as que mais convencem clientes.',
   },
   {

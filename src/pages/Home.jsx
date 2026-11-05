@@ -243,18 +243,18 @@ export default function Home() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 20 }}>
               <div style={{ textAlign: 'center' }}>
                 <Users size={18} color="#fff" style={{ margin: '0 auto 6px' }} />
-                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>18.000+</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Profissionais</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>Grátis</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Buscar e conversar</p>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <Star size={18} fill="#fff" color="#fff" strokeWidth={0} style={{ margin: '0 auto 6px' }} />
-                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>4.9</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Avaliação média</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>Avaliações</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>de clientes reais</p>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <MapPin size={18} color="#fff" style={{ margin: '0 auto 6px' }} />
-                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>320</p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Cidades</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 2 }}>Sua cidade</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Perto de você</p>
               </div>
             </div>
           </div>

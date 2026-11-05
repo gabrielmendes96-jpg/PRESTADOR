@@ -386,7 +386,7 @@ export default function PainelPrestador() {
             {/* Foto de perfil */}
             <div style={{ marginBottom: 24, padding: 16, borderRadius: 16, background: colors.bg }}>
               <p style={{ fontSize: 14, fontWeight: 700, color: colors.text, margin: '0 0 2px' }}>Foto de perfil</p>
-              <p style={{ fontSize: 13, color: colors.textSub, margin: '0 0 14px' }}>Profissionais com foto recebem 3x mais contatos.</p>
+              <p style={{ fontSize: 13, color: colors.textSub, margin: '0 0 14px' }}>Uma foto sua passa mais confiança ao cliente.</p>
               <FotoPerfilUpload
                 prestadorId={prestador.id}
                 fotoAtual={prestador.foto_perfil}
@@ -579,7 +579,7 @@ export default function PainelPrestador() {
         {/* ABA: PORTFÓLIO */}
         {aba === 'portfolio' && (
           <Card padding={24}>
-            <TabHeader icon={Image} title="Meu portfólio" desc="Adicione fotos e vídeos dos serviços que você já realizou. Perfis com fotos recebem 3x mais contatos!" />
+            <TabHeader icon={Image} title="Meu portfólio" desc="Adicione fotos e vídeos dos serviços que você já realizou. Fotos dos seus trabalhos passam confiança ao cliente." />
             <Portfolio prestadorId={prestador.id} planoId={prestador.plano_id} planoStatus={prestador.plano_status} />
           </Card>
         )}

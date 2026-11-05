@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, ShieldCheck, Star } from 'lucide-react'
+import { Check, ShieldCheck } from 'lucide-react'
 import { usePlanos } from '../lib/hooks'
 import { colors, spacing, type as typeScale } from '../lib/design'
 import Card from '../components/ui/Card'
@@ -8,9 +8,9 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 
 const stats = [
-  { num: '12.000+', txt: 'Profissionais cadastrados' },
-  { num: '85.000+', txt: 'Clientes ativos' },
-  { num: '4.8', txt: 'Avaliação média na plataforma', icon: Star },
+  { num: 'Pix ou cartão', txt: 'Formas de pagamento' },
+  { num: 'Sem fidelidade', txt: 'Cancele a renovação quando quiser' },
+  { num: 'Pelo app', txt: 'Suporte por chamado' },
 ]
 
 const CICLOS = [
@@ -29,7 +29,7 @@ export default function Planos() {
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
         <h1 style={{ ...typeScale.subtitle, fontSize: 26, color: colors.text, marginBottom: 8 }}>Planos para profissionais</h1>
-        <p style={{ fontSize: 15, color: colors.textSub, marginBottom: 20 }}>Apareça para milhares de clientes em todo o Brasil</p>
+        <p style={{ fontSize: 15, color: colors.textSub, marginBottom: 20 }}>Apareça para clientes da sua cidade e receba pedidos de orçamento</p>
 
         <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: colors.bg, border: `1px solid ${colors.border}` }}>
           {CICLOS.map(c => (

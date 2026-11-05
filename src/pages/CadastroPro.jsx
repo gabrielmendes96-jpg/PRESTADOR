@@ -236,7 +236,7 @@ export function CadastroPro() {
 
             <div>
               <label style={labelStyle}>Fotos do seu trabalho</label>
-              <p style={{ fontSize: 12, color: '#9CA3AF' }}>Adicione fotos no painel após finalizar o cadastro. Perfis com fotos recebem 3x mais contatos!</p>
+              <p style={{ fontSize: 12, color: '#9CA3AF' }}>Adicione fotos no painel após finalizar o cadastro. Fotos dos seus trabalhos ajudam o cliente a confiar em você.</p>
             </div>
           </div>
         )}

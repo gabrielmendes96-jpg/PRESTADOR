@@ -96,7 +96,7 @@ export default function ComoFunciona() {
             Encontre o profissional <span style={{ color: colors.primary }}>certo</span>. Na hora certa.
           </h1>
           <p style={{ fontSize: 16, color: colors.textSub, lineHeight: 1.6, marginBottom: 24, maxWidth: 460 }}>
-            Conectamos você a profissionais avaliados e qualificados perto de você — com fotos reais e conversa direta pelo app.
+            Conectamos você a profissionais da sua região — com fotos dos trabalhos e conversa direta pelo app.
           </p>
           <div style={{ marginBottom: 16, maxWidth: 460 }}>
             <SearchBar value={busca} onChange={e => setBusca(e.target.value)} onSubmit={handleBusca} />
@@ -122,22 +122,22 @@ export default function ComoFunciona() {
             <div style={{ position: 'absolute', top: 20, left: -16, background: '#fff', borderRadius: 16, padding: '10px 14px', boxShadow: shadow.card, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Users size={16} color={colors.primary} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: colors.text, margin: 0 }}>18.000+</p>
-                <p style={{ fontSize: 10, color: colors.textSub, margin: 0 }}>Profissionais</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: colors.text, margin: 0 }}>Grátis</p>
+                <p style={{ fontSize: 10, color: colors.textSub, margin: 0 }}>Buscar e conversar</p>
               </div>
             </div>
 
             <div style={{ position: 'absolute', bottom: 24, right: -16, background: '#fff', borderRadius: 16, padding: '10px 14px', boxShadow: shadow.card, display: 'flex', alignItems: 'center', gap: 8 }}>
               <Star size={16} fill={colors.secondary} color={colors.secondary} strokeWidth={0} />
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: colors.text, margin: 0 }}>4.9</p>
-                <p style={{ fontSize: 10, color: colors.textSub, margin: 0 }}>Avaliação média</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: colors.text, margin: 0 }}>Avaliações</p>
+                <p style={{ fontSize: 10, color: colors.textSub, margin: 0 }}>de clientes reais</p>
               </div>
             </div>
 
             <div style={{ position: 'absolute', bottom: -14, left: 24, background: '#fff', borderRadius: 16, padding: '10px 14px', boxShadow: shadow.card, display: 'flex', alignItems: 'center', gap: 8 }}>
               <ShieldCheck size={16} color={colors.primary} />
-              <p style={{ fontSize: 12, fontWeight: 700, color: colors.text, margin: 0 }}>100% seguro</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: colors.text, margin: 0 }}>Orçamento sem compromisso</p>
             </div>
           </div>
         </div>
