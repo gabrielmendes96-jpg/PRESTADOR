@@ -5,7 +5,7 @@ import { ChevronDown, User, Wrench, MessageCircle, ClipboardList, Gift, LogOut, 
 // Cada página vira um chunk próprio em vez de tudo ir num JS só — o
 // visitante que só quer buscar um prestador não baixa o código do
 // Admin, do painel do prestador, do fluxo de pagamento, etc.
-const Home = lazy(() => import('./pages/Home'))
+const Home = lazy(() => import('./pages/HomeEscolha'))
 const Busca = lazy(() => import('./pages/Busca'))
 const Perfil = lazy(() => import('./pages/Perfil'))
 const Planos = lazy(() => import('./pages/Planos'))
