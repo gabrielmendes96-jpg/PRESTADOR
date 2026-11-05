@@ -93,7 +93,7 @@ export default function ComoFunciona() {
       <div className="flex flex-col sm:flex-row" style={{ alignItems: 'center', gap: 40, padding: '24px 4px 48px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ fontSize: 34, fontWeight: 700, color: colors.text, lineHeight: 1.15, marginBottom: 16 }}>
-            Encontre o profissional <span style={{ color: colors.primary }}>certo</span>. Na hora certa.
+            O profissional <span style={{ color: colors.primary }}>certo</span>, perto de você!
           </h1>
           <p style={{ fontSize: 16, color: colors.textSub, lineHeight: 1.6, marginBottom: 24, maxWidth: 460 }}>
             Conectamos você a profissionais da sua região — com fotos dos trabalhos e conversa direta pelo app.
