@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight, Navigation } from 'lucide-react'
+import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight } from 'lucide-react'
 import { usePrestadores, useCategorias } from '../lib/hooks'
-import { calcularDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
+import { calcularDistancia, recuperarLocalizacao } from '../lib/gps'
 import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow, spacing, type as typeScale } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
@@ -32,8 +32,7 @@ function SectionHeader({ title, onVerTodas }) {
 
 export default function Home() {
   const [busca, setBusca] = useState('')
-  const [userLoc, setUserLoc] = useState(() => recuperarLocalizacao())
-  const [locStatus, setLocStatus] = useState(userLoc ? 'ok' : 'idle')
+  const [userLoc] = useState(() => recuperarLocalizacao())
   const navigate = useNavigate()
   const { usuario } = useAuth()
   const { prestadores, loading } = usePrestadores()
@@ -76,25 +75,6 @@ export default function Home() {
     navigate(`/busca${busca.trim() ? `?q=${encodeURIComponent(busca)}` : ''}`)
   }
 
-  // "Perto de mim" ordena por distância; "atende no meu bairro" só mostra
-  // quem tem a minha posição dentro do raio de atendimento que cadastrou.
-  const irPerto = async (modo) => {
-    let loc = userLoc
-    if (!loc) {
-      setLocStatus('pedindo')
-      try {
-        loc = await pegarLocalizacao()
-        salvarLocalizacao(loc.lat, loc.lng)
-        setUserLoc(loc)
-        setLocStatus('ok')
-      } catch {
-        setLocStatus('negado')
-        return
-      }
-    }
-    navigate(modo === 'atende' ? '/busca?atende=1&ordem=distancia' : '/busca?ordem=distancia')
-  }
-
   const nomeUsuario = usuario?.user_metadata?.nome?.split(' ')[0]
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
@@ -117,30 +97,6 @@ export default function Home() {
         </h1>
 
         <SearchBar value={busca} onChange={e => setBusca(e.target.value)} onSubmit={handleBusca} />
-
-        <div className="flex flex-col sm:flex-row" style={{ gap: 10, marginTop: 14 }}>
-          <Button fullWidth icon={<MapPin size={17} />} disabled={locStatus === 'pedindo'} onClick={() => irPerto('perto')}>
-            Encontrar profissional perto de mim
-          </Button>
-          <Button fullWidth variant="secondary" icon={<Navigation size={17} />} disabled={locStatus === 'pedindo'} onClick={() => irPerto('atende')}>
-            Ver quem atende no meu bairro
-          </Button>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          {locStatus === 'ok' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <MapPin size={15} color={colors.primary} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: colors.primary }}>Localização ativa</span>
-            </div>
-          )}
-          {locStatus === 'pedindo' && (
-            <span style={{ fontSize: 13, color: colors.textSub }}>Obtendo localização...</span>
-          )}
-          {locStatus === 'negado' && (
-            <span style={{ fontSize: 13, color: colors.error }}>Localização negada. Ative nas configurações.</span>
-          )}
-        </div>
       </div>
       </div>
 
