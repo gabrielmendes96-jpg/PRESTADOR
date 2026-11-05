@@ -136,7 +136,7 @@ export default function HomeNova() {
               className="btn-press"
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 22, padding: '14px 18px', maxWidth: '100%', whiteSpace: 'nowrap', borderRadius: 999, fontSize: 14, fontWeight: 800, color: VERDE_ESCURO, background: '#fff', border: 'none', boxShadow: '0 12px 28px rgba(0,0,0,0.22)', opacity: locStatus === 'pedindo' ? 0.7 : 1 }}
             >
-              <MapPin size={18} /> Encontrar profissional perto de mim
+              <MapPin size={18} style={{ flexShrink: 0 }} /> Encontrar profissional perto de mim
             </button>
             {locStatus === 'pedindo' && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', margin: '12px 0 0' }}>Obtendo localização...</p>}
             {locStatus === 'negado' && <p style={{ fontSize: 13, color: '#FECACA', margin: '12px 0 0' }}>Localização negada. Ative nas configurações.</p>}
@@ -166,7 +166,7 @@ export default function HomeNova() {
         {/* Categorias */}
         <section style={{ marginBottom: 52 }}>
           <Titulo acao="Ver todas" onAcao={() => navigate('/busca')}>O que você precisa?</Titulo>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(104px, 1fr))', gap: 12 }}>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7" style={{ gap: 10 }}>
             {destaques.map(cat => {
               const { icon: Icone, bg, color } = getCategoriaIcone(cat)
               const total = contagemPorCategoria[cat.id] || 0
@@ -175,12 +175,12 @@ export default function HomeNova() {
                   key={cat.id}
                   onClick={() => navigate(`/busca?categoria=${cat.id}`)}
                   className="btn-press"
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '18px 8px 14px', background: '#fff', border: `1px solid ${colors.border}`, borderRadius: 22, textAlign: 'center' }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 6px 12px', minWidth: 0, background: '#fff', border: `1px solid ${colors.border}`, borderRadius: 20, textAlign: 'center' }}
                 >
-                  <span style={{ width: 52, height: 52, borderRadius: 18, background: bg, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ width: 48, height: 48, borderRadius: 16, background: bg, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icone size={25} color={color} strokeWidth={2} />
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.25, color: colors.text }}>{cat.nome}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.25, color: colors.text, wordBreak: 'break-word' }}>{cat.nome}</span>
                   {total > 0 && <span style={{ fontSize: 11, color: colors.textSub }}>{total} {total === 1 ? 'profissional' : 'profissionais'}</span>}
                 </button>
               )
