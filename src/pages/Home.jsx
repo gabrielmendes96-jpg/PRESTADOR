@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight } from 'lucide-react'
 import { usePrestadores, useCategorias } from '../lib/hooks'
-import { calcularDistancia, recuperarLocalizacao } from '../lib/gps'
+import { calcularDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
 import { useAuth } from '../lib/AuthContext'
 import { colors, radius, shadow, spacing, type as typeScale } from '../lib/design'
 import { getCategoriaIcone } from '../lib/categoriaIcones'
@@ -32,7 +32,8 @@ function SectionHeader({ title, onVerTodas }) {
 
 export default function Home() {
   const [busca, setBusca] = useState('')
-  const [userLoc] = useState(() => recuperarLocalizacao())
+  const [userLoc, setUserLoc] = useState(() => recuperarLocalizacao())
+  const [locStatus, setLocStatus] = useState(userLoc ? 'ok' : 'idle')
   const navigate = useNavigate()
   const { usuario } = useAuth()
   const { prestadores, loading } = usePrestadores()
@@ -75,6 +76,23 @@ export default function Home() {
     navigate(`/busca${busca.trim() ? `?q=${encodeURIComponent(busca)}` : ''}`)
   }
 
+  // "Perto de mim": pede a localização (se ainda não tiver) e abre a busca ordenada por distância.
+  const irPerto = async () => {
+    if (!userLoc) {
+      setLocStatus('pedindo')
+      try {
+        const loc = await pegarLocalizacao()
+        salvarLocalizacao(loc.lat, loc.lng)
+        setUserLoc(loc)
+        setLocStatus('ok')
+      } catch {
+        setLocStatus('negado')
+        return
+      }
+    }
+    navigate('/busca?ordem=distancia')
+  }
+
   const nomeUsuario = usuario?.user_metadata?.nome?.split(' ')[0]
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
@@ -97,6 +115,19 @@ export default function Home() {
         </h1>
 
         <SearchBar value={busca} onChange={e => setBusca(e.target.value)} onSubmit={handleBusca} />
+
+        <div style={{ marginTop: 14 }}>
+          <Button fullWidth icon={<MapPin size={17} />} disabled={locStatus === 'pedindo'} onClick={irPerto}>
+            Encontrar profissional perto de mim
+          </Button>
+        </div>
+
+        {locStatus === 'pedindo' && (
+          <p style={{ fontSize: 13, color: colors.textSub, margin: '12px 0 0' }}>Obtendo localização...</p>
+        )}
+        {locStatus === 'negado' && (
+          <p style={{ fontSize: 13, color: colors.error, margin: '12px 0 0' }}>Localização negada. Ative nas configurações.</p>
+        )}
       </div>
       </div>
 
