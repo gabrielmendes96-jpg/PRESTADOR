@@ -117,7 +117,7 @@ export default function Home() {
         <SearchBar value={busca} onChange={e => setBusca(e.target.value)} onSubmit={handleBusca} />
 
         <div style={{ marginTop: 14 }}>
-          <Button fullWidth icon={<MapPin size={17} />} disabled={locStatus === 'pedindo'} onClick={irPerto}>
+          <Button fullWidth variant="dark" icon={<MapPin size={17} />} disabled={locStatus === 'pedindo'} onClick={irPerto}>
             Encontrar profissional perto de mim
           </Button>
         </div>
