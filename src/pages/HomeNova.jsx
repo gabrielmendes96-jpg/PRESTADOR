@@ -22,7 +22,7 @@ function Titulo({ children, acao, onAcao }) {
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 18 }}>
       <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em', color: colors.text, margin: 0 }}>{children}</h2>
       {acao && (
-        <button onClick={onAcao} className="btn-press" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 14, fontWeight: 700, color: VERDE_MEDIO, background: 'none', border: 'none', padding: 0 }}>
+        <button onClick={onAcao} className="btn-press" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0, whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: VERDE_MEDIO, background: 'none', border: 'none', padding: 0 }}>
           {acao} <ChevronRight size={16} />
         </button>
       )}
