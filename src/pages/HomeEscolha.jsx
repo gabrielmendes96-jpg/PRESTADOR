@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 //  - Para voltar ao visual anterior para todo mundo: troque VISUAL_PADRAO para 'antigo' (uma linha).
 //  - Para comparar sem mudar nada: abra a página com ?visual=antigo ou ?visual=novo.
 // O visual anterior também está guardado no Git na marca "visual-anterior-home".
-const VISUAL_PADRAO = 'novo'
+const VISUAL_PADRAO = 'antigo'
 
 const HomeNova = lazy(() => import('./HomeNova'))
 const HomeAntiga = lazy(() => import('./Home'))
