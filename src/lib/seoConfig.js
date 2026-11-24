@@ -52,3 +52,16 @@ export const SEO_CATEGORIAS = {
 export const SEO_CIDADES = ['Araraquara', 'São Carlos', 'Ribeirão Preto', 'Campinas', 'São Paulo', 'Bauru', 'Franca', 'Limeira']
 
 export const SITE_URL = 'https://prestador-lyart.vercel.app'
+
+// Plural usado nos textos das páginas de SEO ("Encontre os melhores pedreiros"). Categoria com plural cadastrado usa ele;
+// as demais ganham um plural simples (uma palavra) ou "profissionais em <nome>" (várias palavras: "Aula de Inglês").
+export function pluralDe(cfg) {
+  if (cfg?.plural) return cfg.plural
+  const nome = String(cfg?.nome || '').trim().toLowerCase()
+  if (!nome) return 'profissionais'
+  if (/[\s(]/.test(nome)) return `profissionais em ${nome}`
+  if (/s$/.test(nome)) return nome
+  if (/ão$/.test(nome)) return nome.replace(/ão$/, 'ões')
+  if (/[rz]$/.test(nome)) return `${nome}es`
+  return `${nome}s`
+}

@@ -8,6 +8,7 @@ import { getCategoriaIcone } from '../lib/categoriaIcones'
 import { useNomeCategoria } from '../lib/hooks'
 import { SEO_CATEGORIAS, SEO_CIDADES, SITE_URL } from '../lib/seoConfig'
 import { useSEO } from '../lib/useSEO'
+import { pluralDe } from '../lib/seoConfig'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
@@ -19,8 +20,7 @@ export default function SEOCategoria() {
 
   const nomeNoBanco = useNomeCategoria(categoria)
   const catConfig = SEO_CATEGORIAS[categoria] || { nome: nomeNoBanco || categoria, desc: 'Serviços profissionais' }
-  // "plural" evita montar "faz-tudo (marido de aluguel)s"; sem ele, vale o jeito antigo (nome + s).
-  const plural = catConfig.plural || `${plural}`
+  const plural = pluralDe(catConfig)
   const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
 
   useEffect(() => {
@@ -31,6 +31,7 @@ export default function SEOCategoria() {
     title: `${catConfig.nome} | Prestador — Encontre Profissionais Avaliados`,
     description: `Encontre ${plural} com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`,
     path: `/s/${categoria}`,
+    noindex: !carregando && prestadores.length === 0,
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',

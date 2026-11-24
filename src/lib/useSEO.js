@@ -15,7 +15,8 @@ function definirMeta(seletor, criarTag) {
 // (SEOCategoria.jsx, SEOCidadeCategoria.jsx) — cada rota tem seu
 // próprio título/descrição/URL em vez de reaproveitar os genéricos do
 // index.html pra todo mundo.
-export function useSEO({ title, description, path, jsonLd }) {
+// noindex: pede ao Google para não listar a página (404 e páginas de categoria sem nenhum profissional).
+export function useSEO({ title, description, path, jsonLd, noindex = false }) {
   useEffect(() => {
     if (title) document.title = title
 
@@ -64,6 +65,14 @@ export function useSEO({ title, description, path, jsonLd }) {
       ogDesc.content = description
     }
 
+    let metaRobots = null
+    if (noindex) {
+      metaRobots = document.createElement('meta')
+      metaRobots.name = 'robots'
+      metaRobots.content = 'noindex, follow'
+      document.head.appendChild(metaRobots)
+    }
+
     let scriptJsonLd = null
     if (jsonLd) {
       scriptJsonLd = document.createElement('script')
@@ -74,6 +83,7 @@ export function useSEO({ title, description, path, jsonLd }) {
 
     return () => {
       if (scriptJsonLd) document.head.removeChild(scriptJsonLd)
+      if (metaRobots) metaRobots.remove()
     }
-  }, [title, description, path, jsonLd])
+  }, [title, description, path, jsonLd, noindex])
 }

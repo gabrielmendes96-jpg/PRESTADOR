@@ -2,9 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import Logo from '../components/Logo'
 import { colors } from '../lib/design'
 import Button from '../components/ui/Button'
+import { useSEO } from '../lib/useSEO'
 
 export default function NotFound() {
   const navigate = useNavigate()
+  useSEO({ title: 'Página não encontrada | Prestador', noindex: true })
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: colors.bg }}>
       <div style={{ textAlign: 'center', maxWidth: 380 }}>

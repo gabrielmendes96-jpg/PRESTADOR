@@ -9,6 +9,7 @@ import { useNomeCategoria } from '../lib/hooks'
 import { semAcento } from '../lib/semAcento'
 import { SEO_CATEGORIAS, SITE_URL } from '../lib/seoConfig'
 import { useSEO } from '../lib/useSEO'
+import { pluralDe } from '../lib/seoConfig'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -37,8 +38,7 @@ export default function SEOCidadeCategoria() {
   const cidadeFormatada = cidade?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   const nomeNoBanco = useNomeCategoria(categoria)
   const catConfig = SEO_CATEGORIAS[categoria] || { nome: nomeNoBanco || categoria, desc: 'Serviços profissionais' }
-  // "plural" evita montar "faz-tudo (marido de aluguel)s"; sem ele, vale o jeito antigo (nome + s).
-  const plural = catConfig.plural || `${plural}`
+  const plural = pluralDe(catConfig)
   const { icon: CatIcon, bg: catBg, color: catColor } = getCategoriaIcone(categoria)
   const faqs = perguntasFrequentes(catConfig.nome.toLowerCase(), cidadeFormatada)
 
@@ -50,6 +50,7 @@ export default function SEOCidadeCategoria() {
     title: `${catConfig.nome} em ${cidadeFormatada} | Prestador — Profissionais Avaliados`,
     description: `Encontre ${catConfig.nome.toLowerCase()} em ${cidadeFormatada} com avaliações reais de clientes. Veja fotos dos serviços, compare profissionais e contrate com segurança pelo Prestador.`,
     path: `/s/${categoria}/${cidade}`,
+    noindex: !carregando && prestadores.length === 0,
     jsonLd: {
       '@context': 'https://schema.org',
       '@graph': [
