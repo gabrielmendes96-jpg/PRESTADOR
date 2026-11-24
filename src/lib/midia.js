@@ -65,6 +65,9 @@ export function mensagemAmigavel(erro) {
   if (/failed to fetch|network|load failed|timeout|offline|abort/.test(texto)) {
     return 'Parece que a sua internet falhou durante o envio. Confira o Wi-Fi ou o sinal do celular e tente de novo.'
   }
+  if (/mime type|not supported|invalid.*type/.test(texto)) {
+    return 'Esse tipo de arquivo não é aceito. Envie uma foto (JPG, PNG) ou um vídeo (MP4, MOV).'
+  }
   if (/maximum allowed size|too large|payload|413/.test(texto)) {
     return 'O arquivo é maior do que o permitido. Escolha uma foto menor ou um vídeo mais curto.'
   }
@@ -130,7 +133,7 @@ export async function enviarParaStorage(supabase, bucket, caminhoSemExtensao, pr
   const caminho = `${caminhoSemExtensao}.${ext}`
   const contentType = preparado.tipo === 'foto'
     ? (/^image\/(jpeg|png|webp)$/.test(preparado.arquivo.type) ? preparado.arquivo.type : 'image/jpeg')
-    : (preparado.arquivo.type || undefined)
+    : (preparado.arquivo.type || 'video/mp4')
 
   let ultimoErro
   for (let tentativa = 0; tentativa < 2; tentativa++) {

@@ -29,8 +29,15 @@ export default function Admin() {
   useEffect(() => {
     if (authCarregando) return
     if (!usuario) { navigate('/login'); return }
-    if (usuario.email !== ADMIN_EMAIL) { navigate('/'); return }
-    carregarDados()
+    let cancelado = false
+    ;(async () => {
+      // Administrador = e-mail de reserva OU linha na tabela "admins" (supabase/49).
+      const { data: ehAdminNoBanco } = usuario.email === ADMIN_EMAIL ? { data: true } : await supabase.rpc('sou_admin')
+      if (cancelado) return
+      if (ehAdminNoBanco !== true) { navigate('/'); return }
+      carregarDados()
+    })()
+    return () => { cancelado = true }
   }, [usuario, authCarregando])
 
   if (authCarregando) return <p className="text-center py-16 text-sm" style={{ color: '#9CA3AF' }}>Verificando acesso...</p>

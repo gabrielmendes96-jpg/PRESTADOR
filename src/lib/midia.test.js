@@ -83,6 +83,9 @@ describe('mensagemAmigavel', () => {
   it('arquivo grande demais para o servidor', () => {
     expect(mensagemAmigavel({ message: 'The object exceeded the maximum allowed size' })).toMatch(/maior do que o permitido/)
   })
+  it('tipo de arquivo recusado pelo servidor', () => {
+    expect(mensagemAmigavel({ message: 'mime type text/html is not supported' })).toMatch(/não é aceito/)
+  })
   it('sessão expirada', () => {
     expect(mensagemAmigavel({ message: 'new row violates row-level security policy' })).toMatch(/sessão/)
     expect(mensagemAmigavel({ message: 'JWT expired' })).toMatch(/sessão/)
