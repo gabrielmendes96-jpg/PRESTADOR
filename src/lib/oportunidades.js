@@ -58,6 +58,11 @@ export function pontuarPrestador(p, ctx = {}) {
     motivos.push({ peso: 55, texto: 'Faz exatamente esse serviço' })
   }
 
+  // Quantas palavras do pedido apareceram neste profissional (o assistente busca palavra por palavra).
+  const acertos = num(p.acertos)
+  if (acertos > 0) pontos += Math.min(acertos, 3) * 4
+  if (acertos >= 2) motivos.push({ peso: 52, texto: 'Combina com o que você descreveu' })
+
   // Impulsionamento e plano pesam pouco: ajudam a desempatar, não a esconder bons profissionais sem plano alto.
   if (p.boost_ativo) pontos += 4
   const plano = p.plano ?? p.plano_id
@@ -155,4 +160,21 @@ export function avaliarPerfil({ prestador = {}, totalServicosMarcados = 0, total
     percentual: Math.round((feitos / total) * 100),
     dicas: itens.filter(i => !i.ok).sort((a, b) => b.pontos - a.pontos).map(i => i.dica),
   }
+}
+
+// ---------- Frases do dia a dia -> palavras de busca ----------
+
+const PALAVRAS_QUE_NAO_AJUDAM = new Set([
+  'preciso', 'precisar', 'precisando', 'precisa', 'quero', 'queria', 'gostaria', 'fazer', 'faz', 'fazendo', 'para', 'pra', 'que', 'uma', 'umas', 'uns', 'por', 'favor',
+  'com', 'sem', 'meu', 'minha', 'meus', 'minhas', 'esta', 'este', 'essa', 'esse', 'ainda', 'semana', 'hoje', 'amanha', 'urgente', 'alguem', 'pode', 'ajuda',
+  'ajudar', 'tenho', 'estou', 'esta', 'esta', 'tem', 'tudo', 'muito', 'mais', 'como', 'onde', 'quem', 'qual', 'quando', 'depois', 'antes', 'aqui', 'seu', 'sua',
+  'profissional', 'servico', 'servicos', 'alguma', 'algum', 'bom', 'boa', 'barato', 'perto', 'proximo',
+])
+
+// "instalar insulfilm no carro" -> ['insulf', 'insta', 'carro'] (até 4, as mais específicas primeiro).
+// Palavras longas são cortadas no começo para casar com variações: "instalar" acha "instalador"; "vazando" acha "vazamento".
+export function palavrasChave(texto, maximo = 4) {
+  const palavras = semAcentoSimples(texto).split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !PALAVRAS_QUE_NAO_AJUDAM.has(w))
+  const unicas = [...new Set(palavras)].sort((a, b) => b.length - a.length).slice(0, maximo)
+  return unicas.map(w => (w.length <= 5 ? w : w.slice(0, Math.max(4, w.length - 3))))
 }

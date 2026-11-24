@@ -1700,4 +1700,46 @@ describe('Fluxo crítico', () => {
       if (criados.length) await admin.storage.from('midias').remove(criados)
     }
   }, 60000)
+  it('49. Busca entende frase do dia a dia: "preciso instalar insulfilm no carro" acha quem instala insulfilm', async () => {
+    const { data: antes } = await admin.from('prestadores').select('descricao').eq('id', state.prestadorId).single()
+    try {
+      await admin.from('prestadores').update({ plano_status: 'ativo', descricao: 'Instalador de insulfilm e acessorios automotivos na sua cidade.' }).eq('id', state.prestadorId)
+      const ids = async (busca) => (await buscarPrestadores({ busca })).prestadores.map(p => p.id)
+      expect(await ids('preciso instalar insulfilm no carro')).toContain(state.prestadorId)
+      expect(await ids('quero fazer insulfilm')).toContain(state.prestadorId)
+      expect(await ids('preciso de zzzxxxqqq urgente')).not.toContain(state.prestadorId)
+    } finally {
+      await admin.from('prestadores').update({ descricao: antes?.descricao ?? null }).eq('id', state.prestadorId)
+    }
+  }, 60000)
+  it('50. Painel de Oportunidades — a consulta de pedidos abertos funciona para o prestador logado e o motor ranqueia', async () => {
+    const { rankearPedidos } = await import('../../src/lib/oportunidades.js')
+    const { data: pedido } = await admin.from('pedidos_servico').insert({
+      cliente_user_id: state.clienteUserId, cliente_nome: 'Cliente de Teste', titulo: 'Pedido para o painel de oportunidades',
+      categoria_id: state.categoriaId, cidade: 'São Paulo', estado: 'SP', valor_pago: 9, pago: true, status: 'aberto', prazo: 'preciso hoje',
+    }).select().single()
+    try {
+      const { data: pedidos, error } = await state.prestadorSessao.cliente.from('pedidos_servico')
+        .select('id, titulo, categoria_id, servico_id, cidade, estado, criado_em, orcamento_min, orcamento_max, prazo, categorias(nome), servicos_catalogo(nome)')
+        .eq('status', 'aberto').eq('pago', true).neq('cliente_user_id', state.prestadorUserId)
+        .order('criado_em', { ascending: false }).limit(100)
+      expect(error).toBeNull()
+      expect(pedidos.map(p => p.id)).toContain(pedido.id)
+
+      const eu = { categoria_id: state.categoriaId, cidade: 'São Paulo', estado: 'SP' }
+      const ranque = rankearPedidos(pedidos, eu, new Set(), new Set())
+      const meu = ranque.find(p => p.id === pedido.id)
+      expect(meu).toBeTruthy()
+      expect(meu.oportunidade.motivos.length).toBeGreaterThan(0)
+
+      // Quem já respondeu não vê o pedido de novo na lista.
+      expect(rankearPedidos(pedidos, eu, new Set(), new Set([pedido.id])).map(p => p.id)).not.toContain(pedido.id)
+
+      // O cliente dono não enxerga o próprio pedido como oportunidade (a consulta o exclui).
+      const { data: doDono } = await state.clienteSessao.cliente.from('pedidos_servico').select('id').eq('status', 'aberto').neq('cliente_user_id', state.clienteUserId)
+      expect((doDono || []).map(p => p.id)).not.toContain(pedido.id)
+    } finally {
+      await admin.from('pedidos_servico').delete().eq('id', pedido.id)
+    }
+  }, 60000)
 })

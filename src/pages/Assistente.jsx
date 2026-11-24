@@ -4,7 +4,7 @@ import { Sparkles, MapPin, ClipboardList, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { buscarPrestadores } from '../lib/hooks'
 import { semAcento } from '../lib/semAcento'
-import { rankearPrestadores } from '../lib/oportunidades'
+import { rankearPrestadores, palavrasChave } from '../lib/oportunidades'
 import { interpretarComIA } from '../lib/assistenteIA'
 import { calcularDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
 import { colors, radius } from '../lib/design'
@@ -34,8 +34,15 @@ export default function Assistente() {
 
     const ia = await interpretarComIA(termo)
     const busca = ia?.busca || termo
-    let resultado = await buscarPrestadores({ busca, limite: 30 })
-    if ((!resultado || resultado.prestadores.length === 0) && ia?.categoria_id) {
+
+    // A busca compara o texto inteiro; frases do dia a dia ("instalar insulfilm no carro") precisam ser quebradas em palavras.
+    // Cada palavra é buscada e quem aparece em mais palavras ganha pontos.
+    const termos = [...new Set([...(ia?.busca ? [ia.busca] : []), ...palavrasChave(ia?.busca || termo)])].slice(0, 4)
+    const buscas = await Promise.all((termos.length ? termos : [busca]).map(t => buscarPrestadores({ busca: t, limite: 30 })))
+    const reunidos = new Map()
+    for (const r of buscas) for (const p of (r?.prestadores || [])) reunidos.set(p.id, { ...(reunidos.get(p.id) || p), acertos: (reunidos.get(p.id)?.acertos || 0) + 1 })
+    let resultado = { prestadores: [...reunidos.values()] }
+    if (resultado.prestadores.length === 0 && ia?.categoria_id) {
       resultado = await buscarPrestadores({ categoria: ia.categoria_id, limite: 30 })
     }
 

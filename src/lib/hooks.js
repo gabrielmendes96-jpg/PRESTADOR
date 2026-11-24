@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { semAcento } from './semAcento'
+import { palavrasChave } from './oportunidades'
 
 // ------------------------------------------------------------
 // useCategorias — lista de categorias ordenadas por prioridade
@@ -276,6 +277,16 @@ export async function buscarPrestadores(filtros = {}, foiCancelado = () => false
     }
     console.error('Erro ao buscar prestadores:', error)
     return { prestadores: [], temMais: false }
+  }
+
+  // Frase do dia a dia ("instalar insulfilm no carro") não aparece inteira em nenhum perfil: se nada veio,
+  // tenta de novo palavra por palavra (a mais específica primeiro) e devolve o primeiro grupo que achar alguém.
+  if ((linhas || []).length === 0 && busca.includes(' ') && !filtros._porPalavra) {
+    for (const palavra of palavrasChave(busca, 3)) {
+      const r = await buscarPrestadores({ ...filtros, busca: palavra, _porPalavra: true }, foiCancelado)
+      if (r === null) return null
+      if (r.prestadores.length) return { ...r, aproximada: true }
+    }
   }
 
   const temMais = !!filtros.limite && (linhas || []).length > filtros.limite

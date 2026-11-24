@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pontuarPrestador, rankearPrestadores, pontuarPedido, rankearPedidos, avaliarPerfil } from './oportunidades'
+import { pontuarPrestador, rankearPrestadores, pontuarPedido, rankearPedidos, avaliarPerfil, palavrasChave } from './oportunidades'
 
 const base = { id: 'p', avaliacao: 0, totalAvaliacoes: 0, disponivel: true, pontosResposta: 0, plano: 'basico', cidade: 'Araraquara', estado: 'SP' }
 
@@ -121,5 +121,37 @@ describe('avaliarPerfil', () => {
   it('avisa quando está marcado como indisponível', () => {
     const r = avaliarPerfil({ prestador: { foto_perfil: 'x', descricao: 'a'.repeat(100), whatsapp: '1', disponivel: false, cidade: 'A', estado: 'SP' }, totalServicosMarcados: 4, totalFotos: 5 })
     expect(r.dicas.join(' ')).toMatch(/indisponível/)
+  })
+})
+
+describe('palavrasChave', () => {
+  it('tira as palavras que não ajudam e corta as longas para achar variações', () => {
+    const r = palavrasChave('Preciso instalar insulfilm no carro')
+    expect(r).toContain('carro')
+    expect(r.some(w => 'instalador'.startsWith(w))).toBe(true)
+    expect(r.some(w => 'insulfilm'.startsWith(w))).toBe(true)
+    expect(r.join(' ')).not.toMatch(/preciso/)
+  })
+  it('ignora acentos e maiúsculas, e "vazando" acha "vazamento"', () => {
+    const r = palavrasChave('O CANO está VAZANDO na cozinha')
+    expect(r.some(w => 'vazamento'.startsWith(w))).toBe(true)
+    expect(r).toContain('cozinha'.slice(0, 4)) // "cozi"
+  })
+  it('respeita o máximo de palavras, as mais específicas primeiro', () => {
+    const r = palavrasChave('trocar resistencia chuveiro eletrico quadro disjuntor', 3)
+    expect(r).toHaveLength(3)
+  })
+  it('texto sem nada útil devolve lista vazia', () => {
+    expect(palavrasChave('eu quero um bom')).toEqual([])
+    expect(palavrasChave('')).toEqual([])
+  })
+})
+
+describe('acertos de palavras no ranking', () => {
+  it('quem combina com mais palavras do pedido sobe', () => {
+    const a = pontuarPrestador({ ...base, acertos: 3 })
+    const b = pontuarPrestador({ ...base, acertos: 1 })
+    expect(a.pontos).toBeGreaterThan(b.pontos)
+    expect(a.motivos).toContain('Combina com o que você descreveu')
   })
 })
