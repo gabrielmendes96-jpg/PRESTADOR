@@ -1651,4 +1651,53 @@ describe('Fluxo crítico', () => {
       }
     }
   }, 60000)
+  it('48. Armazenamento e pedidos — visitante não envia, apaga nem lista; só o dono mexe no próprio caminho', async () => {
+    const { createClient } = await import('@supabase/supabase-js')
+    const visitante = createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY)
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+    const criados = []
+    const enviar = async (cliente, caminho, tipo = 'image/png', corpo = png) => {
+      const r = await cliente.storage.from('midias').upload(caminho, corpo, { contentType: tipo, upsert: true })
+      if (!r.error) criados.push(caminho)
+      return r
+    }
+    try {
+      const pasta = `portfolio/${state.prestadorId}`
+
+      // Visitante sem login: nada de enviar, apagar ou listar.
+      expect((await enviar(visitante, `${pasta}/visitante.png`)).error).toBeTruthy()
+      const { data: listaVisitante } = await visitante.storage.from('midias').list('portfolio', { limit: 5 })
+      expect(listaVisitante ?? []).toHaveLength(0)
+
+      // Dono do perfil de prestador: envia e troca (upsert) na própria pasta.
+      expect((await enviar(state.prestadorSessao.cliente, `${pasta}/dono.png`)).error).toBeNull()
+      expect((await enviar(state.prestadorSessao.cliente, `${pasta}/dono.png`)).error).toBeNull()
+
+      // Outra pessoa (o cliente) não envia na pasta do prestador, nem na de um terceiro.
+      expect((await enviar(state.clienteSessao.cliente, `${pasta}/intruso.png`)).error).toBeTruthy()
+      expect((await enviar(state.clienteSessao.cliente, `clientes/${state.prestadorUserId}/intruso.png`)).error).toBeTruthy()
+
+      // O cliente envia na própria pasta, mas só foto/vídeo: página HTML é recusada.
+      expect((await enviar(state.clienteSessao.cliente, `clientes/${state.clienteUserId}/foto.png`)).error).toBeNull()
+      expect((await enviar(state.clienteSessao.cliente, `clientes/${state.clienteUserId}/pagina.html`, 'text/html', Buffer.from('<h1>oi</h1>'))).error).toBeTruthy()
+
+      // Visitante e intruso não conseguem apagar o arquivo do dono.
+      await visitante.storage.from('midias').remove([`${pasta}/dono.png`])
+      await state.clienteSessao.cliente.storage.from('midias').remove([`${pasta}/dono.png`])
+      const { data: aindaLa } = await admin.storage.from('midias').list(pasta)
+      expect((aindaLa || []).map(a => a.name)).toContain('dono.png')
+
+      // Pedidos abertos não aparecem para visitante, mas aparecem para quem está logado.
+      const { data: pedidosVisitante } = await visitante.from('pedidos_servico').select('id').limit(5)
+      expect(pedidosVisitante ?? []).toHaveLength(0)
+      const { data: pedidosLogado } = await state.prestadorSessao.cliente.from('pedidos_servico').select('id').limit(5)
+      expect(pedidosLogado?.length).toBeGreaterThan(0)
+
+      // Administrador por banco: quem não está na tabela admins não é admin.
+      const { data: ehAdmin } = await state.clienteSessao.cliente.rpc('sou_admin')
+      expect(ehAdmin).toBe(false)
+    } finally {
+      if (criados.length) await admin.storage.from('midias').remove(criados)
+    }
+  }, 60000)
 })
