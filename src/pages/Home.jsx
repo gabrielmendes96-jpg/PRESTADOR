@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight } from 'lucide-react'
+import { Hand, MapPin, ArrowRight, Users, Star, Flame, UserSearch, ChevronRight, Sparkles } from 'lucide-react'
 import { usePrestadores, useCategorias } from '../lib/hooks'
 import { calcularDistancia, recuperarLocalizacao, pegarLocalizacao, salvarLocalizacao } from '../lib/gps'
 import { useAuth } from '../lib/AuthContext'
@@ -121,6 +121,15 @@ export default function Home() {
             Encontrar profissional perto de mim
           </Button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/assistente')}
+          className="btn-press"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 14, padding: 0, background: 'none', border: 'none', fontSize: 14, fontWeight: 700, color: colors.primaryHover, textDecoration: 'underline' }}
+        >
+          <Sparkles size={16} /> Não sabe o que procurar? Conte para o assistente
+        </button>
 
         {locStatus === 'pedindo' && (
           <p style={{ fontSize: 13, color: colors.textSub, margin: '12px 0 0' }}>Obtendo localização...</p>

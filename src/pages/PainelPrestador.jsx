@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import {
   User, Image, Tag, Rocket, Calendar, BarChart3, Trophy,
   ClipboardList, Star, MessageCircle, Gift, CreditCard, ExternalLink,
-  Wrench, CheckCircle2, Medal, Crown, TrendingUp, Home as HomeIcon, Check,
+  Wrench, CheckCircle2, Medal, Crown, TrendingUp, Home as HomeIcon, Check, Sparkles,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { useCategorias } from '../lib/hooks'
 import { colors, radius, shadow, spacing } from '../lib/design'
 import Portfolio from '../components/Portfolio'
+import OportunidadesPrestador from '../components/OportunidadesPrestador'
 import HashtagsInput from '../components/HashtagsInput'
 import ServicosDoPrestador from '../components/ServicosDoPrestador'
 import OpcoesDeCategoria from '../components/OpcoesDeCategoria'
@@ -22,6 +23,7 @@ import Badge from '../components/ui/Badge'
 
 const menuItens = [
   { id: 'perfil', label: 'Meu Perfil', icon: User },
+  { id: 'oportunidades', label: 'Oportunidades', icon: Sparkles },
   { id: 'portfolio', label: 'Portfólio', icon: Image },
   { id: 'hashtags', label: 'Meus Serviços', icon: Tag },
   { id: 'boost', label: 'Impulsionar', icon: Rocket },
@@ -605,6 +607,8 @@ export default function PainelPrestador() {
         )}
 
         {/* ABA: NÍVEIS */}
+        {aba === 'oportunidades' && <OportunidadesPrestador prestador={prestador} />}
+
         {aba === 'niveis' && (
           <Card padding={24}>
             <TabHeader icon={Trophy} title="Programa de níveis" desc="Evolua e ganhe benefícios exclusivos na plataforma." />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
@@ -40,8 +40,9 @@ export default function NovoPedido() {
   const [ganhouBoasVindas, setGanhouBoasVindas] = useState(0)
   const [pacoteSelecionado, setPacoteSelecionado] = useState(null)
   const [enviando, setEnviando] = useState(false)
+  const [paramsUrl] = useSearchParams()
   const [dados, setDados] = useState({
-    titulo: '',
+    titulo: (paramsUrl.get('titulo') || '').slice(0, 120), // vem do Assistente (?titulo=...)
     descricao: '',
     categoria_id: '',
     servico_id: '',

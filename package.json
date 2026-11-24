@@ -15,6 +15,7 @@
     "mobile:ios": "npm run mobile:sync && npx cap open ios"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@capacitor/android": "^8.5.1",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/core": "^8.5.1",

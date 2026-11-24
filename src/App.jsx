@@ -28,6 +28,7 @@ const Pagamento = lazy(() => import('./pages/Pagamento'))
 const PagamentoRetorno = lazy(() => import('./pages/PagamentoRetorno'))
 const ZonasQuentes = lazy(() => import('./pages/ZonasQuentes'))
 const Suporte = lazy(() => import('./pages/Suporte'))
+const Assistente = lazy(() => import('./pages/Assistente'))
 const Boost = lazy(() => import('./pages/Boost'))
 const Disponibilidade = lazy(() => import('./pages/Disponibilidade'))
 const Ganhos = lazy(() => import('./pages/Ganhos'))
@@ -245,6 +246,7 @@ export default function App() {
               <Route path="/pagamento/retorno" element={<PagamentoRetorno />} />
               <Route path="/zonas" element={<ZonasQuentes />} />
               <Route path="/suporte" element={<Suporte />} />
+              <Route path="/assistente" element={<Assistente />} />
               <Route path="/boost" element={<Boost />} />
               <Route path="/disponibilidade" element={<Disponibilidade />} />
               <Route path="/ganhos" element={<Ganhos />} />

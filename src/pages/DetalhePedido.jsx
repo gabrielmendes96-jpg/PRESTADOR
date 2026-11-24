@@ -4,6 +4,7 @@ import { Wallet, Clock, Crown, Check, Send, Calendar } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { rotuloDoStatusDoPedido } from '../lib/pedidoStatus'
+import SugestoesParaPedido from '../components/SugestoesParaPedido'
 import { colors, spacing } from '../lib/design'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -422,6 +423,9 @@ export default function DetalhePedido() {
           )}
         </Card>
       )}
+
+      {/* Sugestões de profissionais para o dono do pedido enquanto ele espera propostas */}
+      {ehDono && pedido.status === 'aberto' && <SugestoesParaPedido pedido={pedido} />}
 
       {/* Ação de candidatura (para prestadores Premium) */}
       {meuPrestador && !ehDono && pedido.status === 'aberto' && (
