@@ -1742,4 +1742,46 @@ describe('Fluxo crítico', () => {
       await admin.from('pedidos_servico').delete().eq('id', pedido.id)
     }
   }, 60000)
+  it('51. Aviso de pedido novo — só prestador Premium ativo que combina é avisado; o dono do pedido e o plano básico não', async () => {
+    const avisos = async (userId, pedidoId) => (await admin.from('notificacoes').select('titulo, tipo, url').eq('user_id', userId).eq('url', `/pedidos/${pedidoId}`)).data || []
+    const novoPedido = async (campos = {}) => (await admin.from('pedidos_servico').insert({
+      cliente_user_id: state.clienteUserId, cliente_nome: 'Cliente de Teste', titulo: 'Pedido que deve avisar o prestador',
+      categoria_id: state.categoriaId, cidade: 'São Paulo', estado: 'SP', valor_pago: 9, pago: false, status: 'aberto', ...campos,
+    }).select().single()).data
+    const criados = []
+    try {
+      await admin.from('prestadores').update({ plano_id: 'premium', plano_status: 'ativo', disponivel: true, estado: 'SP', cidade: 'São Paulo' }).eq('id', state.prestadorId)
+
+      // Pedido ainda não pago (rascunho): ninguém é avisado.
+      const rascunho = await novoPedido(); criados.push(rascunho.id)
+      expect(await avisos(state.prestadorUserId, rascunho.id)).toHaveLength(0)
+
+      // Ao pagar (a publicação de verdade), o prestador Premium que combina é avisado — e só uma vez.
+      await admin.from('pedidos_servico').update({ pago: true }).eq('id', rascunho.id)
+      const aviso = await avisos(state.prestadorUserId, rascunho.id)
+      expect(aviso).toHaveLength(1)
+      expect(aviso[0]).toMatchObject({ tipo: 'oportunidade', titulo: 'Novo pedido que combina com você' })
+      await admin.from('pedidos_servico').update({ descricao: 'mudou só a descrição' }).eq('id', rascunho.id)
+      expect(await avisos(state.prestadorUserId, rascunho.id)).toHaveLength(1)
+
+      // O dono do pedido nunca recebe aviso do próprio pedido.
+      expect(await avisos(state.clienteUserId, rascunho.id)).toHaveLength(0)
+
+      // Plano básico: não é avisado (só o Premium responde pedidos).
+      await admin.from('prestadores').update({ plano_id: 'basico' }).eq('id', state.prestadorId)
+      const outro = await novoPedido({ pago: true }); criados.push(outro.id)
+      expect(await avisos(state.prestadorUserId, outro.id)).toHaveLength(0)
+
+      // Outro estado: não é avisado, mesmo sendo Premium.
+      await admin.from('prestadores').update({ plano_id: 'premium' }).eq('id', state.prestadorId)
+      const longe = await novoPedido({ pago: true, estado: 'RS', cidade: 'Porto Alegre' }); criados.push(longe.id)
+      expect(await avisos(state.prestadorUserId, longe.id)).toHaveLength(0)
+    } finally {
+      for (const id of criados) {
+        await admin.from('notificacoes').delete().eq('url', `/pedidos/${id}`)
+        await admin.from('pedidos_servico').delete().eq('id', id)
+      }
+      await admin.from('prestadores').update({ plano_id: 'basico' }).eq('id', state.prestadorId)
+    }
+  }, 60000)
 })
