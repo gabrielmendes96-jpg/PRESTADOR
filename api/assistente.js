@@ -5,7 +5,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getClientIp } from './_rateLimit.js'
-import { validarTexto, interpretarPedido } from './_assistenteIA.js'
+import { validarTexto, interpretarPedido, chaveParecidaComDaAnthropic } from './_assistenteIA.js'
 
 const MODELO = process.env.ASSISTENTE_MODELO || 'claude-opus-5-5'
 
@@ -20,7 +20,7 @@ async function categoriasDoBanco() {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ ok: false, motivo: 'ia_desligada' })
+  if (!chaveParecidaComDaAnthropic(process.env.ANTHROPIC_API_KEY)) return res.status(200).json({ ok: false, motivo: 'ia_desligada' })
 
   const texto = validarTexto(req.body?.texto)
   if (!texto) return res.status(400).json({ ok: false, error: 'Escreva de 2 a 300 caracteres.' })

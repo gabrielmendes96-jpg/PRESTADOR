@@ -59,3 +59,9 @@ export async function interpretarPedido(cliente, { texto, categorias, modelo }) 
   try { json = JSON.parse(bloco.text) } catch { return null }
   return sanearSaida(json, new Set(categorias.map(c => c.id)))
 }
+
+// Uma chave da Anthropic é "sk-ant-" seguido de letras, números, hífen e sublinhado (ASCII). Valor colado errado
+// (com emoji, espaço, texto de outro lugar) não é chave: tratamos como "IA desligada" em vez de gastar uma chamada que vai falhar.
+export function chaveParecidaComDaAnthropic(chave) {
+  return typeof chave === 'string' && /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(chave.trim())
+}

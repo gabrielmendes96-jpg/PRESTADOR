@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validarTexto, sanearSaida, montarSistema, interpretarPedido, ESQUEMA_RESPOSTA, LIMITE_TEXTO } from './_assistenteIA.js'
+import { validarTexto, sanearSaida, montarSistema, interpretarPedido, ESQUEMA_RESPOSTA, LIMITE_TEXTO, chaveParecidaComDaAnthropic } from './_assistenteIA.js'
 
 const categorias = [{ id: 'eletricista', nome: 'Eletricista' }, { id: 'encanador', nome: 'Encanador' }]
 const ids = new Set(categorias.map(c => c.id))
@@ -81,5 +81,19 @@ describe('interpretarPedido', () => {
   it('resposta sem bloco de texto vira null', async () => {
     const cliente = clienteFalso({ stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '' }] })
     expect(await interpretarPedido(cliente, { texto: 'oi', categorias, modelo: 'm' })).toBeNull()
+  })
+})
+
+describe('chaveParecidaComDaAnthropic', () => {
+  it('aceita o formato de uma chave de verdade', () => {
+    expect(chaveParecidaComDaAnthropic('sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abcdef')).toBe(true)
+  })
+  it('recusa valor colado errado: emoji, espaço, texto curto, vazio ou de outro lugar', () => {
+    expect(chaveParecidaComDaAnthropic('sk-ant-\u{1F511}\u{1F511}abcdefghijklmnopqrstuvwxyz')).toBe(false)
+    expect(chaveParecidaComDaAnthropic('sk-ant-abc def ghi jkl mno pqr stu vwx')).toBe(false)
+    expect(chaveParecidaComDaAnthropic('sk-ant-curta')).toBe(false)
+    expect(chaveParecidaComDaAnthropic('')).toBe(false)
+    expect(chaveParecidaComDaAnthropic(undefined)).toBe(false)
+    expect(chaveParecidaComDaAnthropic('sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789')).toBe(false)
   })
 })
